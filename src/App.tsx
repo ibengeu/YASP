@@ -6,6 +6,7 @@ import {SwaggerUI} from "@/components/swagger/swagger-ui"
 import {Button} from "@/components/ui/button"
 import {IndexedDBService} from "@/services/indexdbservice.ts";
 import {DirectoryPage} from "@/components/Directory.tsx";
+
 type View = 'directory' | 'input' | 'viewer';
 
 function App() {
@@ -37,7 +38,6 @@ function App() {
         setCurrentView('directory');
     };
 
-    // Render based on current view
     if (currentView === 'directory') {
         return (
             <DirectoryPage

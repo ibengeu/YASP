@@ -2,6 +2,8 @@
 import {Card} from "@/components/ui/card"
 import {Badge} from "@/components/ui/badge"
 import {cn} from "@/lib/utils.ts"
+import {useState} from "react";
+import {ChevronRight, FileJson} from "lucide-react";
 
 interface EndpointSectionProps {
     tag: string
@@ -21,82 +23,205 @@ const methodColors: Record<string, string> = {
 }
 
 
+interface SchemaObject {
+    type?: string;
+    properties?: Record<string, SchemaProperty>;
+    items?: SchemaObject;
+    $ref?: string;
+    required?: string[];
+    description?: string;
+    format?: string;
+}
+
+interface SchemaProperty {
+    type: string;
+    format?: string;
+    description?: string;
+    properties?: Record<string, SchemaProperty>;
+    items?: SchemaProperty;
+    required?: string[];
+    $ref?: string;
+}
+
 interface EndpointSectionProps {
     tag: string;
     endpoints: Array<{
         path: string;
         method: string;
-        operation: any;
+        operation: {
+            summary?: string;
+            description?: string;
+            requestBody?: {
+                content: Record<string, {
+                    schema: SchemaObject;
+                }>;
+            };
+            responses?: Record<string, {
+                content?: Record<string, {
+                    schema: SchemaObject;
+                }>;
+            }>;
+        };
     }>;
-    components: any;
+    components: {
+        schemas?: Record<string, SchemaObject>;
+    };
 }
 
-function SchemaTable({schema, components, parentPath = ''}: { schema: any; components: any; parentPath?: string }) {
+function SchemaTable({schema, components}: {
+    schema: SchemaObject;
+    components: EndpointSectionProps['components'];
+}) {
+    const [expandedSchemas, setExpandedSchemas] = useState<Set<string>>(new Set());
+
     if (!schema) return null;
 
-    function getSchemaProperties(schema: any): any {
+    function resolveSchema(schema: SchemaObject): SchemaObject {
         if (schema.$ref) {
             const refKey = schema.$ref.split('/').pop();
-            return components.schemas[refKey]?.properties;
+            return components.schemas?.[refKey] || schema;
         }
-        return schema.properties;
+        return schema;
     }
 
-    function renderPropertyRow(name: string, prop: any, required: string[] = [], path = '') {
+    function toggleSchema(path: string, event: React.MouseEvent) {
+        event.stopPropagation();
+        setExpandedSchemas(prev => {
+            const next = new Set(prev);
+            if (next.has(path)) {
+                next.delete(path);
+            } else {
+                next.add(path);
+            }
+            return next;
+        });
+    }
+
+    function renderSchema(schema: SchemaObject, name: string = '', required: string[] = [], path = ''): JSX.Element {
+        const resolvedSchema = resolveSchema(schema);
         const fullPath = path ? `${path}.${name}` : name;
-        const isNested = prop.type === 'object' && prop.properties;
-        const isArray = prop.type === 'array' && prop.items;
+        const isArray = resolvedSchema.type === 'array';
+        const arrayItemSchema = isArray ? resolveSchema(resolvedSchema.items || {}) : null;
+        const hasNestedProperties = resolvedSchema.properties || (isArray && arrayItemSchema?.properties);
+        const isExpanded = expandedSchemas.has(fullPath);
+        const depth = path.split('.').length;
 
         return (
             <>
-                <tr key={fullPath} className="border-b">
-                    <td className="px-4 py-2 font-mono">
-                        {path && '↳ '}{name}
-                        {isArray && '[]'}
+                <tr
+                    className={cn(
+                        "border-b transition-colors relative group cursor-pointer",
+                        hasNestedProperties && "bg-blue-50/50 hover:bg-blue-50/70 dark:bg-blue-950/20 dark:hover:bg-blue-950/30",
+                        !isExpanded && hasNestedProperties && "border-b-2 border-b-blue-100 dark:border-b-blue-900"
+                    )}
+                    onClick={(e) => hasNestedProperties && toggleSchema(fullPath, e)}
+                >
+                    <td className="px-4 py-2 font-mono relative">
+                        {depth > 0 && (
+                            <div
+                                className="absolute left-0 h-full border-l-2 border-blue-100 dark:border-blue-900"
+                                style={{marginLeft: `${depth * 12}px`}}
+                            />
+                        )}
+                        <div className="flex items-center gap-2" style={{paddingLeft: `${depth * 16}px`}}>
+                            {hasNestedProperties && (
+                                <ChevronRight
+                                    className={cn(
+                                        "h-4 w-4 transition-transform text-blue-500",
+                                        isExpanded && "rotate-90"
+                                    )}
+                                />
+                            )}
+                            <span className="flex items-center gap-2">
+                               {hasNestedProperties &&
+                                   <FileJson className="h-4 w-4 text-blue-500"/>
+                               }
+                                {name}
+                                {isArray && (
+                                    <span className="text-blue-500 font-semibold">[]</span>
+                                )}
+                           </span>
+                            {hasNestedProperties && (
+                                <Badge
+                                    variant="outline"
+                                    className="ml-2 bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400"
+                                >
+                                    {isArray ? 'array object' : 'object'}
+                                </Badge>
+                            )}
+                        </div>
                     </td>
                     <td className="px-4 py-2">
-                        {isNested ? 'object' : isArray ? `array of ${prop.items.type || 'object'}` : prop.type}
-                        {prop.format ? ` (${prop.format})` : ''}
+                       <span className={cn(
+                           "font-medium",
+                           hasNestedProperties && "text-blue-600 dark:text-blue-400"
+                       )}>
+                           {isArray ? `array of ${arrayItemSchema?.type || 'object'}` : resolvedSchema.type}
+                       </span>
+                        {resolvedSchema.format && (
+                            <span className="text-muted-foreground ml-2">
+                               ({resolvedSchema.format})
+                           </span>
+                        )}
                     </td>
                     <td className="px-4 py-2">
                         <Badge variant={required?.includes(name) ? "destructive" : "secondary"}>
                             {required?.includes(name) ? "Required" : "Optional"}
                         </Badge>
                     </td>
-                    <td className="px-4 py-2 text-muted-foreground">{prop.description || '-'}</td>
+                    <td className="px-4 py-2 text-muted-foreground">
+                        {resolvedSchema.description || '-'}
+                    </td>
                 </tr>
-                {isNested && Object.entries(prop.properties).map(([subName, subProp]: [string, any]) =>
-                    renderPropertyRow(subName, subProp, prop.required, fullPath)
+
+                {isExpanded && hasNestedProperties && (
+                    <tr>
+                        <td colSpan={4} className="p-0 bg-blue-50/30 dark:bg-blue-950/10">
+                            <table className="w-full border-collapse">
+                                <tbody>
+                                {resolvedSchema.properties &&
+                                    Object.entries(resolvedSchema.properties).map(([propName, prop]) =>
+                                        renderSchema(prop, propName, resolvedSchema.required, fullPath)
+                                    )}
+
+                                {isArray && arrayItemSchema?.properties &&
+                                    Object.entries(arrayItemSchema.properties).map(([propName, prop]) =>
+                                        renderSchema(prop, propName, arrayItemSchema.required, `${fullPath}[]`)
+                                    )}
+                                </tbody>
+                            </table>
+                        </td>
+                    </tr>
                 )}
-                {isArray && prop.items.type === 'object' && prop.items.properties &&
-                    Object.entries(prop.items.properties).map(([subName, subProp]: [string, any]) =>
-                        renderPropertyRow(subName, subProp, prop.items.required, fullPath)
-                    )}
             </>
         );
     }
 
-    const properties = getSchemaProperties(schema);
-    if (!properties) return null;
+    const resolvedRootSchema = resolveSchema(schema);
 
     return (
-        <table className="w-full border-collapse">
-            <thead>
-            <tr className="bg-muted">
-                <th className="px-4 py-2 text-left">Property</th>
-                <th className="px-4 py-2 text-left">Type</th>
-                <th className="px-4 py-2 text-left">Required</th>
-                <th className="px-4 py-2 text-left">Description</th>
-            </tr>
-            </thead>
-            <tbody>
-            {Object.entries(properties).map(([name, prop]: [string, any]) =>
-                renderPropertyRow(name, prop, schema.required)
-            )}
-            </tbody>
-        </table>
+        <div className="rounded-lg border overflow-hidden">
+            <table className="w-full border-collapse">
+                <thead>
+                <tr className="bg-muted border-b">
+                    <th className="px-4 py-2 text-left font-semibold">Property</th>
+                    <th className="px-4 py-2 text-left font-semibold">Type</th>
+                    <th className="px-4 py-2 text-left font-semibold">Required</th>
+                    <th className="px-4 py-2 text-left font-semibold">Description</th>
+                </tr>
+                </thead>
+                <tbody>
+                {resolvedRootSchema.properties ?
+                    Object.entries(resolvedRootSchema.properties).map(([name, prop]) =>
+                        renderSchema(prop, name, resolvedRootSchema.required)
+                    ) :
+                    renderSchema(resolvedRootSchema)}
+                </tbody>
+            </table>
+        </div>
     );
 }
+
 export default function EndpointSection({tag, endpoints, components}: EndpointSectionProps) {
     return (
         <div className="p-6">
@@ -104,17 +229,20 @@ export default function EndpointSection({tag, endpoints, components}: EndpointSe
             <div className="space-y-6">
                 {endpoints.map(({path, method, operation}) => (
                     <Card key={`${path}-${method}`} className="p-4">
-                        {/* Method and Path */}
                         <div className="flex items-center gap-4 mb-4">
-                            <Badge className={cn("uppercase", methodColors[method])}>{method}</Badge>
+                            <Badge className={cn("uppercase text-white", methodColors[method])}>
+                                {method}
+                            </Badge>
                             <code className="text-sm font-mono">{path}</code>
                         </div>
 
-                        {/* Only show summary/description if present */}
-                        {operation.summary && <h3 className="font-semibold mb-2">{operation.summary}</h3>}
-                        {operation.description && <p className="text-muted-foreground mb-4">{operation.description}</p>}
+                        {operation.summary && (
+                            <h3 className="font-semibold mb-2">{operation.summary}</h3>
+                        )}
+                        {operation.description && (
+                            <p className="text-muted-foreground mb-4">{operation.description}</p>
+                        )}
 
-                        {/* Show one response schema per content type */}
                         {operation.requestBody?.content && (
                             Object.entries(operation.requestBody.content)[0] && (
                                 <div className="mb-6">
@@ -127,11 +255,12 @@ export default function EndpointSection({tag, endpoints, components}: EndpointSe
                             )
                         )}
 
-                        {/* Only show one response schema */}
                         {operation.responses && Object.entries(operation.responses).map(([code, response]: [string, any]) => (
                             response.content && Object.entries(response.content)[0] && (
                                 <div key={code} className="mb-6">
-                                    <h4 className="text-sm font-semibold mb-2">Response {code}</h4>
+                                    <h4 className="text-sm font-semibold mb-2">
+                                        Response {code}
+                                    </h4>
                                     <SchemaTable
                                         schema={Object.entries(response.content)[0][1].schema}
                                         components={components}
