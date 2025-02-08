@@ -1,10 +1,10 @@
+// Directory.tsx
 import {useEffect, useState} from 'react';
 import {Card, CardDescription, CardHeader, CardTitle} from '@/components/ui/card';
 import {Button} from '@/components/ui/button';
-import {Plus, Search} from 'lucide-react';
+import {Plus, Search, Trash2} from 'lucide-react';
 import {IndexedDBService} from "@/services/indexdbservice.ts";
 import {Input} from "@/components/ui/input.tsx";
-
 
 interface Spec {
     id: string | number;
@@ -34,11 +34,16 @@ export function DirectoryPage({onSpecSelect, onAddNew}: DirectoryPageProps) {
     };
 
     const handleSpecSelect = (spec: Spec) => {
-        const state = {spec};
-        window.history.pushState(state, spec.title, `/spec/${spec.id}`);
         onSpecSelect(spec);
     };
 
+    const handleRemoveSpec = async (event: React.MouseEvent, specId: string | number) => {
+        event.stopPropagation();
+        if (window.confirm('Are you sure you want to remove this specification?')) {
+            await dbService.deleteSpec(specId);
+            await loadSpecs();
+        }
+    };
 
     const filteredAndSortedSpecs = specs
         .filter(spec =>
@@ -80,11 +85,21 @@ export function DirectoryPage({onSpecSelect, onAddNew}: DirectoryPageProps) {
                         {letterSpecs.map((spec) => (
                             <Card
                                 key={spec.id}
-                                className="hover:shadow-lg transition-shadow cursor-pointer"
+                                className="hover:shadow-lg transition-shadow cursor-pointer group"
                                 onClick={() => handleSpecSelect(spec)}
                             >
                                 <CardHeader>
-                                    <CardTitle>{spec.title}</CardTitle>
+                                    <div className="flex justify-between items-start">
+                                        <CardTitle>{spec.title}</CardTitle>
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="opacity-0 group-hover:opacity-100 transition-opacity"
+                                            onClick={(e) => handleRemoveSpec(e, spec.id)}
+                                        >
+                                            <Trash2 className="h-4 w-4 text-destructive"/>
+                                        </Button>
+                                    </div>
                                     <CardDescription>
                                         <div className="flex justify-between items-center">
                                             <span>Version: {spec.version}</span>

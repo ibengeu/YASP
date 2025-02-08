@@ -28,6 +28,19 @@ export class IndexedDBService {
         });
     }
 
+    // indexdbservice.ts
+    async deleteSpec(id: string | number): Promise<void> {
+        const db = await this.initDB();
+        return new Promise((resolve, reject) => {
+            const transaction = db.transaction([this.storeName], 'readwrite');
+            const store = transaction.objectStore(this.storeName);
+            const request = store.delete(id);
+
+            request.onsuccess = () => resolve();
+            request.onerror = () => reject(request.error);
+        });
+    }
+
     async saveSpec(spec: any): Promise<number> {
         const db = await this.initDB();
         return new Promise((resolve, reject) => {
