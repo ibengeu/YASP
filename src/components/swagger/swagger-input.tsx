@@ -72,15 +72,13 @@ export function SwaggerInput({onSpecLoaded}: SwaggerInputProps) {
                                         name="file-upload"
                                         type="file"
                                         className="sr-only"
-                                        accept=".json,.yaml,.yml"
+                                        accept=".json"
                                         onChange={handleFileUpload}
                                     />
                                 </Button>
                             </label>
                         </div>
-                        <p className="text-xs text-muted-foreground mt-2">
-                            JSON, YAML files supported
-                        </p>
+
                     </div>
                 </div>
 
@@ -89,7 +87,7 @@ export function SwaggerInput({onSpecLoaded}: SwaggerInputProps) {
                         Or paste your OpenAPI specification:
                     </label>
                     <Textarea
-                        placeholder="Paste your OpenAPI/Swagger JSON or YAML here..."
+                        placeholder="Paste your OpenAPI/Swagger JSON here..."
                         className="font-mono"
                         rows={10}
                         onChange={handlePaste}
