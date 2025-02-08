@@ -6,7 +6,6 @@ import {SwaggerUI} from "@/components/swagger/swagger-ui"
 import {Button} from "@/components/ui/button"
 import {IndexedDBService} from "@/services/indexdbservice.ts";
 import {DirectoryPage} from "@/components/Directory.tsx";
-
 type View = 'directory' | 'input' | 'viewer';
 
 function App() {
