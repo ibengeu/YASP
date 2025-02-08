@@ -119,7 +119,7 @@ function SchemaTable({schema, components}: {
                     <td className="px-4 py-2 font-mono relative">
                         {depth > 0 && (
                             <div
-                                className="absolute left-0 h-full border-l-2 border-blue-100 dark:border-blue-900"
+                                className="absolute left-0 h-full  border-blue-100 dark:border-blue-900"
                                 style={{marginLeft: `${depth * 12}px`}}
                             />
                         )}
