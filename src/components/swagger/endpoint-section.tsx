@@ -1,18 +1,10 @@
-// src/components/swagger/endpoint-section.tsx
+/* eslint-disable @typescript-eslint/ban-ts-comment */
 import {Card} from "@/components/ui/card"
 import {Badge} from "@/components/ui/badge"
-import {cn} from "@/lib/utils.ts"
-import {useState} from "react";
-import {ChevronRight, FileJson} from "lucide-react";
-
-interface EndpointSectionProps {
-    tag: string
-    endpoints: Array<{
-        path: string
-        method: string
-        operation: any
-    }>
-}
+import {cn} from "@/lib/utils"
+import React, {useState} from "react"
+import {ChevronRight, FileJson} from "lucide-react"
+import {OperationObject, ReferenceObject, ResponseObject, SchemaObject} from "@/types/swagger"
 
 const methodColors: Record<string, string> = {
     get: "bg-blue-500",
@@ -20,27 +12,6 @@ const methodColors: Record<string, string> = {
     put: "bg-orange-500",
     delete: "bg-red-500",
     patch: "bg-yellow-500",
-}
-
-
-interface SchemaObject {
-    type?: string;
-    properties?: Record<string, SchemaProperty>;
-    items?: SchemaObject;
-    $ref?: string;
-    required?: string[];
-    description?: string;
-    format?: string;
-}
-
-interface SchemaProperty {
-    type: string;
-    format?: string;
-    description?: string;
-    properties?: Record<string, SchemaProperty>;
-    items?: SchemaProperty;
-    required?: string[];
-    $ref?: string;
 }
 
 interface EndpointSectionProps {
@@ -56,11 +27,7 @@ interface EndpointSectionProps {
                     schema: SchemaObject;
                 }>;
             };
-            responses?: Record<string, {
-                content?: Record<string, {
-                    schema: SchemaObject;
-                }>;
-            }>;
+            responses?: Record<string, ResponseObject>;
         };
     }>;
     components: {
@@ -68,23 +35,42 @@ interface EndpointSectionProps {
     };
 }
 
-function SchemaTable({schema, components}: {
-    schema: SchemaObject;
-    components: EndpointSectionProps['components'];
-}) {
+
+interface SchemaTableProps {
+    schema: SchemaObject | ReferenceObject;
+    components: {
+        schemas?: Record<string, SchemaObject>;
+    };
+}
+
+interface EndpointSectionProps {
+    tag: string;
+    // @ts-expect-error
+    endpoints: Array<{
+        path: string;
+        method: string;
+        operation: OperationObject;
+    }>;
+    components: {
+        schemas?: Record<string, SchemaObject>;
+    };
+}
+
+
+const SchemaTable = ({schema, components}: SchemaTableProps) => {
     const [expandedSchemas, setExpandedSchemas] = useState<Set<string>>(new Set());
 
     if (!schema) return null;
 
-    function resolveSchema(schema: SchemaObject): SchemaObject {
-        if (schema.$ref) {
+    const resolveSchema = (schema: SchemaObject | ReferenceObject): SchemaObject => {
+        if ('$ref' in schema && schema.$ref?.startsWith('#/components/schemas/')) {
             const refKey = schema.$ref.split('/').pop();
-            return components.schemas?.[refKey] || schema;
+            return components.schemas?.[refKey as string] || schema as SchemaObject;
         }
-        return schema;
-    }
+        return schema as SchemaObject;
+    };
 
-    function toggleSchema(path: string, event: React.MouseEvent) {
+    const handleToggleSchema = (path: string, event: React.MouseEvent<HTMLTableRowElement>): void => {
         event.stopPropagation();
         setExpandedSchemas(prev => {
             const next = new Set(prev);
@@ -95,26 +81,32 @@ function SchemaTable({schema, components}: {
             }
             return next;
         });
-    }
-
-    function renderSchema(schema: SchemaObject, name: string = '', required: string[] = [], path = ''): JSX.Element {
+    };
+    const renderSchema = (
+        schema: SchemaObject | ReferenceObject,
+        name: string = '',
+        required: string[] = [],
+        path = ''
+    ) => {
         const resolvedSchema = resolveSchema(schema);
         const fullPath = path ? `${path}.${name}` : name;
         const isArray = resolvedSchema.type === 'array';
-        const arrayItemSchema = isArray ? resolveSchema(resolvedSchema.items || {}) : null;
+        const arrayItemSchema = isArray ? resolveSchema(resolvedSchema.items as SchemaObject) : null;
         const hasNestedProperties = resolvedSchema.properties || (isArray && arrayItemSchema?.properties);
         const isExpanded = expandedSchemas.has(fullPath);
         const depth = path.split('.').length;
 
         return (
-            <>
+            <React.Fragment key={fullPath}>
                 <tr
                     className={cn(
                         "border-b transition-colors relative group cursor-pointer",
                         hasNestedProperties && "bg-blue-50/50 hover:bg-blue-50/70 dark:bg-blue-950/20 dark:hover:bg-blue-950/30",
                         !isExpanded && hasNestedProperties && "border-b-2 border-b-blue-100 dark:border-b-blue-900"
                     )}
-                    onClick={(e) => hasNestedProperties && toggleSchema(fullPath, e)}
+                    onClick={(e) => hasNestedProperties && handleToggleSchema(fullPath, e)}
+                    role="row"
+                    aria-expanded={isExpanded}
                 >
                     <td className="px-4 py-2 font-mono relative">
                         {depth > 0 && (
@@ -130,17 +122,15 @@ function SchemaTable({schema, components}: {
                                         "h-4 w-4 transition-transform text-blue-500",
                                         isExpanded && "rotate-90"
                                     )}
+                                    aria-hidden="true"
                                 />
                             )}
                             <span className="flex items-center gap-2">
-                               {hasNestedProperties &&
-                                   <FileJson className="h-4 w-4 text-blue-500"/>
-                               }
+                                {hasNestedProperties &&
+                                    <FileJson className="h-4 w-4 text-blue-500" aria-hidden="true"/>}
                                 {name}
-                                {isArray && (
-                                    <span className="text-blue-500 font-semibold">[]</span>
-                                )}
-                           </span>
+                                {isArray && <span className="text-blue-500 font-semibold">[]</span>}
+                            </span>
                             {hasNestedProperties && (
                                 <Badge
                                     variant="outline"
@@ -152,16 +142,16 @@ function SchemaTable({schema, components}: {
                         </div>
                     </td>
                     <td className="px-4 py-2">
-                       <span className={cn(
-                           "font-medium",
-                           hasNestedProperties && "text-blue-600 dark:text-blue-400"
-                       )}>
-                           {isArray ? `array of ${arrayItemSchema?.type || 'object'}` : resolvedSchema.type}
-                       </span>
+                        <span className={cn(
+                            "font-medium",
+                            hasNestedProperties && "text-blue-600 dark:text-blue-400"
+                        )}>
+                            {isArray ? `array of ${arrayItemSchema?.type || 'object'}` : resolvedSchema.type}
+                        </span>
                         {resolvedSchema.format && (
                             <span className="text-muted-foreground ml-2">
-                               ({resolvedSchema.format})
-                           </span>
+                                ({resolvedSchema.format})
+                            </span>
                         )}
                     </td>
                     <td className="px-4 py-2">
@@ -181,21 +171,20 @@ function SchemaTable({schema, components}: {
                                 <tbody>
                                 {resolvedSchema.properties &&
                                     Object.entries(resolvedSchema.properties).map(([propName, prop]) =>
-                                        renderSchema(prop, propName, resolvedSchema.required, fullPath)
+                                        renderSchema(prop as SchemaObject, propName, resolvedSchema.required, fullPath)
                                     )}
-
                                 {isArray && arrayItemSchema?.properties &&
                                     Object.entries(arrayItemSchema.properties).map(([propName, prop]) =>
-                                        renderSchema(prop, propName, arrayItemSchema.required, `${fullPath}[]`)
+                                        renderSchema(prop as SchemaObject, propName, arrayItemSchema.required, `${fullPath}[]`)
                                     )}
                                 </tbody>
                             </table>
                         </td>
                     </tr>
                 )}
-            </>
+            </React.Fragment>
         );
-    }
+    };
 
     const resolvedRootSchema = resolveSchema(schema);
 
@@ -213,16 +202,16 @@ function SchemaTable({schema, components}: {
                 <tbody>
                 {resolvedRootSchema.properties ?
                     Object.entries(resolvedRootSchema.properties).map(([name, prop]) =>
-                        renderSchema(prop, name, resolvedRootSchema.required)
+                        renderSchema(prop as SchemaObject, name, resolvedRootSchema.required)
                     ) :
                     renderSchema(resolvedRootSchema)}
                 </tbody>
             </table>
         </div>
     );
-}
+};
 
-export default function EndpointSection({tag, endpoints, components}: EndpointSectionProps) {
+const EndpointSection = ({tag, endpoints, components}: EndpointSectionProps) => {
     return (
         <div className="p-6">
             <h2 className="text-2xl font-bold mb-4">{tag}</h2>
@@ -244,33 +233,50 @@ export default function EndpointSection({tag, endpoints, components}: EndpointSe
                         )}
 
                         {operation.requestBody?.content && (
-                            Object.entries(operation.requestBody.content)[0] && (
-                                <div className="mb-6">
-                                    <h4 className="text-sm font-semibold mb-2">Request Body</h4>
-                                    <SchemaTable
-                                        schema={Object.entries(operation.requestBody.content)[0][1].schema}
-                                        components={components}
-                                    />
-                                </div>
-                            )
+                            <div className="mb-6">
+                                <h4 className="text-sm font-semibold mb-2">Request Body</h4>
+                                {(() => {
+                                    const [contentType, content] = Object.entries(operation.requestBody.content)[0];
+                                    return (
+                                        <SchemaTable
+                                            key={contentType}
+                                            schema={content.schema}
+                                            components={components}
+                                        />
+                                    );
+                                })()}
+                            </div>
                         )}
 
-                        {operation.responses && Object.entries(operation.responses).map(([code, response]: [string, any]) => (
-                            response.content && Object.entries(response.content)[0] && (
-                                <div key={code} className="mb-6">
-                                    <h4 className="text-sm font-semibold mb-2">
-                                        Response {code}
-                                    </h4>
-                                    <SchemaTable
-                                        schema={Object.entries(response.content)[0][1].schema}
-                                        components={components}
-                                    />
-                                </div>
-                            )
-                        ))}
+                        {operation.responses && (
+                            <div className="space-y-6">
+                                {Object.entries(operation.responses).map(([code, response]) => {
+                                    const typedResponse = response as ResponseObject;
+                                    if (!typedResponse.content) return null;
+
+                                    const [contentType, content] = Object.entries(typedResponse.content)[0];
+
+                                    return (
+                                        <div key={code} className="mb-6">
+                                            <h4 className="text-sm font-semibold mb-2">
+                                                Response {code}
+                                            </h4>
+                                            <SchemaTable
+                                                key={`${code}-${contentType}`}
+                                                schema={content.schema}
+                                                components={components}
+                                            />
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
                     </Card>
                 ))}
             </div>
         </div>
     );
-}
+};
+
+export default EndpointSection;
+

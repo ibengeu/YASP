@@ -81,20 +81,21 @@ export interface ResponseObject {
 
 export interface MediaTypeObject {
     schema?: SchemaObject | ReferenceObject;
-    example?: any;
+    example?: unknown;
     examples?: Record<string, ExampleObject | ReferenceObject>;
     encoding?: Record<string, EncodingObject>;
 }
 
 export interface SchemaObject {
+    $ref?: string;
     type?: string;
     format?: string;
     properties?: Record<string, SchemaObject | ReferenceObject>;
     items?: SchemaObject | ReferenceObject;
     required?: string[];
     description?: string;
-    enum?: any[];
-    default?: any;
+    enum?: unknown[];
+    default?: unknown;
     nullable?: boolean;
 }
 
@@ -143,8 +144,8 @@ export interface HeaderObject {
 export interface LinkObject {
     operationRef?: string;
     operationId?: string;
-    parameters?: Record<string, any>;
-    requestBody?: any;
+    parameters?: Record<string, unknown>;
+    requestBody?: unknown;
     description?: string;
     server?: ServerObject;
 }
@@ -152,7 +153,7 @@ export interface LinkObject {
 export interface ExampleObject {
     summary?: string;
     description?: string;
-    value?: any;
+    value?: unknown;
     externalValue?: string;
 }
 
@@ -180,6 +181,7 @@ export interface ServerVariableObject {
     default: string;
     description?: string;
 }
+
 export interface OAuthFlowsObject {
     implicit?: OAuthFlowObject;
     password?: OAuthFlowObject;

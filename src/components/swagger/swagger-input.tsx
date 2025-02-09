@@ -1,18 +1,26 @@
-// src/components/swagger-ui/swagger-input.tsx
-import {useState} from "react";
-
-import {OpenApiDocument} from "@/types/swagger";
-import {Upload} from "lucide-react";
-import {Button} from "@/components/ui/button.tsx";
-import {Card} from "@/components/ui/card.tsx";
-import {Textarea} from "@/components/ui/textarea.tsx";
+// swagger-input.tsx
+import { useState } from "react";
+import { OpenApiDocument } from "@/types/swagger";
+import { Upload } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Textarea } from "@/components/ui/textarea";
 
 interface SwaggerInputProps {
     onSpecLoaded: (spec: OpenApiDocument) => void;
 }
 
-export function SwaggerInput({onSpecLoaded}: SwaggerInputProps) {
+export function SwaggerInput({ onSpecLoaded }: SwaggerInputProps) {
     const [error, setError] = useState<string | null>(null);
+
+    const validateAndLoadSpec = (spec: any) => {
+        if (!spec.openapi || !spec.info || !spec.paths) {
+            setError("Invalid OpenAPI specification");
+            return;
+        }
+        setError(null);
+        onSpecLoaded(spec);  // Call the callback with the validated spec
+    };
 
     const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
@@ -40,18 +48,8 @@ export function SwaggerInput({onSpecLoaded}: SwaggerInputProps) {
         }
     };
 
-    const validateAndLoadSpec = (spec: any) => {
-        // Basic validation of OpenAPI spec
-        if (!spec.openapi || !spec.info || !spec.paths) {
-            setError("Invalid OpenAPI specification");
-            return;
-        }
-        setError(null);
-        onSpecLoaded(spec);
-    };
-
     return (
-        <Card className="p-6">
+        <Card className="p-6 w-full max-w-2xl">
             <div className="space-y-4">
                 <div>
                     <h2 className="text-lg font-semibold mb-2">Load OpenAPI Specification</h2>
@@ -62,8 +60,8 @@ export function SwaggerInput({onSpecLoaded}: SwaggerInputProps) {
 
                 <div className="flex justify-center border-2 border-dashed rounded-lg p-6">
                     <div className="text-center">
-                        <Upload className="mx-auto h-12 w-12 text-gray-400"/>
-                        <div className="mt-4 flex text-sm">
+                        <Upload className="mx-auto h-12 w-12 text-muted-foreground"/>
+                        <div className="mt-4 flex text-sm justify-center">
                             <label htmlFor="file-upload" className="relative cursor-pointer">
                                 <Button variant="secondary">
                                     Select OpenAPI file
@@ -78,7 +76,6 @@ export function SwaggerInput({onSpecLoaded}: SwaggerInputProps) {
                                 </Button>
                             </label>
                         </div>
-
                     </div>
                 </div>
 
@@ -95,7 +92,7 @@ export function SwaggerInput({onSpecLoaded}: SwaggerInputProps) {
                 </div>
 
                 {error && (
-                    <div className="text-sm text-red-500">
+                    <div className="text-sm text-destructive font-medium">
                         {error}
                     </div>
                 )}

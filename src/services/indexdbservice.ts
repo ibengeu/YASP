@@ -28,7 +28,18 @@ export class IndexedDBService {
         });
     }
 
-    // indexdbservice.ts
+    async getSpecById(id: number): Promise<StoredSpec | null> {
+        const db = await this.initDB();
+        return new Promise((resolve, reject) => {
+            const transaction = db.transaction([this.storeName], 'readonly');
+            const store = transaction.objectStore(this.storeName);
+            const request = store.get(id);
+
+            request.onsuccess = () => resolve(request.result || null);
+            request.onerror = () => reject(request.error);
+        });
+    }
+
     async deleteSpec(id: string | number): Promise<void> {
         const db = await this.initDB();
         return new Promise((resolve, reject) => {
@@ -41,7 +52,31 @@ export class IndexedDBService {
         });
     }
 
+    async checkSpecExists(title: string, version: string): Promise<boolean> {
+        const db = await this.initDB();
+        return new Promise((resolve, reject) => {
+            const transaction = db.transaction([this.storeName], 'readonly');
+            const store = transaction.objectStore(this.storeName);
+            const request = store.getAll();
+
+            request.onsuccess = () => {
+                const specs = request.result as StoredSpec[];
+                const exists = specs.some(
+                    spec => spec.title === title && spec.version === version
+                );
+                resolve(exists);
+            };
+            request.onerror = () => reject(request.error);
+        });
+    }
+
     async saveSpec(spec: any): Promise<number> {
+        const exists = await this.checkSpecExists(spec.info.title, spec.info.version);
+
+        if (exists) {
+            throw new Error('A specification with this title and version already exists');
+        }
+
         const db = await this.initDB();
         return new Promise((resolve, reject) => {
             const transaction = db.transaction([this.storeName], 'readwrite');
