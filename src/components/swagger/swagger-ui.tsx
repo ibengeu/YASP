@@ -32,7 +32,6 @@ export function SwaggerUI({spec}: SwaggerUIProps) {
     const pathsByTag = Object.entries(spec.paths).reduce<Record<string, EndpointEntry[]>>((acc, [path, pathItem]) => {
         if (!pathItem) return acc;
 
-        // Type the methods correctly
         (Object.entries(pathItem) as [string, OperationObject][]).forEach(([method, operation]) => {
             if (!operation) return;
 

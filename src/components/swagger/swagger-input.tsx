@@ -1,4 +1,3 @@
-// swagger-input.tsx
 import { useState, useCallback } from "react";
 import { OpenApiDocument } from "@/types/swagger";
 import { Upload } from "lucide-react";
