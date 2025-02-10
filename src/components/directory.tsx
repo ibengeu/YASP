@@ -1,7 +1,7 @@
 import {useNavigate} from 'react-router-dom'
 import {Card, CardDescription, CardHeader, CardTitle} from '@/components/ui/card'
 import {Button} from '@/components/ui/button'
-import {Download, Plus, Search, Trash2} from 'lucide-react'
+import {Download, Search, Trash2} from 'lucide-react'
 import {IndexedDBService} from "@/services/indexdbservice"
 import {Input} from "@/components/ui/input"
 import {downloadSpec} from "@/lib/utils"
@@ -85,12 +85,7 @@ export function DirectoryPage() {
 
     return (
         <div className="container mx-auto py-6">
-            <div className="flex justify-between items-center mb-6">
-                <h1 className="text-2xl font-bold">API Specifications</h1>
-                <Button onClick={() => setShowInput(true)}>
-                    <Plus className="mr-2 h-4 w-4"/> Add New Spec
-                </Button>
-            </div>
+
 
             <div className="relative mb-6">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground"/>
