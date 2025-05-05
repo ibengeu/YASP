@@ -1,0 +1,76 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`EndpointDetail > matches snapshot 1`] = `
+<DocumentFragment>
+  <div
+    class="h-full overflow-hidden"
+  >
+    <div>
+      <div
+        class="p-6"
+      >
+        <div
+          class="flex items-center gap-4 mb-4"
+        >
+          <span
+            class="uppercase text-white bg-blue-500"
+            data-testid="badge"
+          >
+            get
+          </span>
+          <code
+            class="text-sm font-mono"
+          >
+            /users
+          </code>
+        </div>
+        <div
+          class="space-y-6"
+        >
+          <h4
+            class="text-sm font-semibold mb-2"
+          >
+            Responses
+          </h4>
+          <div
+            class="mb-6 border rounded-lg p-4 bg-stone-50/70"
+          >
+            <div
+              class="flex items-center gap-2 mb-4"
+            >
+              <span
+                class="text-sm"
+                data-testid="badge"
+                data-variant="default"
+              >
+                200
+              </span>
+              <span
+                class="text-sm font-medium"
+              >
+                Successful response
+              </span>
+            </div>
+            <div
+              class="mt-2"
+            >
+              <span
+                class="mb-2"
+                data-testid="badge"
+                data-variant="outline"
+              >
+                application/json
+              </span>
+              <div
+                data-testid="schema-table"
+              >
+                {"type":"array","items":{"type":"string"}}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</DocumentFragment>
+`;
