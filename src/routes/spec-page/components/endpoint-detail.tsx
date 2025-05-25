@@ -1,24 +1,21 @@
 "use client"
 
-import React, {useEffect, useMemo, useState} from "react"
-import {Badge} from "@/components/ui/badge"
-import {cn} from "@/lib/utils"
-import {ScrollArea} from "@/components/ui/scroll-area"
+import React, { useEffect, useMemo, useState } from "react"
+import { Badge } from "@/components/ui/badge"
+import { cn } from "@/lib/utils"
+import { ScrollArea } from "@/components/ui/scroll-area"
 import type {
     ComponentsObject,
     OperationObject,
     ParameterObject,
-    ReferenceObject,
+    RequestBodyObject,
     ResponseObject,
-    SchemaObject
-} from "@/common/swagger.types.ts"
-import {SchemaTable} from "@/routes/spec-page/components/schema-table"
-import {Tabs, TabsContent, TabsList, TabsTrigger} from "@/components/ui/tabs"
-
-// Type guard to check if an object is a ReferenceObject
-function isReferenceObject(obj: unknown): obj is ReferenceObject {
-    return obj !== null && typeof obj === 'object' && '$ref' in (obj as Record<string, unknown>);
-}
+    SchemaObject,
+    ReferenceObject
+} from "@/common/openapi-spec.ts"
+import { SchemaTable } from "@/routes/spec-page/components/schema-table"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import {resolveReference} from "@/routes/spec-page/components/try-it-out.tsx";
 
 interface EndpointDetailProps {
     path: string
@@ -38,204 +35,170 @@ const methodColors: Record<string, string> = {
     trace: "bg-indigo-500",
 }
 
-export const EndpointDetail: React.FC<EndpointDetailProps> = ({path, method, operation, components}) => {
+export const EndpointDetail: React.FC<EndpointDetailProps> = ({ path, method, operation, components }) => {
     const [selectedContentType, setSelectedContentType] = useState<string | null>(null)
-
     const [selectedResponseTypes, setSelectedResponseTypes] = useState<Record<string, string>>({})
 
-    const requestBody = operation.requestBody && !isReferenceObject(operation.requestBody)
-        ? operation.requestBody
-        : null;
+    // Resolve OpenAPI references for key operation components
+    const requestBody = resolveReference<RequestBodyObject>(operation.requestBody, components)
+    const parameters = useMemo(() =>
+            (operation.parameters || [])
+                .map(param => resolveReference<ParameterObject>(param, components))
+                .filter((p): p is ParameterObject => p !== null),
+        [operation.parameters, components]
+    )
+    const responses = useMemo(() =>
+            Object.fromEntries(
+                Object.entries(operation.responses || {})
+                    .map(([code, resp]) => [code, resolveReference<ResponseObject>(resp, components)])
+                    .filter(([, resp]) => resp !== null)
+            ),
+        [operation.responses, components]
+    )
 
     const contentTypes = useMemo(() =>
             requestBody?.content ? Object.keys(requestBody.content) : [],
         [requestBody]
-    );
+    )
 
+    // Set default content type for request body
     useEffect(() => {
         if (contentTypes.length > 0 && !selectedContentType) {
             setSelectedContentType(contentTypes[0])
         }
     }, [contentTypes, selectedContentType])
 
+    // Set default content types for responses
     useEffect(() => {
-        if (operation.responses) {
-            Object.entries(operation.responses).forEach(([code, response]) => {
-                if (!isReferenceObject(response)) {
-                    const typedResponse = response as ResponseObject
-                    if (typedResponse.content && Object.keys(typedResponse.content).length > 0) {
-                        const responseContentTypes = Object.keys(typedResponse.content)
-                        if (responseContentTypes.length > 0 && !selectedResponseTypes[code]) {
-                            setSelectedResponseTypes((prev) => ({
-                                ...prev,
-                                [code]: responseContentTypes[0],
-                            }))
-                        }
-                    }
+        const newResponseTypes: Record<string, string> = {}
+        Object.entries(responses).forEach(([code, response]) => {
+            if (response?.content) {
+                const responseContentTypes = Object.keys(response.content)
+                if (responseContentTypes.length > 0 && !selectedResponseTypes[code]) {
+                    newResponseTypes[code] = responseContentTypes[0]
                 }
-            })
+            }
+        })
+        if (Object.keys(newResponseTypes).length > 0) {
+            setSelectedResponseTypes(prev => ({ ...prev, ...newResponseTypes }))
         }
-    }, [operation.responses, selectedResponseTypes])
+    }, [responses, selectedResponseTypes])
 
     const handleResponseTypeChange = (code: string, contentType: string) => {
-        setSelectedResponseTypes((prev) => ({
-            ...prev,
-            [code]: contentType,
-        }))
+        setSelectedResponseTypes(prev => ({ ...prev, [code]: contentType }))
     }
 
     const getSchemaType = (schema: SchemaObject | ReferenceObject | undefined): string => {
-        if (!schema) return "-";
-        if (isReferenceObject(schema)) return "reference";
-        return schema.type || "-";
+        if (!schema) return "-"
+        const resolvedSchema = resolveReference<SchemaObject>(schema, components)
+        return resolvedSchema?.type || "-"
     }
 
-    const parameters = operation.parameters
-            ?.filter((param): param is ParameterObject => !isReferenceObject(param))
-        || [];
-
     return (
-        <div className="h-full overflow-hidden">
+        <div className="h-full overflow-hidden bg-stone-50/70">
             <ScrollArea className="h-full">
                 <div className="p-6">
                     <div className="flex items-center gap-4 mb-4">
-                        <Badge
-                            className={cn("uppercase text-white", methodColors[method.toLowerCase()] || "bg-gray-500")}>{method}</Badge>
+                        <Badge className={cn("uppercase text-white", methodColors[method.toLowerCase()] || "bg-gray-500")}>
+                            {method}
+                        </Badge>
                         <code className="text-sm font-mono">{path}</code>
                     </div>
 
                     {operation.summary && <h3 className="font-semibold mb-2">{operation.summary}</h3>}
-
                     {operation.description && <p className="text-muted-foreground mb-6">{operation.description}</p>}
 
                     {parameters.length > 0 && (
                         <div className="mb-6">
                             <h4 className="text-sm font-semibold mb-2">Parameters</h4>
-                            <div className="rounded-lg border overflow-hidden">
-                                <table className="w-full border-collapse">
-                                    <thead>
-                                    <tr className="bg-stone-100/70 border-b">
-                                        <th className="px-4 py-2 text-left font-semibold">Name</th>
-                                        <th className="px-4 py-2 text-left font-semibold">In</th>
-                                        <th className="px-4 py-2 text-left font-semibold">Type</th>
-                                        <th className="px-4 py-2 text-left font-semibold">Required</th>
-                                        <th className="px-4 py-2 text-left font-semibold">Description</th>
-                                    </tr>
-                                    </thead>
-                                    <tbody>
-                                    {parameters.map((parameter, index) => (
-                                        <tr key={index} className="border-b last:border-0">
-                                            <td className="px-4 py-2 font-mono">{parameter.name}</td>
-                                            <td className="px-4 py-2">{parameter.in}</td>
-                                            <td className="px-4 py-2">{getSchemaType(parameter.schema)}</td>
-                                            <td className="px-4 py-2">
-                                                <Badge variant={parameter.required ? "destructive" : "secondary"}>
-                                                    {parameter.required ? "Required" : "Optional"}
-                                                </Badge>
-                                            </td>
-                                            <td className="px-4 py-2 text-muted-foreground">{parameter.description || "-"}</td>
-                                        </tr>
-                                    ))}
-                                    </tbody>
-                                </table>
+                            <div className="rounded-lg border border-border shadow-sm bg-background">
+                                {parameters.map((parameter, index) => (
+                                    <div
+                                        key={index}
+                                        className={cn(
+                                            "flex flex-col py-3 px-4 border-b border-border/50 last:border-0",
+                                            "hover:bg-muted/50 transition-colors"
+                                        )}
+                                    >
+                                        <div className="flex items-center gap-3">
+                                            <div className="flex-1 min-w-0">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="font-mono text-sm font-medium text-foreground truncate">
+                                                        {parameter.name}
+                                                    </span>
+                                                    <Badge variant="outline" className="text-xs bg-slate-100 text-slate-700">
+                                                        {parameter.in}
+                                                    </Badge>
+                                                </div>
+                                                <div className="text-sm text-muted-foreground">
+                                                    {getSchemaType(parameter.schema)}
+                                                </div>
+                                            </div>
+                                            <Badge
+                                                variant={parameter.required ? "destructive" : "secondary"}
+                                                className={cn(
+                                                    "text-xs font-medium",
+                                                    parameter.required ? "bg-red-100 text-red-700" : "bg-slate-100 text-slate-700"
+                                                )}
+                                            >
+                                                {parameter.required ? "Required" : "Optional"}
+                                            </Badge>
+                                        </div>
+                                        {parameter.description && (
+                                            <div className="mt-1 text-sm text-muted-foreground pl-2">
+                                                {parameter.description}
+                                            </div>
+                                        )}
+                                    </div>
+                                ))}
                             </div>
                         </div>
                     )}
 
-                    {requestBody?.content && (
+                    {requestBody?.content && selectedContentType && requestBody.content[selectedContentType]?.schema && (
                         <div className="mb-6">
-
-                            {selectedContentType && requestBody.content[selectedContentType] && (
-                                <>
-                                    <h4 className="text-sm font-semibold mb-2">Request Body</h4>
-                                    <div className="mb-4">
-                                        <div className="flex items-center gap-2 mb-2">
-                                            <Badge variant="outline">{selectedContentType}</Badge>
-                                            {requestBody.required &&
-                                                <Badge variant="destructive">Required</Badge>}
-                                        </div>
-                                        <SchemaTable
-                                            schema={requestBody.content[selectedContentType].schema as SchemaObject | ReferenceObject}
-                                            components={components}
-                                        />
-                                    </div>
-                                </>
-                            )}
+                            <h4 className="text-sm font-semibold mb-2">Request Body</h4>
+                            <div className="mb-4">
+                                <SchemaTable
+                                    schema={requestBody.content[selectedContentType].schema}
+                                    components={components}
+                                />
+                            </div>
                         </div>
                     )}
 
-                    {operation.responses && (
+                    {Object.keys(responses).length > 0 && (
                         <div className="space-y-6">
                             <h4 className="text-sm font-semibold mb-2">Responses</h4>
-                            {Object.entries(operation.responses).map(([code, response]) => {
-                                if (isReferenceObject(response)) {
+                            {Object.entries(responses).map(([code, response]) => {
+                                if (!response) {
                                     return (
                                         <div key={code} className="mb-4">
-                                            <div className="flex items-center gap-2 mb-2">
-                                                <Badge
-                                                    variant={
-                                                        code.startsWith("2")
-                                                            ? "default"
-                                                            : code.startsWith("4") || code.startsWith("5")
-                                                                ? "destructive"
-                                                                : "outline"
-                                                    }
-                                                >
-                                                    {code}
-                                                </Badge>
-                                                <span
-                                                    className="text-sm text-muted-foreground">Reference: {response.$ref}</span>
-                                            </div>
-                                        </div>
-                                    );
-                                }
-
-                                const typedResponse = response as ResponseObject;
-
-                                if (!typedResponse.content || Object.keys(typedResponse.content).length === 0) {
-                                    return (
-                                        <div key={code} className="mb-4">
-                                            <div className="flex items-center gap-2 mb-2">
-                                                <Badge
-                                                    variant={
-                                                        code.startsWith("2")
-                                                            ? "default"
-                                                            : code.startsWith("4") || code.startsWith("5")
-                                                                ? "destructive"
-                                                                : "outline"
-                                                    }
-                                                >
-                                                    {code}
-                                                </Badge>
-                                                <span
-                                                    className="text-sm text-muted-foreground">{typedResponse.description}</span>
-                                            </div>
+                                            <Badge variant="outline">{code}</Badge>
+                                            <span className="text-sm text-muted-foreground ml-2">No response details</span>
                                         </div>
                                     )
                                 }
 
-                                const responseContentTypes = Object.keys(typedResponse.content || {})
+                                const responseContentTypes = response.content ? Object.keys(response.content) : []
                                 const selectedResponseType = selectedResponseTypes[code] || responseContentTypes[0]
 
                                 return (
-                                    <div key={code} className="mb-6 border rounded-lg p-4 bg-stone-50/70">
+                                    <div key={code} className="mb-6 rounded-lg">
                                         <div className="flex items-center gap-2 mb-4">
                                             <Badge
                                                 variant={
-                                                    code.startsWith("2")
-                                                        ? "default"
-                                                        : code.startsWith("4") || code.startsWith("5")
-                                                            ? "destructive"
-                                                            : "outline"
+                                                    code.startsWith("2") ? "default" :
+                                                        code.startsWith("4") || code.startsWith("5") ? "destructive" : "outline"
                                                 }
                                                 className="text-sm"
                                             >
                                                 {code}
                                             </Badge>
-                                            <span className="text-sm font-medium">{typedResponse.description}</span>
+                                            <span className="text-sm font-medium">{response.description || "No description"}</span>
                                         </div>
 
-                                        {typedResponse.content && responseContentTypes.length > 1 && (
+                                        {response.content && responseContentTypes.length > 1 && (
                                             <div className="mb-4">
                                                 <Tabs
                                                     value={selectedResponseType}
@@ -249,12 +212,11 @@ export const EndpointDetail: React.FC<EndpointDetailProps> = ({path, method, ope
                                                             </TabsTrigger>
                                                         ))}
                                                     </TabsList>
-
                                                     {responseContentTypes.map((contentType) => (
                                                         <TabsContent key={contentType} value={contentType}>
-                                                            {typedResponse.content && typedResponse.content[contentType] && typedResponse.content[contentType].schema && (
+                                                            {response.content[contentType]?.schema && (
                                                                 <SchemaTable
-                                                                    schema={typedResponse.content[contentType].schema as SchemaObject | ReferenceObject}
+                                                                    schema={response.content[contentType].schema}
                                                                     components={components}
                                                                 />
                                                             )}
@@ -264,14 +226,14 @@ export const EndpointDetail: React.FC<EndpointDetailProps> = ({path, method, ope
                                             </div>
                                         )}
 
-                                        {typedResponse.content && responseContentTypes.length === 1 && selectedResponseType && (
+                                        {response.content && responseContentTypes.length === 1 && selectedResponseType && (
                                             <div className="mt-2">
                                                 <Badge variant="outline" className="mb-2">
                                                     {selectedResponseType}
                                                 </Badge>
-                                                {typedResponse.content[selectedResponseType] && typedResponse.content[selectedResponseType].schema && (
+                                                {response.content[selectedResponseType]?.schema && (
                                                     <SchemaTable
-                                                        schema={typedResponse.content[selectedResponseType].schema as SchemaObject | ReferenceObject}
+                                                        schema={response.content[selectedResponseType].schema}
                                                         components={components}
                                                     />
                                                 )}

@@ -6,9 +6,9 @@ import {useCallback, useState} from "react"
 import {AlertCircle, Check, FileJson, Upload} from "lucide-react"
 import {Button} from "@/components/ui/button"
 import {Textarea} from "@/components/ui/textarea"
-import {Alert, AlertDescription} from "@/components/ui/alert.tsx";
+import {Alert, AlertDescription} from "@/components/ui/alert.tsx"
 import {cn} from "@/lib/utils"
-import {OpenApiDocument} from "@/common/swagger.types.ts";
+import {OpenApiDocument} from "@/common/openapi-spec.ts"
 
 interface SwaggerInputProps {
     onSpecLoaded: (spec: OpenApiDocument) => void
@@ -21,70 +21,58 @@ export function SwaggerInput({onSpecLoaded}: SwaggerInputProps) {
     const [fileName, setFileName] = useState<string | null>(null)
     const [isValid, setIsValid] = useState<boolean>(false)
 
-    // This type ensures we properly check both OpenAPI 3.x and Swagger 2.x documents
-    type PotentialOpenApiDoc = {
-        openapi?: string;
-        swagger?: string;
-        spec?: OpenApiDocument;
-        info?: unknown;
-        paths?: unknown;
-    }
-
-    const extractOpenApiSpec = (content: PotentialOpenApiDoc): OpenApiDocument | null => {
-        if (content.spec && typeof content.spec === "object") {
-            return content.spec as OpenApiDocument;
-        }
-
-        if (content.openapi || content.swagger) {
-            return content as unknown as OpenApiDocument;
-        }
-
-        return null;
-    }
-
     const validateAndLoadSpec = useCallback(
-        (content: PotentialOpenApiDoc) => {
+        (content: unknown) => {
             setError(null)
             setIsValid(false)
 
             try {
-                const spec = extractOpenApiSpec(content)
-
-                if (!spec) {
-                    setError("Could not find valid OpenAPI specification in the provided content")
+                if (typeof content !== "object" || content === null) {
+                    setError("Specification must be a JSON object")
                     return false
                 }
 
-                const version = spec.openapi || (spec as any).swagger
-                if (!version) {
-                    setError("Missing OpenAPI/Swagger version identifier")
+                const spec = content as Partial<OpenApiDocument>
+
+                if (!spec.openapi) {
+                    setError("Missing 'openapi' field")
                     return false
                 }
 
-                if (!version.startsWith("3.")) {
-                    setError(`Unsupported OpenAPI version: ${version}. Only version 3.x is supported.`)
+                if (!spec.openapi.startsWith("3.")) {
+                    setError(`Unsupported OpenAPI version: ${spec.openapi}. Only version 3.x is supported.`)
                     return false
                 }
 
                 if (!spec.info) {
-                    setError("Missing 'info' section in specification")
+                    setError("Missing 'info' section")
                     return false
                 }
 
-                if (!spec.paths) {
-                    setError("Missing 'paths' section in specification")
+                if (!spec.info.title) {
+                    setError("Missing 'title' in 'info' section")
+                    return false
+                }
+
+                if (!spec.info.version) {
+                    setError("Missing 'version' in 'info' section")
+                    return false
+                }
+
+                if (!spec.paths || Object.keys(spec.paths).length === 0) {
+                    setError("Missing or empty 'paths' section")
                     return false
                 }
 
                 setIsValid(true)
-                onSpecLoaded(spec)
+                onSpecLoaded(spec as OpenApiDocument)
                 return true
             } catch (err) {
                 setError("Invalid specification format")
                 return false
             }
         },
-        [onSpecLoaded],
+        [onSpecLoaded]
     )
 
     const handleFileUpload = useCallback(
@@ -107,12 +95,10 @@ export function SwaggerInput({onSpecLoaded}: SwaggerInputProps) {
                     setError("Invalid JSON file format")
                 }
             }
-            reader.onerror = () => {
-                setError("Error reading file")
-            }
+            reader.onerror = () => setError("Error reading file")
             reader.readAsText(file)
         },
-        [validateAndLoadSpec],
+        [validateAndLoadSpec]
     )
 
     const handlePasteChange = useCallback(
@@ -133,7 +119,7 @@ export function SwaggerInput({onSpecLoaded}: SwaggerInputProps) {
                 setError("Invalid JSON format. Please check your input.")
             }
         },
-        [validateAndLoadSpec],
+        [validateAndLoadSpec]
     )
 
     const handleDragOver = useCallback((e: React.DragEvent) => {
@@ -141,9 +127,7 @@ export function SwaggerInput({onSpecLoaded}: SwaggerInputProps) {
         setIsDragging(true)
     }, [])
 
-    const handleDragLeave = useCallback(() => {
-        setIsDragging(false)
-    }, [])
+    const handleDragLeave = useCallback(() => setIsDragging(false), [])
 
     const handleDrop = useCallback(
         (e: React.DragEvent) => {
@@ -168,12 +152,10 @@ export function SwaggerInput({onSpecLoaded}: SwaggerInputProps) {
                     setError("Invalid JSON file format")
                 }
             }
-            reader.onerror = () => {
-                setError("Error reading file")
-            }
+            reader.onerror = () => setError("Error reading file")
             reader.readAsText(file)
         },
-        [validateAndLoadSpec],
+        [validateAndLoadSpec]
     )
 
     return (
@@ -188,7 +170,7 @@ export function SwaggerInput({onSpecLoaded}: SwaggerInputProps) {
                 className={cn(
                     "flex flex-col justify-center items-center border-2 border-dashed rounded-lg p-8 transition-colors",
                     isDragging ? "border-primary bg-primary/5" : "border-muted-foreground/20",
-                    fileName && isValid ? "bg-green-50 border-green-200 dark:bg-green-950/20 dark:border-green-900" : "",
+                    fileName && isValid ? "bg-green-50 border-green-200 dark:bg-green-950/20 dark:border-green-900" : ""
                 )}
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
@@ -238,7 +220,7 @@ export function SwaggerInput({onSpecLoaded}: SwaggerInputProps) {
                     placeholder="Paste your OpenAPI/Swagger JSON here..."
                     className={cn(
                         "font-mono min-h-[200px] resize-y",
-                        isValid && pastedContent ? "border-green-300 focus-visible:ring-green-300" : "",
+                        isValid && pastedContent ? "border-green-300 focus-visible:ring-green-300" : ""
                     )}
                     value={pastedContent}
                     onChange={handlePasteChange}

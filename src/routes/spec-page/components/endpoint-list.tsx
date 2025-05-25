@@ -3,7 +3,7 @@
 import React from "react"
 import {Badge} from "@/components/ui/badge"
 import {cn} from "@/lib/utils"
-import type {OpenApiDocument, OperationObject, PathItemObject} from "@/common/swagger.types.ts"
+import type {OpenApiDocument, OperationObject, PathItemObject} from "@/common/openapi-spec.ts"
 import {ScrollArea} from "@/components/ui/scroll-area"
 import {ChevronRight, Search} from 'lucide-react'
 import {Input} from "@/components/ui/input"

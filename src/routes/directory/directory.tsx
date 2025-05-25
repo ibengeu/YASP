@@ -12,7 +12,7 @@ import {cn} from "@/lib/utils.ts"
 import {IndexedDBService} from "@/services/indexdbservice.ts";
 import {SwaggerInput} from "@/routes/directory/components/swagger-input.tsx";
 import {Badge} from "@/components/ui/badge.tsx";
-import {OpenApiDocument} from "@/common/swagger.types.ts";
+import {OpenApiDocument} from "@/common/openapi-spec.ts";
 
 interface Spec {
     id: string | number;

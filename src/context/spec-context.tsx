@@ -1,6 +1,6 @@
 import React, {createContext, useCallback, useContext, useEffect, useState} from 'react';
 import {IndexedDBService} from '@/services/indexdbservice';
-import {OpenApiDocument} from '@/common/swagger.types.ts';
+import {OpenApiDocument} from '@/common/openapi-spec.ts';
 import {useNavigate} from "react-router";
 
 interface Spec {

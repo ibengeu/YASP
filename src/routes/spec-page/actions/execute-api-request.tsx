@@ -1,4 +1,4 @@
-import type {ParameterObject} from "@/common/swagger.types.ts";
+import type {ParameterObject} from "@/common/openapi-spec.ts";
 
 export interface ResponseData {
     status: number;
