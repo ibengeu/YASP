@@ -1,6 +1,6 @@
 "use client";
 
-import  { useEffect, useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -39,9 +39,9 @@ export function resolveReference<T>(
             console.error(`Invalid reference: ${obj.$ref}`);
             return null;
         }
-        const componentType = refPath[ 2 ];
-        const componentName = refPath[ 3 ];
-        const component = components[ componentType as keyof ComponentsObject ]?.[ componentName ];
+        const componentType = refPath[2];
+        const componentName = refPath[3];
+        const component = components[componentType as keyof ComponentsObject]?.[componentName];
         if (!component) {
             console.error(`Reference not found: ${obj.$ref}`);
             return null;
@@ -56,8 +56,25 @@ export function resolveReference<T>(
     return obj as T;
 }
 
+// Extended SchemaObject interface with additional properties
+interface ExtendedSchemaObject extends SchemaObject {
+    type?: "string" | "number" | "integer" | "boolean" | "array" | "object";
+    properties?: Record<string, SchemaObject | ReferenceObject>;
+    items?: SchemaObject | ReferenceObject;
+    required?: string[];
+    enum?: (string | number | boolean)[];
+    default?: string | number | boolean | object;
+    format?: string;
+    pattern?: string;
+    minimum?: number;
+    maximum?: number;
+}
+
 // Type definitions
 type ParameterValue = string | number | boolean;
+type JsonValue = string | number | boolean | null | JsonObject | JsonArray;
+type JsonObject = { [key: string]: JsonValue };
+type JsonArray = JsonValue[];
 
 interface ResponseData {
     status: number;
@@ -79,11 +96,11 @@ interface TryItOutProps {
 }
 
 export default function TryItOut({
-                                     path,
-                                     method,
-                                     operation,
-                                     components,
-                                 }: TryItOutProps) {
+    path,
+    method,
+    operation,
+    components,
+}: TryItOutProps) {
     const [parameters, setParameters] = useState<Record<string, ParameterValue>>({});
     const [requestBody, setRequestBody] = useState<string>("{}");
     const [headers, setHeaders] = useState<Header[]>([
@@ -95,12 +112,11 @@ export default function TryItOut({
     const [activeTab, setActiveTab] = useState<string>("params");
     const [newHeaderName, setNewHeaderName] = useState<string>("");
     const [newHeaderValue, setNewHeaderValue] = useState<string>("");
-    const [baseUrl, _] = useState<string>("https://api.example.com");
-    const [curlCommand, setCurlCommand] = useState<string>("");
+    const [baseUrl] = useState<string>("https://api.example.com");
     const [selectedMethod, setSelectedMethod] = useState<string>(method.toUpperCase());
     const [urlPath, setUrlPath] = useState<string>(path);
 
-    const {  handleSubmit } = useForm<{ requestData: string }>({
+    const { handleSubmit } = useForm<{ requestData: string }>({
         defaultValues: { requestData: "" },
     });
 
@@ -138,14 +154,15 @@ export default function TryItOut({
     const convertSwaggerToZod = (
         schema: SchemaObject | ReferenceObject | undefined
     ): z.ZodTypeAny => {
-        const resolvedSchema = resolveReference<SchemaObject>(schema, components);
+        const resolvedSchema = resolveReference<ExtendedSchemaObject>(schema, components);
         if (!resolvedSchema) return z.unknown();
 
-        if (resolvedSchema.enum && resolvedSchema.enum.length > 0) {
-            return z.enum(resolvedSchema.enum as [string, ...string[]]);
-        }
-        if (resolvedSchema.const !== undefined) {
-            return z.literal(resolvedSchema.const);
+        // Missing type field handling
+        if (!resolvedSchema.type) {
+            if (resolvedSchema.enum) {
+                return z.enum(resolvedSchema.enum as [string, ...string[]]);
+            }
+            return z.unknown();
         }
 
         switch (resolvedSchema.type) {
@@ -196,19 +213,19 @@ export default function TryItOut({
         schema: SchemaObject | ReferenceObject | undefined,
         components: ComponentsObject,
         depth: number = 0
-    ): any => {
+    ): JsonValue => {
         if (!schema || depth > 10) return null;
-        const resolvedSchema = resolveReference<SchemaObject>(schema, components);
+        const resolvedSchema = resolveReference<ExtendedSchemaObject>(schema, components);
         if (!resolvedSchema) return null;
 
-        if (resolvedSchema.example !== undefined) return resolvedSchema.example;
-        if (resolvedSchema.default !== undefined) return resolvedSchema.default;
+        if (resolvedSchema.example !== undefined) return resolvedSchema.example as JsonValue;
+        if (resolvedSchema.default !== undefined) return resolvedSchema.default as JsonValue;
         if (resolvedSchema.enum && resolvedSchema.enum.length > 0)
             return resolvedSchema.enum[0];
 
         switch (resolvedSchema.type) {
             case "object": {
-                const obj: Record<string, any> = {};
+                const obj: JsonObject = {};
                 if (resolvedSchema.properties) {
                     Object.entries(resolvedSchema.properties).forEach(([key, prop]) => {
                         if (resolvedSchema.required?.includes(key)) {
@@ -246,6 +263,30 @@ export default function TryItOut({
         return resolvedRequestBody.content[contentType]?.schema;
     }, [resolvedRequestBody]);
 
+    // Generate cURL command
+    const generateCurlCommand = useMemo(() => {
+        const fullUrl = `${baseUrl}${urlPath.startsWith("/") ? urlPath : `/${urlPath}`}`;
+        let curl = `curl -X ${selectedMethod} "${fullUrl}"`;
+        
+        headers.forEach((header) => {
+            if (header.name && header.value) {
+                curl += ` \\\n  -H "${header.name}: ${header.value}"`;
+            }
+        });
+        
+        if (["POST", "PUT", "PATCH"].includes(selectedMethod) && requestBody && requestBody.trim() !== "{}") {
+            try {
+                const formattedBody = JSON.stringify(JSON.parse(requestBody));
+                curl += ` \\\n  -d '${formattedBody}'`;
+            } catch {
+                curl += ` \\\n  -d '${requestBody}'`;
+            }
+        }
+        
+        return curl;
+    }, [baseUrl, urlPath, selectedMethod, headers, requestBody]);
+
+    // Initialize request body with sample data
     useEffect(() => {
         if (
             ["post", "put", "patch"].includes(method.toLowerCase()) &&
@@ -264,7 +305,7 @@ export default function TryItOut({
         const param = resolvedParameters.find((p) => p.name === name);
         if (!param) return;
         let parsedValue: ParameterValue = value;
-        const schema = resolveReference<SchemaObject>(param.schema, components);
+        const schema = resolveReference<ExtendedSchemaObject>(param.schema, components);
         if (schema) {
             if (schema.type === "number" || schema.type === "integer") {
                 parsedValue = Number(value) || value;
@@ -321,24 +362,6 @@ export default function TryItOut({
         setHeaders((prev) => prev.filter((_, i) => i !== index));
     };
 
-    const generateCurlCommand = (url: string): string => {
-        let curl = `curl -X ${selectedMethod} "${url}"`;
-        headers.forEach((header) => {
-            if (header.name && header.value) {
-                curl += ` \\\n  -H "${header.name}: ${header.value}"`;
-            }
-        });
-        if (["post", "put", "patch"].includes(method.toLowerCase()) && requestBody) {
-            try {
-                const formattedBody = JSON.stringify(JSON.parse(requestBody));
-                curl += ` \\\n  -d '${formattedBody}'`;
-            } catch {
-                curl += ` \\\n  -d '${requestBody}'`;
-            }
-        }
-        return curl;
-    };
-
     const copyToClipboard = (text: string) => {
         navigator.clipboard.writeText(text).then(() => toast.success("Copied to clipboard"));
     };
@@ -354,8 +377,6 @@ export default function TryItOut({
                 const responseData = await executeApiRequest(formData);
                 clearTimeout(timeoutId);
                 setResponse(responseData);
-                const fullUrl = `${baseUrl}${urlPath.startsWith("/") ? urlPath : `/${urlPath}`}`;
-                setCurlCommand(generateCurlCommand(fullUrl));
                 toast.success(`Request successful: ${responseData.status}`);
             } catch (error) {
                 clearTimeout(timeoutId);
@@ -395,7 +416,7 @@ export default function TryItOut({
 
         const groupedParams: Record<string, ParameterObject[]> = {};
         resolvedParameters.forEach((param) => {
-            const paramIn = param.in || "other";
+            const paramIn = param.in || "query";
             if (!groupedParams[paramIn]) groupedParams[paramIn] = [];
             groupedParams[paramIn].push(param);
         });
@@ -471,7 +492,9 @@ export default function TryItOut({
     );
 
     const renderBodyInput = () => {
-        if (!resolvedRequestBody) return null;
+        // Show body tab for methods that typically have a body
+        if (!["POST", "PUT", "PATCH"].includes(selectedMethod)) return null;
+        
         return (
             <div className="space-y-4">
                 <h3 className="text-sm font-medium">Request Body</h3>
@@ -489,8 +512,10 @@ export default function TryItOut({
     const renderCurlInput = () => (
         <div className="space-y-4">
             <h3 className="text-sm font-medium">cURL Command</h3>
-            <pre className="bg-muted p-4 rounded-md text-xs">{curlCommand}</pre>
-            <Button onClick={() => copyToClipboard(curlCommand)}>Copy</Button>
+            <pre className="bg-muted p-4 rounded-md text-xs overflow-x-auto whitespace-pre-wrap">
+                {generateCurlCommand}
+            </pre>
+            <Button onClick={() => copyToClipboard(generateCurlCommand)}>Copy</Button>
         </div>
     );
 
@@ -500,7 +525,7 @@ export default function TryItOut({
                 <div className="p-4">
                     <div className="flex items-center gap-2 mb-4">
                         <Select value={selectedMethod} onValueChange={setSelectedMethod}>
-                            <SelectTrigger>
+                            <SelectTrigger className="w-32">
                                 <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
@@ -514,27 +539,65 @@ export default function TryItOut({
                         <Input
                             value={`${baseUrl}${urlPath}`}
                             onChange={(e) => setUrlPath(e.target.value.replace(baseUrl, ""))}
+                            className="flex-1"
                         />
                         <Button onClick={onSubmit} disabled={isPending}>
-                            {isPending ? <Loader2 className="animate-spin" /> : "Send"}
+                            {isPending ? <Loader2 className="animate-spin h-4 w-4" /> : "Send"}
                         </Button>
                     </div>
-                    <Tabs value={activeTab} onValueChange={setActiveTab}>
+                    
+                    <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1">
                         <TabsList>
                             <TabsTrigger value="params">Params</TabsTrigger>
                             <TabsTrigger value="headers">Headers</TabsTrigger>
-                            {resolvedRequestBody && <TabsTrigger value="body">Body</TabsTrigger>}
+                            <TabsTrigger value="body">Body</TabsTrigger>
                             <TabsTrigger value="curl">cURL</TabsTrigger>
                         </TabsList>
-                        <TabsContent value="params">{renderParameterInputs()}</TabsContent>
-                        <TabsContent value="headers">{renderHeadersInput()}</TabsContent>
-                        {resolvedRequestBody && <TabsContent value="body">{renderBodyInput()}</TabsContent>}
-                        <TabsContent value="curl">{renderCurlInput()}</TabsContent>
+                        <TabsContent value="params" className="mt-4">
+                            {renderParameterInputs()}
+                        </TabsContent>
+                        <TabsContent value="headers" className="mt-4">
+                            {renderHeadersInput()}
+                        </TabsContent>
+                        <TabsContent value="body" className="mt-4">
+                            {renderBodyInput()}
+                        </TabsContent>
+                        <TabsContent value="curl" className="mt-4">
+                            {renderCurlInput()}
+                        </TabsContent>
                     </Tabs>
+                    
                     {response && (
-                        <div className="mt-6">
-                            <h3>Response: {response.status}</h3>
-                            <pre className="bg-muted p-4 rounded-md">{response.body}</pre>
+                        <div className="mt-6 space-y-4">
+                            <div className="flex items-center gap-2">
+                                <h3 className="text-lg font-semibold">Response</h3>
+                                <span className={`px-2 py-1 rounded text-sm ${
+                                    response.status >= 200 && response.status < 300 
+                                        ? 'bg-green-100 text-green-800' 
+                                        : response.status >= 400 
+                                        ? 'bg-red-100 text-red-800'
+                                        : 'bg-yellow-100 text-yellow-800'
+                                }`}>
+                                    {response.status}
+                                </span>
+                                {response.time && (
+                                    <span className="text-sm text-muted-foreground">
+                                        {response.time}ms
+                                    </span>
+                                )}
+                            </div>
+                            <div className="space-y-2">
+                                <h4 className="text-sm font-medium">Headers</h4>
+                                <pre className="bg-muted p-3 rounded-md text-xs overflow-x-auto">
+                                    {JSON.stringify(response.headers, null, 2)}
+                                </pre>
+                            </div>
+                            <div className="space-y-2">
+                                <h4 className="text-sm font-medium">Body</h4>
+                                <pre className="bg-muted p-3 rounded-md text-xs overflow-x-auto max-h-96">
+                                    {response.body}
+                                </pre>
+                            </div>
                         </div>
                     )}
                 </div>
