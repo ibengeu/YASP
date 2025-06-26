@@ -84,7 +84,7 @@ export function SwaggerUI({spec, onEndpointSelected}: SwaggerUIProps) {
                         path={selectedEndpoint.path}
                         method={selectedEndpoint.method}
                         operation={selectedEndpoint.operation}
-                        components={spec.components}
+                        components={spec.components || {}}
                     />
                 ) : (
                     <div className="flex items-center justify-center h-full text-muted-foreground">
@@ -103,7 +103,7 @@ export function SwaggerUI({spec, onEndpointSelected}: SwaggerUIProps) {
                                 path={selectedEndpoint.path}
                                 method={selectedEndpoint.method}
                                 operation={selectedEndpoint.operation}
-                                components={spec.components}
+                                components={spec.components || {}}
                             />
                         ) : (
                             <div className="flex items-center justify-center h-full text-muted-foreground">

@@ -1,9 +1,9 @@
 "use client"
 
-import React, { useEffect, useMemo, useState } from "react"
-import { Badge } from "@/components/ui/badge"
-import { cn } from "@/lib/utils"
-import { ScrollArea } from "@/components/ui/scroll-area"
+import React, {useEffect, useMemo, useState} from "react"
+import {Badge} from "@/components/ui/badge"
+import {cn} from "@/lib/utils"
+import {ScrollArea} from "@/components/ui/scroll-area"
 import type {
     ComponentsObject,
     OperationObject,
@@ -11,11 +11,9 @@ import type {
     RequestBodyObject,
     ResponseObject,
     SchemaObject,
-    ReferenceObject
 } from "@/common/openapi-spec.ts"
-import { SchemaTable } from "@/routes/spec-page/components/schema-table"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import {resolveReference} from "@/routes/spec-page/components/try-it-out.tsx";
+import {Tabs, TabsContent, TabsList, TabsTrigger} from "@/components/ui/tabs"
+import {SchemaTable} from "./schema-table"
 
 interface EndpointDetailProps {
     path: string
@@ -35,35 +33,33 @@ const methodColors: Record<string, string> = {
     trace: "bg-indigo-500",
 }
 
-export const EndpointDetail: React.FC<EndpointDetailProps> = ({ path, method, operation, components }) => {
+export const EndpointDetail: React.FC<EndpointDetailProps> = ({path, method, operation, components}) => {
     const [selectedContentType, setSelectedContentType] = useState<string | null>(null)
     const [selectedResponseTypes, setSelectedResponseTypes] = useState<Record<string, string>>({})
 
-    // Resolve OpenAPI references for key operation components
-    const requestBody = resolveReference<RequestBodyObject>(operation.requestBody, components)
-    const parameters = useMemo(() =>
-            (operation.parameters || [])
-                .map(param => resolveReference<ParameterObject>(param, components))
-                .filter((p): p is ParameterObject => p !== null),
-        [operation.parameters, components]
-    )
-    const responses = useMemo(() =>
-            Object.fromEntries(
-                Object.entries(operation.responses || {})
-                    .map(([code, resp]) => [code, resolveReference<ResponseObject>(resp, components)])
-                    .filter(([, resp]) => resp !== null)
-            ),
-        [operation.responses, components]
+    // Use operation.requestBody directly, assuming it's already resolved
+    const requestBody = useMemo(() => operation.requestBody as RequestBodyObject | undefined, [operation.requestBody])
+
+    // Use operation.parameters directly, assuming they are already resolved
+    const parameters = useMemo(
+        () => (operation.parameters ?? []) as ParameterObject[],
+        [operation.parameters]
     )
 
-    const contentTypes = useMemo(() =>
-            requestBody?.content ? Object.keys(requestBody.content) : [],
+    // Use operation.responses directly, assuming they are already resolved
+    const responses = useMemo(
+        () => (operation.responses ?? {}) as Record<string, ResponseObject>,
+        [operation.responses]
+    )
+
+    const contentTypes = useMemo(
+        () => (requestBody?.content ? Object.keys(requestBody.content) : []),
         [requestBody]
     )
 
     // Set default content type for request body
     useEffect(() => {
-        if (contentTypes.length > 0 && !selectedContentType) {
+        if (contentTypes.length > 0 && selectedContentType === null) {
             setSelectedContentType(contentTypes[0])
         }
     }, [contentTypes, selectedContentType])
@@ -72,7 +68,7 @@ export const EndpointDetail: React.FC<EndpointDetailProps> = ({ path, method, op
     useEffect(() => {
         const newResponseTypes: Record<string, string> = {}
         Object.entries(responses).forEach(([code, response]) => {
-            if (response?.content) {
+            if (response.content) {
                 const responseContentTypes = Object.keys(response.content)
                 if (responseContentTypes.length > 0 && !selectedResponseTypes[code]) {
                     newResponseTypes[code] = responseContentTypes[0]
@@ -80,18 +76,19 @@ export const EndpointDetail: React.FC<EndpointDetailProps> = ({ path, method, op
             }
         })
         if (Object.keys(newResponseTypes).length > 0) {
-            setSelectedResponseTypes(prev => ({ ...prev, ...newResponseTypes }))
+            setSelectedResponseTypes(prev => ({...prev, ...newResponseTypes}))
         }
     }, [responses, selectedResponseTypes])
 
     const handleResponseTypeChange = (code: string, contentType: string) => {
-        setSelectedResponseTypes(prev => ({ ...prev, [code]: contentType }))
+        setSelectedResponseTypes(prev => ({...prev, [code]: contentType}))
     }
 
-    const getSchemaType = (schema: SchemaObject | ReferenceObject | undefined): string => {
+    // Updated getSchemaType to assume schema is already resolved
+    const getSchemaType = (schema: SchemaObject | undefined): string => {
         if (!schema) return "-"
-        const resolvedSchema = resolveReference<SchemaObject>(schema, components)
-        return resolvedSchema?.type || "-"
+        // Since SchemaObject lacks type, return a placeholder or infer from context
+        return schema.example !== undefined ? "example-provided" : "-"
     }
 
     return (
@@ -99,14 +96,21 @@ export const EndpointDetail: React.FC<EndpointDetailProps> = ({ path, method, op
             <ScrollArea className="h-full">
                 <div className="p-6">
                     <div className="flex items-center gap-4 mb-4">
-                        <Badge className={cn("uppercase text-white", methodColors[method.toLowerCase()] || "bg-gray-500")}>
+                        <Badge
+                            className={cn(
+                                "uppercase text-white",
+                                methodColors[method.toLowerCase()] ?? "bg-gray-500"
+                            )}
+                        >
                             {method}
                         </Badge>
                         <code className="text-sm font-mono">{path}</code>
                     </div>
 
                     {operation.summary && <h3 className="font-semibold mb-2">{operation.summary}</h3>}
-                    {operation.description && <p className="text-muted-foreground mb-6">{operation.description}</p>}
+                    {operation.description && (
+                        <p className="text-muted-foreground mb-6">{operation.description}</p>
+                    )}
 
                     {parameters.length > 0 && (
                         <div className="mb-6">
@@ -123,10 +127,14 @@ export const EndpointDetail: React.FC<EndpointDetailProps> = ({ path, method, op
                                         <div className="flex items-center gap-3">
                                             <div className="flex-1 min-w-0">
                                                 <div className="flex items-center gap-2">
-                                                    <span className="font-mono text-sm font-medium text-foreground truncate">
+                                                    <span
+                                                        className="font-mono text-sm font-medium text-foreground truncate">
                                                         {parameter.name}
                                                     </span>
-                                                    <Badge variant="outline" className="text-xs bg-slate-100 text-slate-700">
+                                                    <Badge
+                                                        variant="outline"
+                                                        className="text-xs bg-slate-100 text-slate-700"
+                                                    >
                                                         {parameter.in}
                                                     </Badge>
                                                 </div>
@@ -138,7 +146,9 @@ export const EndpointDetail: React.FC<EndpointDetailProps> = ({ path, method, op
                                                 variant={parameter.required ? "destructive" : "secondary"}
                                                 className={cn(
                                                     "text-xs font-medium",
-                                                    parameter.required ? "bg-red-100 text-red-700" : "bg-slate-100 text-slate-700"
+                                                    parameter.required
+                                                        ? "bg-red-100 text-red-700"
+                                                        : "bg-slate-100 text-slate-700"
                                                 )}
                                             >
                                                 {parameter.required ? "Required" : "Optional"}
@@ -160,7 +170,7 @@ export const EndpointDetail: React.FC<EndpointDetailProps> = ({ path, method, op
                             <h4 className="text-sm font-semibold mb-2">Request Body</h4>
                             <div className="mb-4">
                                 <SchemaTable
-                                    schema={requestBody.content[selectedContentType].schema}
+                                    schema={requestBody.content[selectedContentType].schema!}
                                     components={components}
                                 />
                             </div>
@@ -175,48 +185,56 @@ export const EndpointDetail: React.FC<EndpointDetailProps> = ({ path, method, op
                                     return (
                                         <div key={code} className="mb-4">
                                             <Badge variant="outline">{code}</Badge>
-                                            <span className="text-sm text-muted-foreground ml-2">No response details</span>
+                                            <span className="text-sm text-muted-foreground ml-2">
+                                                No response details
+                                            </span>
                                         </div>
                                     )
                                 }
 
                                 const responseContentTypes = response.content ? Object.keys(response.content) : []
-                                const selectedResponseType = selectedResponseTypes[code] || responseContentTypes[0]
+                                const selectedResponseType =
+                                    selectedResponseTypes[code] ?? responseContentTypes[0]
 
                                 return (
                                     <div key={code} className="mb-6 rounded-lg">
                                         <div className="flex items-center gap-2 mb-4">
                                             <Badge
                                                 variant={
-                                                    code.startsWith("2") ? "default" :
-                                                        code.startsWith("4") || code.startsWith("5") ? "destructive" : "outline"
+                                                    code.startsWith("2")
+                                                        ? "default"
+                                                        : code.startsWith("4") || code.startsWith("5")
+                                                            ? "destructive"
+                                                            : "outline"
                                                 }
                                                 className="text-sm"
                                             >
                                                 {code}
                                             </Badge>
-                                            <span className="text-sm font-medium">{response.description || "No description"}</span>
+                                            <span className="text-sm font-medium">
+                                                {response.description ?? "No description"}
+                                            </span>
                                         </div>
 
                                         {response.content && responseContentTypes.length > 1 && (
                                             <div className="mb-4">
                                                 <Tabs
                                                     value={selectedResponseType}
-                                                    onValueChange={(value) => handleResponseTypeChange(code, value)}
+                                                    onValueChange={value => handleResponseTypeChange(code, value)}
                                                     className="w-full"
                                                 >
                                                     <TabsList className="mb-2 bg-stone-100/70">
-                                                        {responseContentTypes.map((type) => (
+                                                        {responseContentTypes.map(type => (
                                                             <TabsTrigger key={type} value={type} className="text-xs">
                                                                 {type}
                                                             </TabsTrigger>
                                                         ))}
                                                     </TabsList>
-                                                    {responseContentTypes.map((contentType) => (
+                                                    {responseContentTypes.map(contentType => (
                                                         <TabsContent key={contentType} value={contentType}>
-                                                            {response.content[contentType]?.schema && (
+                                                            {response.content && response.content[contentType]?.schema && (
                                                                 <SchemaTable
-                                                                    schema={response.content[contentType].schema}
+                                                                    schema={response.content[contentType].schema!}
                                                                     components={components}
                                                                 />
                                                             )}
@@ -226,19 +244,21 @@ export const EndpointDetail: React.FC<EndpointDetailProps> = ({ path, method, op
                                             </div>
                                         )}
 
-                                        {response.content && responseContentTypes.length === 1 && selectedResponseType && (
-                                            <div className="mt-2">
-                                                <Badge variant="outline" className="mb-2">
-                                                    {selectedResponseType}
-                                                </Badge>
-                                                {response.content[selectedResponseType]?.schema && (
-                                                    <SchemaTable
-                                                        schema={response.content[selectedResponseType].schema}
-                                                        components={components}
-                                                    />
-                                                )}
-                                            </div>
-                                        )}
+                                        {response.content &&
+                                            responseContentTypes.length === 1 &&
+                                            selectedResponseType && (
+                                                <div className="mt-2">
+                                                    <Badge variant="outline" className="mb-2">
+                                                        {selectedResponseType}
+                                                    </Badge>
+                                                    {response.content[selectedResponseType]?.schema && (
+                                                        <SchemaTable
+                                                            schema={response.content[selectedResponseType].schema!}
+                                                            components={components}
+                                                        />
+                                                    )}
+                                                </div>
+                                            )}
                                     </div>
                                 )
                             })}

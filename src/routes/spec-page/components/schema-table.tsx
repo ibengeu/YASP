@@ -1,25 +1,40 @@
 "use client"
 
-import React, { useState } from "react"
-import type { ReferenceObject, SchemaObject, SchemaTableProps } from "@/common/openapi-spec.ts"
-import { cn } from "@/lib/utils.ts"
-import { ChevronDown, ChevronRight, FileJson } from "lucide-react"
-import { Badge } from "@/components/ui/badge.tsx"
+import React, {useState} from "react"
+import type {ComponentsObject, ReferenceObject, SchemaObject} from "@/common/openapi-spec.ts"
+import {cn} from "@/lib/utils.ts"
+import {ChevronDown, ChevronRight, FileJson} from "lucide-react"
+import {Badge} from "@/components/ui/badge.tsx"
 
-export const SchemaTable = ({ schema, components }: SchemaTableProps) => {
+
+export type SchemaTableProps = {
+    schema: SchemaObject | ReferenceObject;
+    components?: ComponentsObject;
+};
+
+export const SchemaTable = ({schema, components}: SchemaTableProps) => {
     const [expandedSchemas, setExpandedSchemas] = useState<Set<string>>(new Set())
 
     if (!schema) return null
 
-    const resolveSchema = (schema: SchemaObject | ReferenceObject): SchemaObject => {
-        if ("$ref" in schema && schema.$ref?.startsWith("#/components/schemas/")) {
-            const refKey = schema.$ref.split("/").pop()
-            return components.schemas?.[refKey as string] || (schema as SchemaObject)
+    const resolveSchema = (currentSchema: SchemaObject | ReferenceObject): SchemaObject => {
+        if ("$ref" in currentSchema && currentSchema.$ref?.startsWith("#/components/schemas/")) {
+            const refKey = currentSchema.$ref.split("/").pop()
+            const resolved = components?.schemas?.[refKey as string]
+            if (resolved && "$ref" in resolved) {
+                // Handle nested references
+                return resolveSchema(resolved)
+            }
+            return (resolved as SchemaObject) || (currentSchema as SchemaObject)
         }
-        return schema as SchemaObject
+        return currentSchema as SchemaObject
     }
 
-    const handleToggleSchema = (path: string, event: React.MouseEvent<HTMLDivElement>): void => {
+    // Modify event type to accept both MouseEvent and KeyboardEvent
+    const handleToggleSchema = (
+        path: string,
+        event: React.MouseEvent<HTMLDivElement> | React.KeyboardEvent<HTMLDivElement> // Changed
+    ): void => {
         event.stopPropagation()
         setExpandedSchemas((prev) => {
             const next = new Set(prev)
@@ -32,11 +47,19 @@ export const SchemaTable = ({ schema, components }: SchemaTableProps) => {
         })
     }
 
-    const renderSchema = (schema: SchemaObject | ReferenceObject, name = "", required: string[] = [], path = "", depth = 0) => {
-        const resolvedSchema = resolveSchema(schema)
+    const renderSchema = (
+        currentSchema: SchemaObject | ReferenceObject,
+        name = "",
+        required: string[] = [],
+        path = "",
+        depth = 0
+    ) => {
+        const resolvedSchema = resolveSchema(currentSchema)
         const fullPath = path ? `${path}.${name}` : name
         const isArray = resolvedSchema.type === "array"
-        const arrayItemSchema = isArray ? resolveSchema(resolvedSchema.items as SchemaObject | ReferenceObject) : null
+        const arrayItemSchema = isArray && resolvedSchema.items
+            ? resolveSchema(resolvedSchema.items as SchemaObject | ReferenceObject)
+            : null
         const hasNestedProperties = resolvedSchema.properties || (isArray && arrayItemSchema?.properties)
         const isExpanded = expandedSchemas.has(fullPath)
 
@@ -52,20 +75,21 @@ export const SchemaTable = ({ schema, components }: SchemaTableProps) => {
                     role={hasNestedProperties ? "button" : undefined}
                     aria-expanded={hasNestedProperties ? isExpanded : undefined}
                     tabIndex={hasNestedProperties ? 0 : undefined}
-                    onKeyDown={(e) => hasNestedProperties && e.key === "Enter" && handleToggleSchema(fullPath, e as any)}
+                    onKeyDown={(e) => hasNestedProperties && e.key === "Enter" && handleToggleSchema(fullPath, e)}
                 >
                     {/* Indentation and Icons */}
-                    <div className="flex items-center gap-2" style={{ paddingLeft: `${depth * 16}px` }}>
+                    <div className="flex items-center gap-2" style={{paddingLeft: `${depth * 16}px`}}>
                         {hasNestedProperties && (
                             <div className="flex items-center">
                                 {isExpanded ? (
-                                    <ChevronDown className="h-4 w-4 text-primary shrink-0" aria-hidden="true" />
+                                    <ChevronDown className="h-4 w-4 text-primary shrink-0" aria-hidden="true"/>
                                 ) : (
-                                    <ChevronRight className="h-4 w-4 text-primary shrink-0" aria-hidden="true" />
+                                    <ChevronRight className="h-4 w-4 text-primary shrink-0" aria-hidden="true"/>
                                 )}
                             </div>
                         )}
-                        {hasNestedProperties && <FileJson className="h-4 w-4 text-primary shrink-0" aria-hidden="true" />}
+                        {hasNestedProperties &&
+                            <FileJson className="h-4 w-4 text-primary shrink-0" aria-hidden="true"/>}
                     </div>
 
                     {/* Property Name and Type */}
@@ -86,7 +110,10 @@ export const SchemaTable = ({ schema, components }: SchemaTableProps) => {
                         </div>
                         <div className="text-sm text-muted-foreground">
                             <span className={cn(hasNestedProperties && "text-primary")}>
-                                {isArray ? `array of ${arrayItemSchema?.type || "object"}` : resolvedSchema.type || "object"}
+                                {isArray
+                                    ? `array of ${arrayItemSchema?.type || "object"}`
+                                    : resolvedSchema.type || "object"
+                                }
                             </span>
                             {resolvedSchema.format && (
                                 <span className="ml-1">({resolvedSchema.format})</span>
@@ -112,7 +139,8 @@ export const SchemaTable = ({ schema, components }: SchemaTableProps) => {
 
                 {/* Description */}
                 {resolvedSchema.description && (
-                    <div className="px-4 pb-3 pt-1 text-sm text-muted-foreground" style={{ paddingLeft: `${depth * 16 + 32}px` }}>
+                    <div className="px-4 pb-3 pt-1 text-sm text-muted-foreground"
+                         style={{paddingLeft: `${depth * 16 + 32}px`}}>
                         {resolvedSchema.description}
                     </div>
                 )}
@@ -122,7 +150,13 @@ export const SchemaTable = ({ schema, components }: SchemaTableProps) => {
                     <div className="bg-muted/10">
                         {resolvedSchema.properties &&
                             Object.entries(resolvedSchema.properties).map(([propName, prop]) =>
-                                renderSchema(prop as SchemaObject | ReferenceObject, propName, resolvedSchema.required, fullPath, depth + 1)
+                                renderSchema(
+                                    prop as SchemaObject | ReferenceObject,
+                                    propName,
+                                    resolvedSchema.required || [],
+                                    fullPath,
+                                    depth + 1
+                                )
                             )}
                         {isArray &&
                             arrayItemSchema?.properties &&
@@ -130,8 +164,8 @@ export const SchemaTable = ({ schema, components }: SchemaTableProps) => {
                                 renderSchema(
                                     prop as SchemaObject | ReferenceObject,
                                     propName,
-                                    arrayItemSchema.required,
-                                    `${fullPath}[]`,
+                                    arrayItemSchema.required || [],
+                                    `${fullPath}[]`, // Indicate array item path
                                     depth + 1
                                 )
                             )}
@@ -143,15 +177,41 @@ export const SchemaTable = ({ schema, components }: SchemaTableProps) => {
 
     const resolvedRootSchema = resolveSchema(schema)
 
-    return (
-        <div className="rounded-lg border border-border shadow-sm bg-background">
-            {resolvedRootSchema.properties ? (
-                Object.entries(resolvedRootSchema.properties).map(([name, prop]) =>
-                    renderSchema(prop as SchemaObject | ReferenceObject, name, resolvedRootSchema.required, "", 0)
-                )
-            ) : (
-                renderSchema(resolvedRootSchema, "", [], "", 0)
-            )}
-        </div>
-    )
+    // If the root schema itself is an array, or an object with properties.
+    // If it's a simple type without properties (e.g. string, number directly as root), render its details.
+    if (resolvedRootSchema.properties || resolvedRootSchema.type === "array") {
+        return (
+            <div className="rounded-lg border border-border shadow-sm bg-background">
+                {resolvedRootSchema.properties ? (
+                    Object.entries(resolvedRootSchema.properties).map(([name, prop]) =>
+                        renderSchema(
+                            prop as SchemaObject | ReferenceObject,
+                            name,
+                            resolvedRootSchema.required || [],
+                            "", // Root path starts empty
+                            0
+                        )
+                    )
+                ) : resolvedRootSchema.items ? ( // Handle root array
+                    renderSchema(
+                        resolvedRootSchema.items as SchemaObject | ReferenceObject,
+                        "", // Name can be empty or indicative like "items"
+                        resolvedRootSchema.required || [], // Root arrays usually don't have "required" in this context
+                        "", // Root path for array items
+                        0
+                    )
+                ) : (
+                    // Fallback for array without items or other complex root not directly showing properties
+                    renderSchema(resolvedRootSchema, resolvedRootSchema.type || "schema", [], "", 0)
+                )}
+            </div>
+        )
+    } else {
+        // Render a single schema without properties (e.g., a root schema that is just a string or number)
+        return (
+            <div className="rounded-lg border border-border shadow-sm bg-background">
+                {renderSchema(resolvedRootSchema, resolvedRootSchema.type || "schema", [], "", 0)}
+            </div>
+        )
+    }
 }
