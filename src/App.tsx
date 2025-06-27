@@ -1,19 +1,19 @@
-import {Button} from "@/components/ui/button"
-import {Card, CardDescription, CardHeader, CardTitle} from "@/components/ui/card"
 import {AlertCircle, Code, Database, FileJson, Search, Share2, Shield, Upload, Zap} from "lucide-react"
 import {Link, useNavigate} from "react-router"
 import {useCallback, useState} from "react"
-import {Alert, AlertDescription} from "@/components/ui/alert.tsx"
-import {IndexedDBService} from "@/services/indexdbservice.ts"
 import {OpenApiDocument} from "@/common/openapi-spec.ts"
-import {cn} from "@/lib/utils"
+import {IndexedDBService} from "@/core/services/indexdbservice.ts";
+import {Button} from "@/core/components/ui/button.tsx";
+import {cn} from "@/core/lib/utils.ts";
+import {Alert, AlertDescription} from "@/core/components/ui/alert.tsx";
+import {Card, CardDescription, CardHeader, CardTitle} from "@/core/components/ui/card.tsx";
 
 export default function LandingPage() {
     const navigate = useNavigate()
     const [fileName, setFileName] = useState<string | null>(null)
     const [error, setError] = useState<string | null>(null)
     const [isValid, setIsValid] = useState<boolean>(false)
-    const dbService = new IndexedDBService()
+    const dbService = useMemo(() => new IndexedDBService(), []);
 
     // Type for potential OpenAPI document
     type PotentialOpenApiDoc = {
@@ -24,7 +24,7 @@ export default function LandingPage() {
         paths?: unknown
     }
 
-    const extractOpenApiSpec = (content: PotentialOpenApiDoc): OpenApiDocument | null => {
+    const extractOpenApiSpec = useCallback((content: PotentialOpenApiDoc): OpenApiDocument | null => {
         if (content.spec && typeof content.spec === "object") {
             return content.spec as OpenApiDocument
         }
@@ -32,7 +32,7 @@ export default function LandingPage() {
             return content as unknown as OpenApiDocument
         }
         return null
-    }
+    }, []);
 
     const validateAndLoadSpec = useCallback(
         async (content: PotentialOpenApiDoc) => {
@@ -47,7 +47,7 @@ export default function LandingPage() {
                     return false
                 }
 
-                const version = spec.openapi || (spec as any).swagger
+                const version = spec.openapi || (spec as { swagger?: string }).swagger
                 if (!version) {
                     setError("Missing OpenAPI/Swagger version identifier")
                     return false
@@ -78,12 +78,13 @@ export default function LandingPage() {
                     console.error("Error saving spec:", error)
                     return false
                 }
-            } catch (err) {
+            } catch (error) {
                 setError("Invalid specification format")
+                console.error("Error saving spec:", error)
                 return false
             }
         },
-        [navigate]
+        [navigate, dbService, extractOpenApiSpec]
     )
 
     const handleFileUpload = useCallback(
@@ -102,8 +103,9 @@ export default function LandingPage() {
                 try {
                     const content = JSON.parse(e.target?.result as string)
                     validateAndLoadSpec(content)
-                } catch (err) {
+                } catch (error) {
                     setError("Invalid JSON file format")
+                    console.error("Error reading file:", error)
                 }
             }
             reader.onerror = () => {
