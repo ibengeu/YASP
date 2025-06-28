@@ -10,10 +10,9 @@ interface TopBarProps {
     title: string
     isMobileMenuOpen: boolean
     toggleMobileMenu: () => void
-    onShare: () => void;
 }
 
-export const TopBar: React.FC<TopBarProps> = ({title, isMobileMenuOpen, toggleMobileMenu, onShare}) => {
+export const TopBar: React.FC<TopBarProps> = ({title, isMobileMenuOpen, toggleMobileMenu}) => {
     const navigate = useNavigate()
 
     return (
@@ -37,12 +36,6 @@ export const TopBar: React.FC<TopBarProps> = ({title, isMobileMenuOpen, toggleMo
 
 
                 <div className="flex items-center gap-2">
-                    <Button variant="outline" size="sm" onClick={onShare}>
-                        Share
-                    </Button>
-                    <Button variant="outline" size="sm" onClick={() => navigate("/dashboard")}>
-                        Dashboard
-                    </Button>
                     <Button variant="outline" size="sm" onClick={() => navigate("/app")}>
                         Back to Directory
                     </Button>

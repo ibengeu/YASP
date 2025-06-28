@@ -7,7 +7,6 @@ interface StoredSpec {
     description?: string;
     spec: OpenApiDocument;
     createdAt: string;
-    key?: string;
 }
 
 export class IndexedDBService {
@@ -73,7 +72,7 @@ export class IndexedDBService {
         });
     }
 
-    async saveSpec(spec: OpenApiDocument, key?: string): Promise<number> {
+    async saveSpec(spec: OpenApiDocument): Promise<number> {
         const exists = await this.checkSpecExists(spec.info.title, spec.info.version);
 
         if (exists) {
@@ -90,8 +89,7 @@ export class IndexedDBService {
                 version: spec.info.version,
                 description: spec.info.description,
                 spec: spec,
-                createdAt: new Date().toISOString(),
-                key: key || undefined
+                createdAt: new Date().toISOString()
             };
 
             const request = store.add(storedSpec);

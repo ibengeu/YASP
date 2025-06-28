@@ -5,14 +5,14 @@ import type React from "react"
 import {useCallback, useState} from "react"
 import {AlertCircle, Check, FileJson, Upload} from "lucide-react"
 import {Button} from "@/core/components/ui/button"
-import {Input} from "@/core/components/ui/input"
+
 import {Textarea} from "@/core/components/ui/textarea"
 import {Alert, AlertDescription} from "@/core/components/ui/alert.tsx"
 import {cn} from "@/core/lib/utils"
 import {OpenApiDocument} from "@/common/openapi-spec.ts";
 
 interface SwaggerInputProps {
-    onSpecLoaded: (spec: OpenApiDocument, key?: string) => void;
+    onSpecLoaded: (spec: OpenApiDocument) => void;
 }
 
 export function SwaggerInput({onSpecLoaded}: SwaggerInputProps) {
@@ -21,7 +21,6 @@ export function SwaggerInput({onSpecLoaded}: SwaggerInputProps) {
     const [isDragging, setIsDragging] = useState<boolean>(false);
     const [fileName, setFileName] = useState<string | null>(null);
     const [isValid, setIsValid] = useState<boolean>(false);
-    const [uploadKey, setUploadKey] = useState<string>("");
 
     const validateAndLoadSpec = useCallback(
         (content: unknown) => {
@@ -67,14 +66,14 @@ export function SwaggerInput({onSpecLoaded}: SwaggerInputProps) {
                 }
 
                 setIsValid(true)
-                onSpecLoaded(spec as OpenApiDocument, uploadKey);
+                onSpecLoaded(spec as OpenApiDocument);
                 return true;
             } catch (err) {
                 setError("Invalid specification format");
                 return false;
             }
         },
-        [onSpecLoaded, uploadKey]
+        [onSpecLoaded]
     );
 
     const handleFileUpload = useCallback(
@@ -214,17 +213,6 @@ export function SwaggerInput({onSpecLoaded}: SwaggerInputProps) {
                         </>
                     )}
                 </div>
-            </div>
-
-            <div className="space-y-3">
-                <label className="text-sm font-medium block">Optional: Enter an upload key (UUID):</label>
-                <Input
-                    type="text"
-                    placeholder="e.g., 123e4567-e89b-12d3-a456-426614174000"
-                    value={uploadKey}
-                    onChange={(e) => setUploadKey(e.target.value)}
-                    className="font-mono"
-                />
             </div>
 
             <div className="space-y-3">

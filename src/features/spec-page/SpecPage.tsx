@@ -41,21 +41,6 @@ export const SpecPage: React.FC = () => {
         )
     }
 
-    const handleShare = useCallback(() => {
-        if (spec) {
-            const specJson = JSON.stringify(spec, null, 2);
-            const blob = new Blob([specJson], {type: "application/json"});
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement("a");
-            a.href = url;
-            a.download = `${spec.info.title.replace(/\s/g, "_") || "openapi"}.json`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-        }
-    }, [spec]);
-
     const loadSpec = useCallback(async () => {
         if (!id) {
             setError("No specification ID provided")
@@ -89,7 +74,7 @@ export const SpecPage: React.FC = () => {
         return (
             <div className="flex flex-col min-h-screen">
                 <TopBar title="API Documentation" isMobileMenuOpen={isMobileMenuOpen}
-                        toggleMobileMenu={toggleMobileMenu} onShare={handleShare}/>
+                        toggleMobileMenu={toggleMobileMenu}/>
                 <div className="container mx-auto py-6 text-center flex-1">
                     <p className="text-red-500 mb-4">{error}</p>
                     <Button onClick={loadSpec} variant="outline" className="mr-2">
@@ -105,7 +90,7 @@ export const SpecPage: React.FC = () => {
 
     return (
         <div className="flex flex-col h-screen bg-stone-50/30">
-            <TopBar title="API Documentation" isMobileMenuOpen={isMobileMenuOpen} toggleMobileMenu={toggleMobileMenu} onShare={handleShare}/>
+            <TopBar title="API Documentation" isMobileMenuOpen={isMobileMenuOpen} toggleMobileMenu={toggleMobileMenu}/>
 
             <main className="flex-1 overflow-hidden">
                 {isLoading ? (
