@@ -171,7 +171,7 @@ export function SwaggerInput({onSpecLoaded}: SwaggerInputProps) {
                 className={cn(
                     "flex flex-col justify-center items-center border-2 border-dashed rounded-lg p-8 transition-colors",
                     isDragging ? "border-primary bg-primary/5" : "border-muted-foreground/20",
-                    fileName && isValid ? "bg-green-50 border-green-200 dark:bg-green-950/20 dark:border-green-900" : ""
+                    fileName && isValid ? "bg-primary/10 border-primary/20" : ""
                 )}
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
@@ -181,14 +181,14 @@ export function SwaggerInput({onSpecLoaded}: SwaggerInputProps) {
                     {fileName && isValid ? (
                         <div className="flex flex-col items-center gap-2">
                             <div
-                                className="h-12 w-12 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-                                <Check className="h-6 w-6 text-green-600 dark:text-green-400" aria-hidden="true"/>
+                                className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
+                                <Check className="h-6 w-6 text-primary" aria-hidden="true"/>
                             </div>
                             <div className="flex items-center gap-2">
                                 <FileJson className="h-5 w-5 text-muted-foreground"/>
                                 <span className="font-medium">{fileName}</span>
                             </div>
-                            <p className="text-sm text-green-600 dark:text-green-400">Specification loaded
+                            <p className="text-sm text-primary">Specification loaded
                                 successfully!</p>
                         </div>
                     ) : (
@@ -221,14 +221,14 @@ export function SwaggerInput({onSpecLoaded}: SwaggerInputProps) {
                     placeholder="Paste your OpenAPI/Swagger JSON here..."
                     className={cn(
                         "font-mono min-h-[200px] resize-y",
-                        isValid && pastedContent ? "border-green-300 focus-visible:ring-green-300" : ""
+                        isValid && pastedContent ? "border-primary focus-visible:ring-primary" : ""
                     )}
                     value={pastedContent}
                     onChange={handlePasteChange}
                     aria-label="OpenAPI specification input"
                 />
                 {isValid && pastedContent && (
-                    <p className="text-sm flex items-center gap-1.5 text-green-600">
+                    <p className="text-sm flex items-center gap-1.5 text-primary">
                         <Check className="h-4 w-4"/>
                         Valid OpenAPI 3.x specification
                     </p>

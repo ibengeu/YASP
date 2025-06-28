@@ -25,14 +25,14 @@ interface EndpointDetailProps {
 }
 
 const methodColors: Record<string, string> = {
-    get: "bg-blue-500",
-    post: "bg-green-500",
-    put: "bg-orange-500",
-    delete: "bg-red-500",
-    patch: "bg-yellow-500",
-    options: "bg-purple-500",
-    head: "bg-cyan-500",
-    trace: "bg-indigo-500",
+    get: "bg-chart-1 text-white",
+    post: "bg-chart-2 text-white",
+    put: "bg-chart-3 text-white",
+    delete: "bg-destructive text-destructive-foreground",
+    patch: "bg-chart-4 text-white",
+    options: "bg-chart-5 text-white",
+    head: "bg-primary text-primary-foreground",
+    trace: "bg-secondary text-secondary-foreground",
 }
 
 export const EndpointDetail: React.FC<EndpointDetailProps> = ({path, method, operation, components}) => {
@@ -119,7 +119,7 @@ export const EndpointDetail: React.FC<EndpointDetailProps> = ({path, method, ope
     };
 
     return (
-        <div className="h-full overflow-hidden bg-stone-50/70">
+        <div className="h-full overflow-hidden ">
             <ScrollArea className="h-full">
                 <div className="p-6">
                     <div className="flex items-center gap-4 mb-4">
@@ -173,12 +173,8 @@ export const EndpointDetail: React.FC<EndpointDetailProps> = ({path, method, ope
                                             </div>
                                             <Badge
                                                 variant={parameter.required ? "destructive" : "secondary"}
-                                                className={cn(
-                                                    "text-xs font-medium",
-                                                    parameter.required
-                                                        ? "bg-red-100 text-red-700"
-                                                        : "bg-slate-100 text-slate-700"
-                                                )}
+                                                className="text-xs font-medium"
+
                                             >
                                                 {parameter.required ? "Required" : "Optional"}
                                             </Badge>
@@ -254,7 +250,7 @@ export const EndpointDetail: React.FC<EndpointDetailProps> = ({path, method, ope
                                                     onValueChange={value => handleResponseTypeChange(code, value)}
                                                     className="w-full"
                                                 >
-                                                    <TabsList className="mb-2 bg-stone-100/70">
+                                                    <TabsList className="mb-2 ">
                                                         {responseContentTypes.map(type => (
                                                             <TabsTrigger key={type} value={type} className="text-xs">
                                                                 {type}

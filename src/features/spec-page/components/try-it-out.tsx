@@ -56,11 +56,10 @@ export default function TryItOut({path, method, operation, components}: TryItOut
     const [response, setResponse] = useState<ResponseData | null>(null);
     const [isPending, startTransition] = useTransition();
     const [activeTab, setActiveTab] = useState<string>("body");
-    
+
     const [selectedServer, setSelectedServer] = useState<string>(
         operation.servers?.[0]?.url || "https://api.example.com"
     );
-    const selectedMethod = method.toUpperCase();
     const [selectedContentType, setSelectedContentType] = useState<string>("");
     const [fileInput, setFileInput] = useState<File | null>(null);
     const [securityInputs, setSecurityInputs] = useState<SecurityInput[]>([]);
@@ -71,7 +70,6 @@ export default function TryItOut({path, method, operation, components}: TryItOut
 
     const MAX_BODY_SIZE = 1024 * 1024; // 1MB
 
-    
 
     const isValidUrl = (url: string): boolean => {
         try {
@@ -82,6 +80,7 @@ export default function TryItOut({path, method, operation, components}: TryItOut
         }
     };
 
+    method = method.toUpperCase();
     // Filter parameters (no reference resolution)
     const resolvedParameters = useMemo(
         () =>
@@ -219,7 +218,7 @@ export default function TryItOut({path, method, operation, components}: TryItOut
     // Generate cURL command
     const generateCurlCommand = useMemo(() => {
         const fullUrl = constructUrl();
-        let curl = `curl -X ${selectedMethod} "${fullUrl}"`;
+        let curl = `curl -X ${method} "${fullUrl}"`;
 
         headers.forEach((header) => {
             if (header.name && header.value) {
@@ -227,7 +226,7 @@ export default function TryItOut({path, method, operation, components}: TryItOut
             }
         });
 
-        if (["POST", "PUT", "PATCH"].includes(selectedMethod) && requestBody && requestBody.trim()) {
+        if (["POST", "PUT", "PATCH"].includes(method) && requestBody && requestBody.trim()) {
             if (selectedContentType === "application/json") {
                 try {
                     const formattedBody = JSON.stringify(JSON.parse(requestBody));
@@ -241,7 +240,7 @@ export default function TryItOut({path, method, operation, components}: TryItOut
         }
 
         return curl;
-    }, [selectedMethod, headers, requestBody, selectedContentType, constructUrl]);
+    }, [method, headers, requestBody, selectedContentType, constructUrl]);
 
     // Handle parameter change
     const handleParameterChange = (name: string, value: string) => {
@@ -283,7 +282,6 @@ export default function TryItOut({path, method, operation, components}: TryItOut
         }
     };
 
-    
 
     // Copy to clipboard
     const copyToClipboard = (text: string) => {
@@ -333,21 +331,21 @@ export default function TryItOut({path, method, operation, components}: TryItOut
         }
 
         const requestData: ExecuteRequestForm = {
-            method: selectedMethod.toLowerCase(),
+            method: method.toLowerCase(),
             path: fullUrl.replace(selectedServer, ""),
             baseUrl: selectedServer,
             parameters: {
                 ...parameters,
                 ...securityInputs
                     .filter(input => input.type === "query" && input.value)
-                    .reduce((acc, input) => ({ ...acc, [input.name]: input.value }), {}),
+                    .reduce((acc, input) => ({...acc, [input.name]: input.value}), {}),
             },
             requestBody: selectedContentType === "multipart/form-data" ? "" : requestBody,
             headers: [
                 ...headers,
                 ...securityInputs
                     .filter(input => input.type === "header" && input.value)
-                    .map(input => ({ name: input.name, value: input.value })),
+                    .map(input => ({name: input.name, value: input.value})),
             ],
         };
 
@@ -431,11 +429,10 @@ export default function TryItOut({path, method, operation, components}: TryItOut
         );
     };
 
-    
 
     // Render body input
     const renderBodyInput = () => {
-        if (!["POST", "PUT", "PATCH"].includes(selectedMethod)) return null;
+        if (!["POST", "PUT", "PATCH"].includes(method)) return null;
         return (
             <div className="space-y-4">
                 <h3 className="text-sm font-medium">Request Body</h3>
@@ -483,7 +480,6 @@ export default function TryItOut({path, method, operation, components}: TryItOut
             <ScrollArea className="h-full">
                 <div className="p-4">
                     <div className="flex items-center gap-2 mb-4">
-                        <Input value={selectedMethod} readOnly className="w-1/5 font-bold text-center"/>
                         {operation.servers && operation.servers.length > 0 && (
                             <Select value={selectedServer} onValueChange={setSelectedServer}>
                                 <SelectTrigger className="w-48">
@@ -498,7 +494,7 @@ export default function TryItOut({path, method, operation, components}: TryItOut
                                 </SelectContent>
                             </Select>
                         )}
-                        <Input value={constructUrl()} readOnly className="flex-1"/>
+                        <span className="flex-1 border px-4 p-2">{constructUrl()}</span>
                     </div>
 
                     <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1">
@@ -506,7 +502,7 @@ export default function TryItOut({path, method, operation, components}: TryItOut
                             <TabsTrigger value="body">Body</TabsTrigger>
                             <TabsTrigger value="params">Params</TabsTrigger>
                             <TabsTrigger value="security">Security</TabsTrigger>
-                            
+
                             <TabsTrigger value="curl">cURL</TabsTrigger>
                         </TabsList>
                         <TabsContent value="params" className="mt-4">
@@ -515,11 +511,11 @@ export default function TryItOut({path, method, operation, components}: TryItOut
                         <TabsContent value="security" className="mt-4">
                             {renderSecurityInputs()}
                         </TabsContent>
-                        
+
                         <TabsContent value="body" className="mt-4">
                             {renderBodyInput()}
                             <div className="flex items-center gap-2 mt-4">
-                                {["POST", "PUT", "PATCH"].includes(selectedMethod) && selectedContentType === "application/json" && (
+                                {["POST", "PUT", "PATCH"].includes(method) && selectedContentType === "application/json" && (
                                     <Button onClick={formatJson} variant="outline">Format JSON</Button>
                                 )}
                                 <Button onClick={onSubmit} disabled={isPending} className="flex-1">

@@ -7,7 +7,7 @@ import {Button} from "@/core/components/ui/button.tsx";
 import {cn} from "@/core/lib/utils.ts";
 import {Alert, AlertDescription} from "@/core/components/ui/alert.tsx";
 import {Card, CardDescription, CardHeader, CardTitle} from "@/core/components/ui/card.tsx";
- 
+
  export default function LandingPage() {
      const navigate = useNavigate()
      const [fileName, setFileName] = useState<string | null>(null)
@@ -117,9 +117,9 @@ import {Card, CardDescription, CardHeader, CardTitle} from "@/core/components/ui
     )
 
     return (
-        <div className="flex flex-col min-h-screen">
-            <header className="border border-muted bg-muted sticky top-0 z-10">
-                <div className=" mx-auto flex h-16 items-center justify-between px-4 bg-white">
+        <div className="flex flex-col min-h-screen  ">
+            <header className="border-b border-border bg-background/80 backdrop-blur-sm sticky top-0 z-10">
+                <div className=" mx-auto flex h-16 items-center justify-between px-4">
                     <div className="flex items-center gap-2">
                         <FileJson className="h-6 w-6 text-primary"/>
                         <span className="text-xl font-semibold tracking-tight">YASP</span>
@@ -145,16 +145,16 @@ import {Card, CardDescription, CardHeader, CardTitle} from "@/core/components/ui
             </header>
 
             <main className="flex-1">
-                {/* Hero Section */}
-                <section className="py-20 md:py-28 bg-muted min-h-screen bg-white">
+                 {/*Hero Section*/}
+                <section className="py-16 md:py-28 ">
                     <div className="px-4 md:px-20 w-full">
-                        <div className="grid gap-6 lg:grid-cols-[1fr_500px] lg:gap-12 xl:grid-cols-[1fr_550px]">
+                        <div className="grid gap-8 lg:grid-cols-[1fr_500px] lg:gap-12 xl:grid-cols-[1fr_550px]">
                             <div className="flex flex-col justify-center space-y-4">
                                 <div className="space-y-2">
-                                    <h1 className="text-3xl font-bold tracking-tighter sm:text-5xl xl:text-6xl/none">
+                                    <h1 className="text-3xl sm:text-4xl md:text-5xl xl:text-6xl font-bold tracking-tighter text-foreground">
                                         Manage Your API Collections with Ease
                                     </h1>
-                                    <p className="max-w-[600px] md:text-xl">
+                                    <p className="max-w-[600px] text-lg md:text-xl text-muted-foreground">
                                         A powerful tool for developers to upload, organize, and explore OpenAPI
                                         specifications in one centralized location.
                                     </p>
@@ -176,28 +176,28 @@ import {Card, CardDescription, CardHeader, CardTitle} from "@/core/components/ui
                                     <div
                                         className={cn(
                                             "flex flex-col justify-center items-center border-2 border-dashed rounded-lg p-6 transition-colors bg-background",
-                                            fileName && isValid ? "bg-green-50 border-green-200 dark:bg-green-950/20 dark:border-green-900" : "border-muted-foreground/20"
+                                            fileName && isValid ? "bg-primary/10 border-primary/20" : "border-muted-foreground/20"
                                         )}
                                     >
                                         {fileName && isValid ? (
                                             <div className="flex flex-col items-center gap-2">
                                                 <div
-                                                    className="h-12 w-12 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-                                                    <FileJson className="h-6 w-6 text-green-600 dark:text-green-400"
+                                                    className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
+                                                    <FileJson className="h-6 w-6 text-primary"
                                                               aria-hidden="true"/>
                                                 </div>
                                                 <div className="flex items-center gap-2">
                                                     <FileJson className="h-5 w-5 text-muted-foreground"/>
                                                     <span className="font-medium">{fileName}</span>
                                                 </div>
-                                                <p className="text-sm text-green-600 dark:text-green-400">
+                                                <p className="text-sm text-primary">
                                                     Specification loaded successfully!
                                                 </p>
                                             </div>
                                         ) : (
                                             <div className="text-center space-y-4">
                                                 <div
-                                                    className="h-12 w-12 rounded-full bg-muted flex items-center justify-center mx-auto">
+                                                    className="h-12 w-12 rounded-full flex items-center justify-center mx-auto">
                                                     <Upload className="h-6 w-6 text-muted-foreground"
                                                             aria-hidden="true"/>
                                                 </div>
@@ -301,7 +301,7 @@ import {Card, CardDescription, CardHeader, CardTitle} from "@/core/components/ui
                 </section>
 
                 {/* Benefits Section */}
-                <section id="benefits" className="py-20 bg-white">
+                <section id="benefits" className="py-20 bg-background">
                     <div className="container px-4 md:px-20">
                         <div className="grid gap-6 lg:grid-cols-[500px_1fr] lg:gap-12 xl:grid-cols-[550px_1fr]">
                             <div className="relative flex items-center justify-center order-last lg:order-first">

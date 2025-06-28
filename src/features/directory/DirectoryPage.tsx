@@ -188,7 +188,7 @@ export function DirectoryPage() {
                                                                     {isRecentlyAdded(spec.createdAt) && (
                                                                         <Badge
                                                                             variant="outline"
-                                                                            className="text-xs bg-green-50 text-green-600 border-green-200"
+                                                                            className="text-xs bg-primary/10 text-primary border-primary/20"
                                                                         >
                                                                             New
                                                                         </Badge>
@@ -245,7 +245,7 @@ export function DirectoryPage() {
                             ))}
                         </div>
                     ) : (
-                        <div className="bg-muted/30 border rounded-lg py-12 px-4 text-center">
+                        <div className="bg-muted border rounded-lg py-12 px-4 text-center">
                             {searchTerm ? (
                                 <div className="space-y-2">
                                     <Search className="h-10 w-10 text-muted-foreground mx-auto"/>

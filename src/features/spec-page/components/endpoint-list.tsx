@@ -62,14 +62,14 @@ export const EndpointList: React.FC<EndpointListProps> = ({
     }, {})
 
     const methodColors: Record<string, string> = {
-        get: "bg-blue-500",
-        post: "bg-green-500",
-        put: "bg-orange-500",
-        delete: "bg-red-500",
-        patch: "bg-yellow-500",
-        options: "bg-purple-500",
-        head: "bg-cyan-500",
-        trace: "bg-indigo-500",
+        get: "bg-chart-1 text-white",
+        post: "bg-chart-2 text-white",
+        put: "bg-chart-3 text-white",
+        delete: "bg-destructive text-destructive-foreground",
+        patch: "bg-chart-4 text-white",
+        options: "bg-chart-5 text-white",
+        head: "bg-primary text-primary-foreground",
+        trace: "bg-secondary text-secondary-foreground",
     }
 
     const filteredTags = Object.keys(pathsByTag).filter(
@@ -108,7 +108,7 @@ export const EndpointList: React.FC<EndpointListProps> = ({
                                         onClick={() => setSelectedTag(tag)}
                                         className={cn(
                                             "w-full text-left px-3 py-2 rounded-md text-sm font-medium transition-colors flex items-center justify-between",
-                                            selectedTag === tag ? "bg-stone-200/50 text-stone-800" : "hover:bg-stone-100/50",
+                                            selectedTag === tag ? "bg-accent text-accent-foreground" : "hover:bg-muted/50",
                                         )}
                                     >
                                         <span>{tag}</span>

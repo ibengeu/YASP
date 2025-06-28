@@ -1,74 +1,31 @@
 "use client"
 
-import React, {useCallback, useEffect, useState} from "react"
-import {Button} from "@/core/components/ui/button"
-import {IndexedDBService} from "@/core/services/indexdbservice"
-import {SwaggerUI} from "./components/swagger-ui"
-import type {OpenApiDocument, OperationObject} from "../../common/openapi-spec.ts"
-import {Loader2} from "lucide-react"
-import {useNavigate, useParams} from "react-router"
-import {Sheet, SheetContent} from "@/core/components/ui/sheet"
-import useMediaQuery from "@/core/hooks/useMediaQuery.ts"
-import {TopBar} from "./components/top-bar.tsx"
-import TryItOut from "./components/try-it-out.tsx"
+import React, {useState} from "react";
+import {Button} from "@/core/components/ui/button";
+import {SwaggerUI} from "./components/swagger-ui";
+import {OperationObject} from "../../common/openapi-spec.ts";
+import {Loader2} from "lucide-react";
+import {useNavigate, useParams} from "react-router";
+import {Sheet, SheetContent} from "@/core/components/ui/sheet";
+import useMediaQuery from "@/core/hooks/useMediaQuery.ts";
+import {TopBar} from "./components/top-bar.tsx";
+import TryItOut from "./components/try-it-out.tsx";
+import {useSpec} from "./hooks/useSpec.ts";
 
 export const SpecPage: React.FC = () => {
-    const {id} = useParams<{ id: string }>()
-    const navigate = useNavigate()
-    const [spec, setSpec] = useState<OpenApiDocument | null>(null)
-    const [isLoading, setIsLoading] = useState(true)
-    const [error, setError] = useState<string | null>(null)
-    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+    const {id} = useParams<{ id: string }>();
+    const navigate = useNavigate();
+    const {spec, isLoading, error} = useSpec(id);
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [selectedEndpoint, setSelectedEndpoint] = useState<{
-        path: string
-        method: string
-        operation: OperationObject
-    } | null>(null)
+        path: string;
+        method: string;
+        operation: OperationObject;
+    } | null>(null);
 
-    const dbService = React.useMemo(() => new IndexedDBService(), []);
-    const isTablet = useMediaQuery("(min-width: 768px)")
+    const isTablet = useMediaQuery("(min-width: 768px)");
 
-    const toggleMobileMenu = () => setIsMobileMenuOpen(!isMobileMenuOpen)
-
-    const validateSpec = (spec: unknown): spec is OpenApiDocument => {
-        if (typeof spec !== "object" || spec === null) return false
-        const s = spec as Partial<OpenApiDocument>
-        return !!(
-            s.openapi?.startsWith("3.") &&
-            s.info?.title &&
-            s.info?.version &&
-            s.paths && Object.keys(s.paths).length > 0
-        )
-    }
-
-    const loadSpec = useCallback(async () => {
-        if (!id) {
-            setError("No specification ID provided")
-            setIsLoading(false)
-            return
-        }
-
-        setIsLoading(true)
-        try {
-            const loadedSpec = await dbService.getSpecById(Number(id))
-            if (!loadedSpec || !loadedSpec.spec) {
-                throw new Error("Specification not found")
-            }
-            if (!validateSpec(loadedSpec.spec)) {
-                throw new Error("Invalid OpenAPI specification format")
-            }
-            setSpec(loadedSpec.spec)
-        } catch (err) {
-            setError(err instanceof Error ? err.message : "Failed to load specification")
-            console.error("Error loading spec:", err)
-        } finally {
-            setIsLoading(false)
-        }
-    }, [id, dbService])
-
-    useEffect(() => {
-        loadSpec()
-    }, [loadSpec])
+    const toggleMobileMenu = () => setIsMobileMenuOpen(!isMobileMenuOpen);
 
     if (error) {
         return (
@@ -76,10 +33,8 @@ export const SpecPage: React.FC = () => {
                 <TopBar title="API Documentation" isMobileMenuOpen={isMobileMenuOpen}
                         toggleMobileMenu={toggleMobileMenu}/>
                 <div className="container mx-auto py-6 text-center flex-1">
-                    <p className="text-red-500 mb-4">{error}</p>
-                    <Button onClick={loadSpec} variant="outline" className="mr-2">
-                        Retry
-                    </Button>
+                    <p className="text-destructive mb-4">{error}</p>
+
                     <Button onClick={() => navigate("/")} variant="outline">
                         Back to Directory
                     </Button>
@@ -89,7 +44,7 @@ export const SpecPage: React.FC = () => {
     }
 
     return (
-        <div className="flex flex-col h-screen bg-stone-50/30">
+        <div className="flex flex-col h-screen ">
             <TopBar title="API Documentation" isMobileMenuOpen={isMobileMenuOpen} toggleMobileMenu={toggleMobileMenu}/>
 
             <main className="flex-1 overflow-hidden">
