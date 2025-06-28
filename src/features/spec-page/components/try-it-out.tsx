@@ -16,7 +16,7 @@ import {executeApiRequest, ExecuteRequestForm} from "@/features/spec-page/action
 import {ScrollArea} from "@/core/components/ui/scroll-area";
 import {Input} from "@/core/components/ui/input";
 import {Button} from "@/core/components/ui/button";
-import {Loader2, Plus, Trash2} from "lucide-react";
+import {Loader2} from "lucide-react";
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@/core/components/ui/select.tsx";
 import {Textarea} from "@/core/components/ui/textarea";
 import {Tabs, TabsContent, TabsList, TabsTrigger} from "@/core/components/ui/tabs";
@@ -56,8 +56,7 @@ export default function TryItOut({path, method, operation, components}: TryItOut
     const [response, setResponse] = useState<ResponseData | null>(null);
     const [isPending, startTransition] = useTransition();
     const [activeTab, setActiveTab] = useState<string>("body");
-    const [newHeaderName, setNewHeaderName] = useState<string>("");
-    const [newHeaderValue, setNewHeaderValue] = useState<string>("");
+    
     const [selectedServer, setSelectedServer] = useState<string>(
         operation.servers?.[0]?.url || "https://api.example.com"
     );
@@ -71,11 +70,8 @@ export default function TryItOut({path, method, operation, components}: TryItOut
     });
 
     const MAX_BODY_SIZE = 1024 * 1024; // 1MB
-    const MAX_HEADER_SIZE = 1024; // 1KB
 
-    const sanitizeInput = (input: string): string => {
-        return input.replace(/[<>]/g, "");
-    };
+    
 
     const isValidUrl = (url: string): boolean => {
         try {
@@ -287,24 +283,7 @@ export default function TryItOut({path, method, operation, components}: TryItOut
         }
     };
 
-    // Add header
-    const addHeader = () => {
-        if (!newHeaderName.trim()) return;
-        if (newHeaderName.length > MAX_HEADER_SIZE || newHeaderValue.length > MAX_HEADER_SIZE) {
-            toast.error("Header name or value exceeds maximum size of 1KB.");
-            return;
-        }
-        const sanitizedName = sanitizeInput(newHeaderName);
-        const sanitizedValue = sanitizeInput(newHeaderValue);
-        setHeaders((prev) => [...prev, {name: sanitizedName, value: sanitizedValue}]);
-        setNewHeaderName("");
-        setNewHeaderValue("");
-    };
-
-    // Remove header
-    const removeHeader = (index: number) => {
-        setHeaders((prev) => prev.filter((_, i) => i !== index));
-    };
+    
 
     // Copy to clipboard
     const copyToClipboard = (text: string) => {
@@ -357,9 +336,19 @@ export default function TryItOut({path, method, operation, components}: TryItOut
             method: selectedMethod.toLowerCase(),
             path: fullUrl.replace(selectedServer, ""),
             baseUrl: selectedServer,
-            parameters,
+            parameters: {
+                ...parameters,
+                ...securityInputs
+                    .filter(input => input.type === "query" && input.value)
+                    .reduce((acc, input) => ({ ...acc, [input.name]: input.value }), {}),
+            },
             requestBody: selectedContentType === "multipart/form-data" ? "" : requestBody,
-            headers,
+            headers: [
+                ...headers,
+                ...securityInputs
+                    .filter(input => input.type === "header" && input.value)
+                    .map(input => ({ name: input.name, value: input.value })),
+            ],
         };
 
         handleExecute({requestData: JSON.stringify(requestData)});
@@ -442,52 +431,7 @@ export default function TryItOut({path, method, operation, components}: TryItOut
         );
     };
 
-    // Render headers input
-    const renderHeadersInput = () => (
-        <div className="space-y-4">
-            <h3 className="text-sm font-medium">Headers</h3>
-            {headers.map((header, index) => (
-                <div key={index} className="flex gap-2">
-                    <Input
-                        value={header.name}
-                        onChange={(e) => {
-                            const newHeaders = [...headers];
-                            newHeaders[index].name = sanitizeInput(e.target.value);
-                            setHeaders(newHeaders);
-                        }}
-                        placeholder="Header name"
-                    />
-                    <Input
-                        value={header.value}
-                        onChange={(e) => {
-                            const newHeaders = [...headers];
-                            newHeaders[index].value = sanitizeInput(e.target.value);
-                            setHeaders(newHeaders);
-                        }}
-                        placeholder="Value"
-                    />
-                    <Button variant="ghost" onClick={() => removeHeader(index)}>
-                        <Trash2 className="h-4 w-4"/>
-                    </Button>
-                </div>
-            ))}
-            <div className="flex gap-2">
-                <Input
-                    value={newHeaderName}
-                    onChange={(e) => setNewHeaderName(e.target.value)}
-                    placeholder="Header name"
-                />
-                <Input
-                    value={newHeaderValue}
-                    onChange={(e) => setNewHeaderValue(e.target.value)}
-                    placeholder="Value"
-                />
-                <Button onClick={addHeader} disabled={!newHeaderName.trim()}>
-                    <Plus className="h-4 w-4"/>
-                </Button>
-            </div>
-        </div>
-    );
+    
 
     // Render body input
     const renderBodyInput = () => {
@@ -562,7 +506,7 @@ export default function TryItOut({path, method, operation, components}: TryItOut
                             <TabsTrigger value="body">Body</TabsTrigger>
                             <TabsTrigger value="params">Params</TabsTrigger>
                             <TabsTrigger value="security">Security</TabsTrigger>
-                            <TabsTrigger value="headers">Headers</TabsTrigger>
+                            
                             <TabsTrigger value="curl">cURL</TabsTrigger>
                         </TabsList>
                         <TabsContent value="params" className="mt-4">
@@ -571,9 +515,7 @@ export default function TryItOut({path, method, operation, components}: TryItOut
                         <TabsContent value="security" className="mt-4">
                             {renderSecurityInputs()}
                         </TabsContent>
-                        <TabsContent value="headers" className="mt-4">
-                            {renderHeadersInput()}
-                        </TabsContent>
+                        
                         <TabsContent value="body" className="mt-4">
                             {renderBodyInput()}
                             <div className="flex items-center gap-2 mt-4">
