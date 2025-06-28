@@ -126,16 +126,16 @@ import {Card, CardDescription, CardHeader, CardTitle} from "@/core/components/ui
                     </div>
                     <div className="flex items-center gap-4">
                         <nav className="hidden md:flex items-center gap-6">
-                            <Link to="#features" className="text-sm font-medium hover:text-primary transition-colors">
+                            <a href="#features" className="text-sm font-medium hover:text-primary transition-colors">
                                 Features
-                            </Link>
-                            <Link to="#benefits" className="text-sm font-medium hover:text-primary transition-colors">
+                            </a>
+                            <a href="#benefits" className="text-sm font-medium hover:text-primary transition-colors">
                                 Benefits
-                            </Link>
-                            <Link to="#get-started"
+                            </a>
+                            <a href="#get-started"
                                   className="text-sm font-medium hover:text-primary transition-colors">
                                 Get Started
-                            </Link>
+                            </a>
                         </nav>
                         <Button asChild>
                             <Link to="/app">Launch App</Link>
@@ -162,9 +162,6 @@ import {Card, CardDescription, CardHeader, CardTitle} from "@/core/components/ui
                                 <div className="flex flex-col sm:flex-row gap-3">
                                     <Button size="lg" asChild>
                                         <Link to="/app">Get Started</Link>
-                                    </Button>
-                                    <Button size="lg" variant="outline" asChild>
-                                        <Link to="#features">Learn More</Link>
                                     </Button>
                                 </div>
                             </div>
@@ -395,9 +392,6 @@ import {Card, CardDescription, CardHeader, CardTitle} from "@/core/components/ui
                             <div className="flex flex-col sm:flex-row gap-3 pt-4">
                                 <Button size="lg" asChild>
                                     <Link to="/app">Launch App</Link>
-                                </Button>
-                                <Button size="lg" variant="outline" asChild>
-                                    <Link to="#features">Learn More</Link>
                                 </Button>
                             </div>
                         </div>

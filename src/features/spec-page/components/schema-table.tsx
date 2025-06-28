@@ -107,7 +107,7 @@ export const SchemaTable = ({schema, components}: SchemaTableProps) => {
                             {hasNestedProperties && (
                                 <Badge
                                     variant="outline"
-                                    className="text-xs bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200 border-slate-200 dark:border-slate-700"
+                                    className="text-xs bg-secondary text-secondary-foreground border-border"
                                 >
                                     {isArray ? "array object" : "object"}
                                 </Badge>
@@ -130,12 +130,7 @@ export const SchemaTable = ({schema, components}: SchemaTableProps) => {
                     <div className="flex-shrink-0">
                         <Badge
                             variant={required?.includes(name) ? "destructive" : "secondary"}
-                            className={cn(
-                                "text-xs font-medium",
-                                required?.includes(name)
-                                    ? "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-200 border-red-200 dark:border-red-800"
-                                    : "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200 border-slate-200 dark:border-slate-700"
-                            )}
+                            className="text-xs font-medium"
                         >
                             {required?.includes(name) ? "Required" : "Optional"}
                         </Badge>
@@ -190,36 +185,40 @@ export const SchemaTable = ({schema, components}: SchemaTableProps) => {
     // If it's a simple type without properties (e.g. string, number directly as root), render its details.
     if (resolvedRootSchema.properties || resolvedRootSchema.type === "array") {
         return (
-            <div className="rounded-lg border border-border shadow-sm bg-background">
-                {resolvedRootSchema.properties ? (
-                    Object.entries(resolvedRootSchema.properties).map(([name, prop]) =>
+            <div className="rounded-lg border border-border shadow-sm bg-background overflow-x-auto">
+                <div className="min-w-max">
+                    {resolvedRootSchema.properties ? (
+                        Object.entries(resolvedRootSchema.properties).map(([name, prop]) =>
+                            renderSchema(
+                                prop as SchemaObject | ReferenceObject,
+                                name,
+                                resolvedRootSchema.required || [],
+                                "", // Root path starts empty
+                                0
+                            )
+                        )
+                    ) : resolvedRootSchema.items ? ( // Handle root array
                         renderSchema(
-                            prop as SchemaObject | ReferenceObject,
-                            name,
-                            resolvedRootSchema.required || [],
-                            "", // Root path starts empty
+                            resolvedRootSchema.items as SchemaObject | ReferenceObject,
+                            "", // Name can be empty or indicative like "items"
+                            resolvedRootSchema.required || [], // Root arrays usually don't have "required" in this context
+                            "", // Root path for array items
                             0
                         )
-                    )
-                ) : resolvedRootSchema.items ? ( // Handle root array
-                    renderSchema(
-                        resolvedRootSchema.items as SchemaObject | ReferenceObject,
-                        "", // Name can be empty or indicative like "items"
-                        resolvedRootSchema.required || [], // Root arrays usually don't have "required" in this context
-                        "", // Root path for array items
-                        0
-                    )
-                ) : (
-                    // Fallback for array without items or other complex root not directly showing properties
-                    resolvedRootSchema.type ? renderSchema(resolvedRootSchema, resolvedRootSchema.type, [], "", 0) : null
-                )}
+                    ) : (
+                        // Fallback for array without items or other complex root not directly showing properties
+                        resolvedRootSchema.type ? renderSchema(resolvedRootSchema, resolvedRootSchema.type, [], "", 0) : null
+                    )}
+                </div>
             </div>
         )
     } else if (resolvedRootSchema.type) {
         // Render a single schema without properties (e.g., a root schema that is just a string or number)
         return (
-            <div className="rounded-lg border border-border shadow-sm bg-background">
-                {renderSchema(resolvedRootSchema, resolvedRootSchema.type, [], "", 0)}
+            <div className="rounded-lg border border-border shadow-sm bg-background overflow-x-auto">
+                <div className="min-w-max">
+                    {renderSchema(resolvedRootSchema, resolvedRootSchema.type, [], "", 0)}
+                </div>
             </div>
         )
     } else {

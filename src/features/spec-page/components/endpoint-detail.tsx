@@ -250,7 +250,7 @@ export const EndpointDetail: React.FC<EndpointDetailProps> = ({path, method, ope
                                                     onValueChange={value => handleResponseTypeChange(code, value)}
                                                     className="w-full"
                                                 >
-                                                    <TabsList className="mb-2 ">
+                                                    <TabsList className="mb-2 bg-muted">
                                                         {responseContentTypes.map(type => (
                                                             <TabsTrigger key={type} value={type} className="text-xs">
                                                                 {type}
