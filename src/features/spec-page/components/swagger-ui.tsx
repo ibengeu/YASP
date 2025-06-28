@@ -45,7 +45,7 @@ export function SwaggerUI({spec, onEndpointSelected}: SwaggerUIProps) {
 
     return (
         <ResizablePanelGroup direction="horizontal" className="h-full rounded-lg">
-            <ResizablePanel defaultSize={defaultLayout[0]} minSize={15} maxSize={24}
+            <ResizablePanel defaultSize={defaultLayout[0]} minSize={15} maxSize={30}
                             className="overflow-hidden">
                 <EndpointList
                     spec={spec}
@@ -61,7 +61,7 @@ export function SwaggerUI({spec, onEndpointSelected}: SwaggerUIProps) {
 
             <ResizableHandle withHandle/>
 
-            <ResizablePanel defaultSize={defaultLayout[1]} minSize={isDesktop ? 30 : 70} className=" overflow-hidden">
+            <ResizablePanel defaultSize={defaultLayout[1]} minSize={isDesktop ? 30 : 50} className=" overflow-hidden">
                 {selectedEndpoint ? (
                     <EndpointDetail
                         path={selectedEndpoint.path}

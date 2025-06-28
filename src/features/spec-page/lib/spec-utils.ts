@@ -1,4 +1,4 @@
-import {OpenApiDocument, OperationObject, PathItemObject} from "@/common/openapi-spec";
+import {OpenApiDocument, PathItemObject} from "@/common/openapi-spec";
 import {EndpointEntry} from "@/features/spec-page/components/endpoint-list";
 
 /**

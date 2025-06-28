@@ -306,11 +306,11 @@ import {Card, CardDescription, CardHeader, CardTitle} from "@/core/components/ui
                         <div className="grid gap-6 lg:grid-cols-[500px_1fr] lg:gap-12 xl:grid-cols-[550px_1fr]">
                             <div className="relative flex items-center justify-center order-last lg:order-first">
                                 <div
-                                    className="relative w-full h-[300px] sm:h-[350px] md:h-[400px] lg:h-[450px] rounded-lg overflow-hidden shadow-xl">
+                                    className="relative w-full rounded-lg overflow-hidden shadow-xl aspect-video">
                                     <img
                                         src="/img_1.png"
                                         alt="Developer using API Collection Tool"
-                                        className="object-cover h-full"
+                                        className="object-cover h-full w-full"
                                     />
                                     <div
                                         className="absolute inset-0 bg-gradient-to-tr from-primary/20 to-transparent"></div>

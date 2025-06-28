@@ -29,7 +29,7 @@ export const SpecPage: React.FC = () => {
 
     if (error) {
         return (
-            <div className="flex flex-col min-h-screen">
+            <div className="flex flex-col h-screen">
                 <TopBar title="API Documentation" isMobileMenuOpen={isMobileMenuOpen}
                         toggleMobileMenu={toggleMobileMenu}/>
                 <div className="container mx-auto py-6 text-center flex-1">

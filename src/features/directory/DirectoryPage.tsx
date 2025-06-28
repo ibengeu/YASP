@@ -183,7 +183,7 @@ export function DirectoryPage() {
                                                             </div>
                                                             <div className="flex-1">
                                                                 <CardTitle
-                                                                    className="flex items-center gap-2 leading-tight">
+                                                                    className="flex flex-wrap items-center gap-2">
                                                                     <span className="truncate">{spec.title}</span>
                                                                     {isRecentlyAdded(spec.createdAt) && (
                                                                         <Badge
