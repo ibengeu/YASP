@@ -1,6 +1,6 @@
 "use client";
 
-import {useEffect, useMemo, useState, useTransition} from "react";
+import {useCallback, useEffect, useMemo, useState, useTransition} from "react";
 import {
     ComponentsObject,
     OperationObject,
@@ -172,7 +172,7 @@ export default function TryItOut({path, method, operation, components}: TryItOut
         [resolvedRequestBody]
     );
 
-    const resolveSchema = (currentSchema: SchemaObject | ReferenceObject | null): SchemaObject | ReferenceObject | null => {
+    const resolveSchema = (currentSchema: SchemaObject | ReferenceObject | null | undefined): SchemaObject | ReferenceObject | null | undefined => {
 
         if (!currentSchema) {
             return currentSchema

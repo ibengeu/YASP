@@ -5,21 +5,23 @@ import type React from "react"
 import {useCallback, useState} from "react"
 import {AlertCircle, Check, FileJson, Upload} from "lucide-react"
 import {Button} from "@/core/components/ui/button"
+import {Input} from "@/core/components/ui/input"
 import {Textarea} from "@/core/components/ui/textarea"
 import {Alert, AlertDescription} from "@/core/components/ui/alert.tsx"
 import {cn} from "@/core/lib/utils"
 import {OpenApiDocument} from "@/common/openapi-spec.ts";
 
 interface SwaggerInputProps {
-    onSpecLoaded: (spec: OpenApiDocument) => void
+    onSpecLoaded: (spec: OpenApiDocument, key?: string) => void;
 }
 
 export function SwaggerInput({onSpecLoaded}: SwaggerInputProps) {
-    const [error, setError] = useState<string | null>(null)
-    const [pastedContent, setPastedContent] = useState<string>("")
-    const [isDragging, setIsDragging] = useState<boolean>(false)
-    const [fileName, setFileName] = useState<string | null>(null)
-    const [isValid, setIsValid] = useState<boolean>(false)
+    const [error, setError] = useState<string | null>(null);
+    const [pastedContent, setPastedContent] = useState<string>("");
+    const [isDragging, setIsDragging] = useState<boolean>(false);
+    const [fileName, setFileName] = useState<string | null>(null);
+    const [isValid, setIsValid] = useState<boolean>(false);
+    const [uploadKey, setUploadKey] = useState<string>("");
 
     const validateAndLoadSpec = useCallback(
         (content: unknown) => {
@@ -65,98 +67,98 @@ export function SwaggerInput({onSpecLoaded}: SwaggerInputProps) {
                 }
 
                 setIsValid(true)
-                onSpecLoaded(spec as OpenApiDocument)
-                return true
+                onSpecLoaded(spec as OpenApiDocument, uploadKey);
+                return true;
             } catch (err) {
-                setError("Invalid specification format")
-                return false
+                setError("Invalid specification format");
+                return false;
             }
         },
-        [onSpecLoaded]
-    )
+        [onSpecLoaded, uploadKey]
+    );
 
     const handleFileUpload = useCallback(
         (event: React.ChangeEvent<HTMLInputElement>) => {
-            const file = event.target.files?.[0]
-            if (!file) return
+            const file = event.target.files?.[0];
+            if (!file) return;
 
             if (!file.type.includes("json") && !file.name.endsWith(".json")) {
-                setError("Please upload a JSON file")
-                return
+                setError("Please upload a JSON file");
+                return;
             }
 
-            setFileName(file.name)
-            const reader = new FileReader()
+            setFileName(file.name);
+            const reader = new FileReader();
             reader.onload = (e) => {
                 try {
-                    const content = JSON.parse(e.target?.result as string)
-                    validateAndLoadSpec(content)
+                    const content = JSON.parse(e.target?.result as string);
+                    validateAndLoadSpec(content);
                 } catch (err) {
-                    setError("Invalid JSON file format")
+                    setError("Invalid JSON file format");
                 }
-            }
-            reader.onerror = () => setError("Error reading file")
-            reader.readAsText(file)
+            };
+            reader.onerror = () => setError("Error reading file");
+            reader.readAsText(file);
         },
         [validateAndLoadSpec]
-    )
+    );
 
     const handlePasteChange = useCallback(
         (event: React.ChangeEvent<HTMLTextAreaElement>) => {
-            const content = event.target.value
-            setPastedContent(content)
+            const content = event.target.value;
+            setPastedContent(content);
 
             if (!content.trim()) {
-                setError(null)
-                setIsValid(false)
-                return
+                setError(null);
+                setIsValid(false);
+                return;
             }
 
             try {
-                const parsedContent = JSON.parse(content)
-                validateAndLoadSpec(parsedContent)
+                const parsedContent = JSON.parse(content);
+                validateAndLoadSpec(parsedContent);
             } catch (err) {
-                setError("Invalid JSON format. Please check your input.")
+                setError("Invalid JSON format. Please check your input.");
             }
         },
         [validateAndLoadSpec]
-    )
+    );
 
     const handleDragOver = useCallback((e: React.DragEvent) => {
-        e.preventDefault()
-        setIsDragging(true)
-    }, [])
+        e.preventDefault();
+        setIsDragging(true);
+    }, []);
 
-    const handleDragLeave = useCallback(() => setIsDragging(false), [])
+    const handleDragLeave = useCallback(() => setIsDragging(false), []);
 
     const handleDrop = useCallback(
         (e: React.DragEvent) => {
-            e.preventDefault()
-            setIsDragging(false)
+            e.preventDefault();
+            setIsDragging(false);
 
-            const file = e.dataTransfer.files?.[0]
-            if (!file) return
+            const file = e.dataTransfer.files?.[0];
+            if (!file) return;
 
             if (!file.type.includes("json") && !file.name.endsWith(".json")) {
-                setError("Please upload a JSON file")
-                return
+                setError("Please upload a JSON file");
+                return;
             }
 
-            setFileName(file.name)
-            const reader = new FileReader()
+            setFileName(file.name);
+            const reader = new FileReader();
             reader.onload = (e) => {
                 try {
-                    const content = JSON.parse(e.target?.result as string)
-                    validateAndLoadSpec(content)
+                    const content = JSON.parse(e.target?.result as string);
+                    validateAndLoadSpec(content);
                 } catch (err) {
-                    setError("Invalid JSON file format")
+                    setError("Invalid JSON file format");
                 }
-            }
-            reader.onerror = () => setError("Error reading file")
-            reader.readAsText(file)
+            };
+            reader.onerror = () => setError("Error reading file");
+            reader.readAsText(file);
         },
         [validateAndLoadSpec]
-    )
+    );
 
     return (
         <div className="space-y-8 max-w-3xl mx-auto">
@@ -212,6 +214,17 @@ export function SwaggerInput({onSpecLoaded}: SwaggerInputProps) {
                         </>
                     )}
                 </div>
+            </div>
+
+            <div className="space-y-3">
+                <label className="text-sm font-medium block">Optional: Enter an upload key (UUID):</label>
+                <Input
+                    type="text"
+                    placeholder="e.g., 123e4567-e89b-12d3-a456-426614174000"
+                    value={uploadKey}
+                    onChange={(e) => setUploadKey(e.target.value)}
+                    className="font-mono"
+                />
             </div>
 
             <div className="space-y-3">

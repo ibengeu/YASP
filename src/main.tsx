@@ -6,6 +6,7 @@ import LandingPage from "./App";
 
 import {DirectoryPage} from "@/features/directory/DirectoryPage";
 import {SpecPage} from "@/features/spec-page/SpecPage";
+import DashboardPage from "@/features/dashboard/DashboardPage";
 import {Toaster} from "@/core/components/ui/sonner";
 import {ThemeProvider} from "next-themes";
 
@@ -18,6 +19,7 @@ createRoot(document.getElementById('root')!).render(
                 <Routes>
                     <Route path="/" element={<LandingPage/>}/>
                     <Route path="/app" element={<DirectoryPage/>}/>
+                    <Route path="/dashboard" element={<DashboardPage/>}/>
 
                     <Route path="spec">
                         <Route index path=":id" element={<SpecPage/>}/>

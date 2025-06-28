@@ -40,6 +40,9 @@ export const TopBar: React.FC<TopBarProps> = ({title, isMobileMenuOpen, toggleMo
                     <Button variant="outline" size="sm" onClick={onShare}>
                         Share
                     </Button>
+                    <Button variant="outline" size="sm" onClick={() => navigate("/dashboard")}>
+                        Dashboard
+                    </Button>
                     <Button variant="outline" size="sm" onClick={() => navigate("/app")}>
                         Back to Directory
                     </Button>

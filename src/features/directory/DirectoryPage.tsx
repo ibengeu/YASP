@@ -1,7 +1,6 @@
 "use client"
 
-import type React from "react"
-import {useEffect, useState} from "react"
+import React, {useCallback, useEffect, useState} from "react"
 
 import {Card, CardDescription, CardHeader, CardTitle} from "@/core/components/ui/card.tsx"
 import {Button} from "@/core/components/ui/button.tsx"
@@ -47,14 +46,14 @@ export function DirectoryPage() {
         loadSpecs()
     }, [loadSpecs])
 
-    const handleSpecLoaded = async (loadedSpec: OpenApiDocument) => {
+    const handleSpecLoaded = async (loadedSpec: OpenApiDocument, key?: string) => {
         try {
-            const id = await dbService.saveSpec(loadedSpec)
-            navigate(`/spec/${id}`)
+            const id = await dbService.saveSpec(loadedSpec, key);
+            navigate(`/spec/${id}`);
         } catch (error) {
-            console.error("Error saving spec:", error)
+            console.error("Error saving spec:", error);
         }
-    }
+    };
 
     const handleRemoveSpec = async (event: React.MouseEvent, specId: string | number) => {
         event.stopPropagation()

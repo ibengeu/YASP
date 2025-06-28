@@ -1,7 +1,6 @@
 "use client"
 
-import type React from "react"
-import {useCallback, useEffect, useState} from "react"
+import React, {useCallback, useEffect, useState} from "react"
 import {Button} from "@/core/components/ui/button"
 import {IndexedDBService} from "@/core/services/indexdbservice"
 import {SwaggerUI} from "./components/swagger-ui"
