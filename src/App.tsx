@@ -1,124 +1,13 @@
-import {AlertCircle, Code, Database, FileJson, Search, Share2, Shield, Upload, Zap} from "lucide-react"
-import {Link, useNavigate} from "react-router"
-import React, {useCallback, useState, useMemo} from "react"
-import {OpenApiDocument} from "@/common/openapi-spec.ts"
-import {IndexedDBService} from "@/core/services/indexdbservice.ts";
-import {Button} from "@/core/components/ui/button.tsx";
-import {cn} from "@/core/lib/utils.ts";
-import {Alert, AlertDescription} from "@/core/components/ui/alert.tsx";
-import {Card, CardDescription, CardHeader, CardTitle} from "@/core/components/ui/card.tsx";
+import { FileJson, Code, Database, Search, Zap, Share2, Shield } from "lucide-react"
+import { Link } from "react-router-dom"
+import { Button } from "@/core/components/ui/button"
+import { Card, CardDescription, CardHeader, CardTitle } from "@/core/components/ui/card"
 
- export default function LandingPage() {
-     const navigate = useNavigate()
-     const [fileName, setFileName] = useState<string | null>(null)
-     const [error, setError] = useState<string | null>(null)
-     const [isValid, setIsValid] = useState<boolean>(false)
-     const dbService = useMemo(() => new IndexedDBService(), []);
-
-    // Type for potential OpenAPI document
-    type PotentialOpenApiDoc = {
-        openapi?: string
-        swagger?: string
-        spec?: OpenApiDocument
-        info?: unknown
-        paths?: unknown
-    }
-
-    const extractOpenApiSpec = useCallback((content: PotentialOpenApiDoc): OpenApiDocument | null => {
-        if (content.spec && typeof content.spec === "object") {
-            return content.spec as OpenApiDocument
-        }
-        if (content.openapi || content.swagger) {
-            return content as unknown as OpenApiDocument
-        }
-        return null
-    }, []);
-
-    const validateAndLoadSpec = useCallback(
-        async (content: PotentialOpenApiDoc) => {
-            setError(null)
-            setIsValid(false)
-
-            try {
-                const spec = extractOpenApiSpec(content)
-
-                if (!spec) {
-                    setError("Could not find valid OpenAPI specification")
-                    return false
-                }
-
-                const version = spec.openapi || (spec as { swagger?: string }).swagger
-                if (!version) {
-                    setError("Missing OpenAPI/Swagger version identifier")
-                    return false
-                }
-
-                if (!version.startsWith("3.")) {
-                    setError(`Unsupported OpenAPI version: ${version}. Only version 3.x is supported.`)
-                    return false
-                }
-
-                if (!spec.info) {
-                    setError("Missing 'info' section in specification")
-                    return false
-                }
-
-                if (!spec.paths) {
-                    setError("Missing 'paths' section in specification")
-                    return false
-                }
-
-                setIsValid(true)
-                try {
-                    const id = await dbService.saveSpec(spec)
-                    navigate(`/spec/${id}`)
-                    return true
-                } catch (error) {
-                    setError("Failed to save specification")
-                    console.error("Error saving spec:", error)
-                    return false
-                }
-            } catch (error) {
-                setError("Invalid specification format")
-                console.error("Error saving spec:", error)
-                return false
-            }
-        },
-        [navigate, dbService, extractOpenApiSpec]
-    )
-
-    const handleFileUpload = useCallback(
-        (event: React.ChangeEvent<HTMLInputElement>) => {
-            const file = event.target.files?.[0]
-            if (!file) return
-
-            if (!file.type.includes("json") && !file.name.endsWith(".json")) {
-                setError("Please upload a JSON file")
-                return
-            }
-
-            setFileName(file.name)
-            const reader = new FileReader()
-            reader.onload = (e) => {
-                try {
-                    const content = JSON.parse(e.target?.result as string)
-                    validateAndLoadSpec(content)
-                } catch (error) {
-                    setError("Invalid JSON file format")
-                    console.error("Error reading file:", error)
-                }
-            }
-            reader.onerror = () => {
-                setError("Error reading file")
-            }
-            reader.readAsText(file)
-        },
-        [validateAndLoadSpec]
-    )
+export default function LandingPage() {
 
     return (
         <div className="flex flex-col min-h-screen  ">
-            <header className="border-b border-border bg-background/80 backdrop-blur-sm sticky top-0 z-10">
+            <header className="border-b border-border bg-background/80 backdrop-blur-sm sticky top-0 z-10 px-12">
                 <div className=" mx-auto flex h-16 items-center justify-between px-4">
                     <div className="flex items-center gap-2">
                         <FileJson className="h-6 w-6 text-primary"/>
@@ -132,14 +21,11 @@ import {Card, CardDescription, CardHeader, CardTitle} from "@/core/components/ui
                             <a href="#benefits" className="text-sm font-medium hover:text-primary transition-colors">
                                 Benefits
                             </a>
-                            <a href="#get-started"
+                            <Link to="/directory"
                                   className="text-sm font-medium hover:text-primary transition-colors">
                                 Get Started
-                            </a>
+                            </Link>
                         </nav>
-                        <Button asChild>
-                            <Link to="/app">Launch App</Link>
-                        </Button>
                     </div>
                 </div>
             </header>
@@ -161,68 +47,11 @@ import {Card, CardDescription, CardHeader, CardTitle} from "@/core/components/ui
                                 </div>
                                 <div className="flex flex-col sm:flex-row gap-3">
                                     <Button size="lg" asChild>
-                                        <Link to="/app">Get Started</Link>
+                                        <Link to="/directory">Get Started</Link>
                                     </Button>
                                 </div>
                             </div>
-                            <div className="flex items-center justify-center">
-                                <div className="w-full max-w-md space-y-4">
-                                    <p className="text-muted-foreground text-sm">
-                                        Upload your OpenAPI 3.x JSON specification to get started:
-                                    </p>
-                                    <div
-                                        className={cn(
-                                            "flex flex-col justify-center items-center border-2 border-dashed rounded-lg p-6 transition-colors bg-background",
-                                            fileName && isValid ? "bg-primary/10 border-primary/20" : "border-muted-foreground/20"
-                                        )}
-                                    >
-                                        {fileName && isValid ? (
-                                            <div className="flex flex-col items-center gap-2">
-                                                <div
-                                                    className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
-                                                    <FileJson className="h-6 w-6 text-primary"
-                                                              aria-hidden="true"/>
-                                                </div>
-                                                <div className="flex items-center gap-2">
-                                                    <FileJson className="h-5 w-5 text-muted-foreground"/>
-                                                    <span className="font-medium">{fileName}</span>
-                                                </div>
-                                                <p className="text-sm text-primary">
-                                                    Specification loaded successfully!
-                                                </p>
-                                            </div>
-                                        ) : (
-                                            <div className="text-center space-y-4">
-                                                <div
-                                                    className="h-12 w-12 rounded-full flex items-center justify-center mx-auto">
-                                                    <Upload className="h-6 w-6 text-muted-foreground"
-                                                            aria-hidden="true"/>
-                                                </div>
-                                                <p className="text-sm text-muted-foreground">
-                                                    Upload your OpenAPI JSON file here
-                                                </p>
-                                                <Button variant="secondary" className="relative">
-                                                    Select OpenAPI File
-                                                    <input
-                                                        type="file"
-                                                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                                                        accept="application/json,.json"
-                                                        onChange={handleFileUpload}
-                                                        aria-label="Upload OpenAPI specification file"
-                                                    />
-                                                </Button>
-                                            </div>
-                                        )}
-                                    </div>
-                                    {error && (
-                                        <Alert variant="destructive"
-                                               className="animate-in fade-in-0 zoom-in-95 duration-300">
-                                            <AlertCircle className="h-4 w-4"/>
-                                            <AlertDescription className="ml-2">{error}</AlertDescription>
-                                        </Alert>
-                                    )}
-                                </div>
-                            </div>
+                            
                         </div>
                     </div>
                 </section>
@@ -391,7 +220,7 @@ import {Card, CardDescription, CardHeader, CardTitle} from "@/core/components/ui
                             </div>
                             <div className="flex flex-col sm:flex-row gap-3 pt-4">
                                 <Button size="lg" asChild>
-                                    <Link to="/app">Launch App</Link>
+                                    <Link to="/directory">Launch App</Link>
                                 </Button>
                             </div>
                         </div>

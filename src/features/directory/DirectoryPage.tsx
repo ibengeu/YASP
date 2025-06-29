@@ -1,17 +1,29 @@
 "use client"
 
 import React, {useCallback, useEffect, useState} from "react"
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger
+} from "@/core/components/ui/dialog";
+import {Tabs, TabsContent, TabsList, TabsTrigger} from "@/core/components/ui/tabs.tsx";
+import {Textarea} from "@/core/components/ui/textarea.tsx";
+import {Alert, AlertDescription} from "@/core/components/ui/alert.tsx";
+import {AlertCircle, Upload} from "lucide-react";
 
 import {Card, CardDescription, CardHeader, CardTitle} from "@/core/components/ui/card.tsx"
 import {Button} from "@/core/components/ui/button.tsx"
 import {Download, FileJson, Plus, Search, SortAsc, Tag, Trash2} from "lucide-react"
 import {Input} from "@/core/components/ui/input.tsx"
-import {useNavigate} from "react-router"
 import {cn} from "@/core/lib/utils.ts"
 import {IndexedDBService} from "@/core/services/indexdbservice.ts";
-import {SwaggerInput} from "./components/swagger-input.tsx";
+
 import {Badge} from "@/core/components/ui/badge.tsx";
-import {OpenApiDocument} from "../../common/openapi-spec.ts";
+import {OpenApiDocument} from "@/common/openapi-spec.ts"
+import {useNavigate} from "react-router";
 
 interface Spec {
     id: string | number;
@@ -26,8 +38,13 @@ export function DirectoryPage() {
     const navigate = useNavigate()
     const [specs, setSpecs] = useState<Spec[]>([])
     const [searchTerm, setSearchTerm] = useState("")
-    const [showInput, setShowInput] = useState(false)
     const [isLoading, setIsLoading] = useState(true)
+    const [isModalOpen, setIsModalOpen] = useState(false)
+    const [pasteContent, setPasteContent] = useState("")
+    const [urlInput, setUrlInput] = useState("")
+    const [fileError, setFileError] = useState<string | null>(null)
+    const [pasteError, setPasteError] = useState<string | null>(null)
+    const [urlError, setUrlError] = useState<string | null>(null)
     const dbService = React.useMemo(() => new IndexedDBService(), []);
 
     const loadSpecs = useCallback(async () => {
@@ -101,20 +118,59 @@ export function DirectoryPage() {
         return diffInDays <= 7
     }
 
-    if (showInput) {
-        return (
-            <div className="container mx-auto flex-1 px-4">
-                <div className="py-4">
-                    <Button variant="outline" onClick={() => setShowInput(false)} className="mb-4">
-                        <span className="mr-2">←</span>
-                        Back to Directory
-                    </Button>
-                </div>
-                <div className="flex min-h-[calc(100vh-8rem)] items-center justify-center">
-                    <SwaggerInput onSpecLoaded={handleSpecLoaded}/>
-                </div>
-            </div>
-        )
+    const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0]
+        if (!file) return
+
+        const reader = new FileReader()
+        reader.onload = async (e) => {
+            try {
+                const content = e.target?.result as string
+                const spec = JSON.parse(content)
+                // Basic validation
+                if (spec.openapi && spec.info && spec.paths) {
+                    await handleSpecLoaded(spec)
+                    setIsModalOpen(false)
+                } else {
+                    setFileError("Invalid OpenAPI 3.x JSON file.")
+                }
+            } catch {
+                setFileError("Failed to parse JSON file.")
+            }
+        }
+        reader.readAsText(file)
+    }
+
+    const handlePasteSubmit = async () => {
+        try {
+            const spec = JSON.parse(pasteContent)
+            if (spec.openapi && spec.info && spec.paths) {
+                await handleSpecLoaded(spec)
+                setIsModalOpen(false)
+            } else {
+                setPasteError("Invalid OpenAPI 3.x JSON content.")
+            }
+        } catch {
+            setPasteError("Failed to parse JSON content.")
+        }
+    }
+
+    const handleUrlSubmit = async () => {
+        try {
+            const response = await fetch(urlInput)
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`)
+            }
+            const spec = await response.json()
+            if (spec.openapi && spec.info && spec.paths) {
+                await handleSpecLoaded(spec)
+                setIsModalOpen(false)
+            } else {
+                setUrlError("Invalid OpenAPI 3.x JSON from URL.")
+            }
+        } catch {
+            setUrlError("Failed to fetch or parse from URL.")
+        }
     }
 
     return (
@@ -124,10 +180,86 @@ export function DirectoryPage() {
                     <h1 className="text-2xl font-bold tracking-tight mb-1">API Specifications</h1>
                     <p className="text-muted-foreground">Manage and explore your OpenAPI collections</p>
                 </div>
-                <Button className="gap-2 self-start" onClick={() => setShowInput(true)} size="default">
-                    <Plus className="h-4 w-4"/>
-                    Add New Spec
-                </Button>
+                <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+                    <DialogTrigger asChild>
+                        <Button className="gap-2 self-start" onClick={() => setIsModalOpen(true)} size="default">
+                            <Plus className="h-4 w-4"/>
+                            Add New Spec
+                        </Button>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-[600px]">
+                        <DialogHeader>
+                            <DialogTitle>Add New OpenAPI Specification</DialogTitle>
+                            <DialogDescription>
+                                Choose how you want to add your OpenAPI 3.x JSON specification.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <Tabs defaultValue="file" className="w-full">
+                            <TabsList className="grid w-full grid-cols-3">
+                                <TabsTrigger value="file">File Upload</TabsTrigger>
+                                <TabsTrigger value="paste">Paste JSON</TabsTrigger>
+                                <TabsTrigger value="url">From URL</TabsTrigger>
+                            </TabsList>
+                            <TabsContent value="file" className="py-4 space-y-4">
+                                <p className="text-sm text-muted-foreground">Upload an OpenAPI 3.x JSON file from your
+                                    computer.</p>
+                                <div
+                                    className="flex flex-col items-center justify-center border-2 border-dashed rounded-lg p-6 transition-colors bg-background">
+                                    <Upload className="h-12 w-12 text-muted-foreground mb-4"/>
+                                    <Button variant="secondary" className="relative">
+                                        Select OpenAPI File
+                                        <input
+                                            type="file"
+                                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                            accept="application/json,.json"
+                                            onChange={handleFileUpload}
+                                            aria-label="Upload OpenAPI specification file"
+                                        />
+                                    </Button>
+                                </div>
+                                {fileError && (
+                                    <Alert variant="destructive">
+                                        <AlertCircle className="h-4 w-4"/>
+                                        <AlertDescription className="ml-2">{fileError}</AlertDescription>
+                                    </Alert>
+                                )}
+                            </TabsContent>
+                            <TabsContent value="paste" className="py-4 space-y-4">
+                                <p className="text-sm text-muted-foreground">Paste your OpenAPI 3.x JSON content
+                                    directly.</p>
+                                <Textarea
+                                    placeholder="Paste OpenAPI JSON here..."
+                                    rows={10}
+                                    value={pasteContent}
+                                    onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setPasteContent(e.target.value)}
+                                />
+                                <Button onClick={handlePasteSubmit} className="w-full">Load Specification</Button>
+                                {pasteError && (
+                                    <Alert variant="destructive">
+                                        <AlertCircle className="h-4 w-4"/>
+                                        <AlertDescription className="ml-2">{pasteError}</AlertDescription>
+                                    </Alert>
+                                )}
+                            </TabsContent>
+                            <TabsContent value="url" className="py-4 space-y-4">
+                                <p className="text-sm text-muted-foreground">Enter a URL to fetch an OpenAPI 3.x JSON
+                                    specification.</p>
+                                <Input
+                                    placeholder="e.g., https://petstore.swagger.io/v2/swagger.json"
+                                    value={urlInput}
+                                    onChange={(e) => setUrlInput(e.target.value)}
+                                />
+                                <Button onClick={handleUrlSubmit} className="w-full">Load from URL</Button>
+                                {urlError && (
+                                    <Alert variant="destructive">
+                                        <AlertCircle className="h-4 w-4"/>
+                                        <AlertDescription className="ml-2">{urlError}</AlertDescription>
+                                    </Alert>
+                                )}
+                            </TabsContent>
+                        </Tabs>
+                    </DialogContent>
+                </Dialog>
             </div>
 
             <div className="relative mb-8">
@@ -196,7 +328,8 @@ export function DirectoryPage() {
                                                                 </CardTitle>
                                                                 <div className="flex items-center gap-2 mt-1">
                                                                     <Badge variant="secondary" className="text-xs">
-                                                                        <Tag className="h-3 w-3 mr-1"/>v{spec.version}
+                                                                        <Tag
+                                                                            className="h-3 w-3 mr-1"/>v{spec.version}
                                                                     </Badge>
                                                                     <span
                                                                         className="text-xs text-muted-foreground">{getTimeAgo(spec.createdAt)}</span>
@@ -253,7 +386,8 @@ export function DirectoryPage() {
                                     <p className="text-muted-foreground">
                                         Try adjusting your search query or
                                         <br/>
-                                        <Button variant="link" className="p-0 h-auto" onClick={() => setSearchTerm("")}>
+                                        <Button variant="link" className="p-0 h-auto"
+                                                onClick={() => setSearchTerm("")}>
                                             clear your search
                                         </Button>
                                     </p>
@@ -266,10 +400,92 @@ export function DirectoryPage() {
                                         Upload your first OpenAPI specification to get started with the API Collection
                                         tool
                                     </p>
-                                    <Button className="mt-4 gap-2" onClick={() => setShowInput(true)}>
-                                        <Plus className="h-4 w-4"/>
-                                        Add New Spec
-                                    </Button>
+                                    <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+                                        <DialogTrigger asChild>
+                                            <Button className="gap-2" onClick={() => setIsModalOpen(true)}
+                                                    size="default">
+                                                <Plus className="h-4 w-4"/>
+                                                Add New Spec
+                                            </Button>
+                                        </DialogTrigger>
+                                        <DialogContent className="sm:max-w-[600px]">
+                                            <DialogHeader>
+                                                <DialogTitle>Add New OpenAPI Specification</DialogTitle>
+                                                <DialogDescription>
+                                                    Choose how you want to add your OpenAPI 3.x JSON specification.
+                                                </DialogDescription>
+                                            </DialogHeader>
+                                            <Tabs defaultValue="file" className="w-full">
+                                                <TabsList className="grid w-full grid-cols-3">
+                                                    <TabsTrigger value="file">File Upload</TabsTrigger>
+                                                    <TabsTrigger value="paste">Paste JSON</TabsTrigger>
+                                                    <TabsTrigger value="url">From URL</TabsTrigger>
+                                                </TabsList>
+                                                <TabsContent value="file" className="py-4 space-y-4">
+                                                    <p className="text-sm text-muted-foreground">Upload an OpenAPI 3.x
+                                                        JSON file from your computer.</p>
+                                                    <div
+                                                        className="flex flex-col items-center justify-center border-2 border-dashed rounded-lg p-6 transition-colors bg-background">
+                                                        <Upload className="h-12 w-12 text-muted-foreground mb-4"/>
+                                                        <Button variant="secondary" className="relative">
+                                                            Select OpenAPI File
+                                                            <input
+                                                                type="file"
+                                                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                                                accept="application/json,.json"
+                                                                onChange={handleFileUpload}
+                                                                aria-label="Upload OpenAPI specification file"
+                                                            />
+                                                        </Button>
+                                                    </div>
+                                                    {fileError && (
+                                                        <Alert variant="destructive">
+                                                            <AlertCircle className="h-4 w-4"/>
+                                                            <AlertDescription
+                                                                className="ml-2">{fileError}</AlertDescription>
+                                                        </Alert>
+                                                    )}
+                                                </TabsContent>
+                                                <TabsContent value="paste" className="py-4 space-y-4">
+                                                    <p className="text-sm text-muted-foreground">Paste your OpenAPI 3.x
+                                                        JSON content directly.</p>
+                                                    <Textarea
+                                                        placeholder="Paste OpenAPI JSON here..."
+                                                        rows={10}
+                                                        value={pasteContent}
+                                                        onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setPasteContent(e.target.value)}
+                                                    />
+                                                    <Button onClick={handlePasteSubmit} className="w-full">Load
+                                                        Specification</Button>
+                                                    {pasteError && (
+                                                        <Alert variant="destructive">
+                                                            <AlertCircle className="h-4 w-4"/>
+                                                            <AlertDescription
+                                                                className="ml-2">{pasteError}</AlertDescription>
+                                                        </Alert>
+                                                    )}
+                                                </TabsContent>
+                                                <TabsContent value="url" className="py-4 space-y-4">
+                                                    <p className="text-sm text-muted-foreground">Enter a URL to fetch an
+                                                        OpenAPI 3.x JSON specification.</p>
+                                                    <Input
+                                                        placeholder="e.g., https://petstore.swagger.io/v2/swagger.json"
+                                                        value={urlInput}
+                                                        onChange={(e) => setUrlInput(e.target.value)}
+                                                    />
+                                                    <Button onClick={handleUrlSubmit} className="w-full">Load from
+                                                        URL</Button>
+                                                    {urlError && (
+                                                        <Alert variant="destructive">
+                                                            <AlertCircle className="h-4 w-4"/>
+                                                            <AlertDescription
+                                                                className="ml-2">{urlError}</AlertDescription>
+                                                        </Alert>
+                                                    )}
+                                                </TabsContent>
+                                            </Tabs>
+                                        </DialogContent>
+                                    </Dialog>
                                 </div>
                             )}
                         </div>
@@ -280,9 +496,85 @@ export function DirectoryPage() {
             {/* Floating Button for Mobile */}
             {Object.keys(groupedSpecs).length > 5 && (
                 <div className="fixed right-4 bottom-4 md:hidden">
-                    <Button className="h-12 w-12 rounded-full shadow-md" onClick={() => setShowInput(true)} size="icon">
-                        <Plus className="h-5 w-5"/>
-                    </Button>
+                    <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+                        <DialogTrigger asChild>
+                            <Button className="h-12 w-12 rounded-full shadow-md" size="icon">
+                                <Plus className="h-5 w-5"/>
+                            </Button>
+                        </DialogTrigger>
+                        <DialogContent className="sm:max-w-[600px]">
+                            <DialogHeader>
+                                <DialogTitle>Add New OpenAPI Specification</DialogTitle>
+                                <DialogDescription>
+                                    Choose how you want to add your OpenAPI 3.x JSON specification.
+                                </DialogDescription>
+                            </DialogHeader>
+                            <Tabs defaultValue="file" className="w-full">
+                                <TabsList className="grid w-full grid-cols-3">
+                                    <TabsTrigger value="file">File Upload</TabsTrigger>
+                                    <TabsTrigger value="paste">Paste JSON</TabsTrigger>
+                                    <TabsTrigger value="url">From URL</TabsTrigger>
+                                </TabsList>
+                                <TabsContent value="file" className="py-4 space-y-4">
+                                    <p className="text-sm text-muted-foreground">Upload an OpenAPI 3.x JSON file from
+                                        your computer.</p>
+                                    <div
+                                        className="flex flex-col items-center justify-center border-2 border-dashed rounded-lg p-6 transition-colors bg-background">
+                                        <Upload className="h-12 w-12 text-muted-foreground mb-4"/>
+                                        <Button variant="secondary" className="relative">
+                                            Select OpenAPI File
+                                            <input
+                                                type="file"
+                                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                                accept="application/json,.json"
+                                                onChange={handleFileUpload}
+                                                aria-label="Upload OpenAPI specification file"
+                                            />
+                                        </Button>
+                                    </div>
+                                    {fileError && (
+                                        <Alert variant="destructive">
+                                            <AlertCircle className="h-4 w-4"/>
+                                            <AlertDescription className="ml-2">{fileError}</AlertDescription>
+                                        </Alert>
+                                    )}
+                                </TabsContent>
+                                <TabsContent value="paste" className="py-4 space-y-4">
+                                    <p className="text-sm text-muted-foreground">Paste your OpenAPI 3.x JSON content
+                                        directly.</p>
+                                    <Textarea
+                                        placeholder="Paste OpenAPI JSON here..."
+                                        rows={10}
+                                        value={pasteContent}
+                                        onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setPasteContent(e.target.value)}
+                                    />
+                                    <Button onClick={handlePasteSubmit} className="w-full">Load Specification</Button>
+                                    {pasteError && (
+                                        <Alert variant="destructive">
+                                            <AlertCircle className="h-4 w-4"/>
+                                            <AlertDescription className="ml-2">{pasteError}</AlertDescription>
+                                        </Alert>
+                                    )}
+                                </TabsContent>
+                                <TabsContent value="url" className="py-4 space-y-4">
+                                    <p className="text-sm text-muted-foreground">Enter a URL to fetch an OpenAPI 3.x
+                                        JSON specification.</p>
+                                    <Input
+                                        placeholder="e.g., https://petstore.swagger.io/v2/swagger.json"
+                                        value={urlInput}
+                                        onChange={(e) => setUrlInput(e.target.value)}
+                                    />
+                                    <Button onClick={handleUrlSubmit} className="w-full">Load from URL</Button>
+                                    {urlError && (
+                                        <Alert variant="destructive">
+                                            <AlertCircle className="h-4 w-4"/>
+                                            <AlertDescription className="ml-2">{urlError}</AlertDescription>
+                                        </Alert>
+                                    )}
+                                </TabsContent>
+                            </Tabs>
+                        </DialogContent>
+                    </Dialog>
                 </div>
             )}
         </div>

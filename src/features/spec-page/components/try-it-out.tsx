@@ -167,7 +167,7 @@ export default function TryItOut({path, method, operation, components}: TryItOut
         [resolvedRequestBody]
     );
 
-    const resolveSchema = (currentSchema: SchemaObject | ReferenceObject | null | undefined): SchemaObject | ReferenceObject | null | undefined => {
+    const resolveSchema = useCallback((currentSchema: SchemaObject | ReferenceObject | null | undefined): SchemaObject | ReferenceObject | null | undefined => {
 
         if (!currentSchema) {
             return currentSchema
@@ -184,12 +184,57 @@ export default function TryItOut({path, method, operation, components}: TryItOut
             return (resolved as SchemaObject)
         }
         return currentSchema as SchemaObject
-    }
+    }, [components?.schemas]);
 
 
     // console.log("schema:", Object.entries());4
     const schm = Object.entries((resolveSchema(requestBodySchema) as SchemaObject)?.properties || {})
         .reduce((acc, [key, value]) => ({...acc, [key]: value}), {});
+
+    const generateInitialJson = useCallback((schema: SchemaObject | ReferenceObject | null | undefined, visited = new Set<string>()): unknown => {
+        if (!schema) return null;
+
+        const resolved = resolveSchema(schema) as SchemaObject;
+        if (!resolved) return null;
+
+        if (visited.has(JSON.stringify(resolved))) return {};
+        visited.add(JSON.stringify(resolved));
+
+        if ((resolved as { allOf?: unknown[] }).allOf) {
+            const combined = (resolved as { allOf: (SchemaObject | ReferenceObject)[] }).allOf.reduce((acc: Record<string, unknown>, subSchema) => {
+                const generated = generateInitialJson(subSchema, visited);
+                return {...acc, ...(typeof generated === 'object' && generated ? generated as Record<string, unknown> : {})};
+            }, {});
+            return combined;
+        }
+
+        if ((resolved as { oneOf?: unknown[], anyOf?: unknown[] }).oneOf || (resolved as { oneOf?: unknown[], anyOf?: unknown[] }).anyOf) {
+            const subSchema = ((resolved as { oneOf?: (SchemaObject | ReferenceObject)[] }).oneOf || (resolved as { anyOf?: (SchemaObject | ReferenceObject)[] }).anyOf)?.[0];
+            return generateInitialJson(subSchema, visited);
+        }
+
+        if (resolved.type === 'object') {
+            const initialJson: { [key: string]: unknown } = {};
+            for (const [key, prop] of Object.entries(resolved.properties || {})) {
+                initialJson[key] = generateInitialJson(prop as SchemaObject, visited);
+            }
+            return initialJson;
+        }
+
+        if (resolved.type === 'array') {
+            return [generateInitialJson(resolved.items as SchemaObject, visited)];
+        }
+
+        return resolved.example ?? (resolved.type === 'number' || resolved.type === 'integer' ? 0 : (resolved.type === 'boolean' ? false : ''));
+    }, [resolveSchema]);
+
+    useEffect(() => {
+        if (requestBodySchema) {
+            const initialJson = generateInitialJson(requestBodySchema);
+            setRequestBody(JSON.stringify(initialJson, null, 2));
+        }
+    }, [requestBodySchema, generateInitialJson]);
+
 
     console.log("schema:2", resolveSchema(requestBodySchema));
     console.log("schema:2", schm);
@@ -302,13 +347,15 @@ export default function TryItOut({path, method, operation, components}: TryItOut
             try {
                 const responseData = await executeApiRequest(formData);
                 clearTimeout(timeoutId);
-                const contentType = responseData.headers["content-type"]?.split(";")[0];
-                let body = responseData.body;
-                if (contentType === "application/json") {
-                    body = JSON.stringify(JSON.parse(body), null, 2);
+                setResponse(responseData);
+
+                if (responseData.status >= 200 && responseData.status < 300) {
+                    toast.success(`Request successful: ${responseData.status}`);
+                } else if (responseData.status >= 400) {
+                    toast.error(`Request failed: ${responseData.status}`);
+                } else {
+                    toast.info(`Request completed with status: ${responseData.status}`);
                 }
-                setResponse({...responseData, body});
-                toast.success(`Request successful: ${responseData.status}`);
             } catch (error) {
                 console.error(error)
                 clearTimeout(timeoutId);
