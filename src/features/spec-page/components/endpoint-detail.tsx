@@ -2,6 +2,7 @@
 
 import React, {useEffect, useMemo, useState} from "react"
 import ReactMarkdown from "react-markdown"
+import remarkGfm from "remark-gfm"
 import {Badge} from "@/core/components/ui/badge.tsx"
 import {cn} from "@/core/lib/utils.ts"
 import {ScrollArea} from "@/core/components/ui/scroll-area.tsx"
@@ -137,7 +138,7 @@ export const EndpointDetail: React.FC<EndpointDetailProps> = ({path, method, ope
                     {operation.summary && <h3 className="font-semibold mb-2">{operation.summary}</h3>}
                     {operation.description && (
                         <div className="text-muted-foreground mb-6 prose dark:prose-invert">
-                            <ReactMarkdown>{operation.description}</ReactMarkdown>
+                            <ReactMarkdown remarkPlugins={[remarkGfm]}>{operation.description}</ReactMarkdown>
                         </div>
                     )}
 
@@ -181,7 +182,7 @@ export const EndpointDetail: React.FC<EndpointDetailProps> = ({path, method, ope
                                         </div>
                                         {parameter.description && (
                                             <div className="mt-1 text-sm text-muted-foreground pl-2 prose dark:prose-invert">
-                                                <ReactMarkdown>{parameter.description}</ReactMarkdown>
+                                                <ReactMarkdown remarkPlugins={[remarkGfm]}>{parameter.description}</ReactMarkdown>
                                             </div>
                                         )}
                                     </div>
@@ -238,7 +239,7 @@ export const EndpointDetail: React.FC<EndpointDetailProps> = ({path, method, ope
                                             </Badge>
                                             <span className="text-sm font-medium">
                                                 <div className="prose dark:prose-invert inline">
-                                                    <ReactMarkdown>{response.description ?? "No description"}</ReactMarkdown>
+                                                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{response.description ?? "No description"}</ReactMarkdown>
                                                 </div>
                                             </span>
                                         </div>

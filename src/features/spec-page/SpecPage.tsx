@@ -1,7 +1,8 @@
 "use client"
 
-import React, {useState} from "react";
+import React, {useState, useEffect} from "react";
 import {Button} from "@/core/components/ui/button";
+import {ResizablePanel, ResizablePanelGroup} from "@/core/components/ui/resizable.tsx";
 import {SwaggerUI} from "./components/swagger-ui";
 import {OperationObject} from "../../common/openapi-spec.ts";
 import {Loader2} from "lucide-react";
@@ -25,13 +26,18 @@ export const SpecPage: React.FC = () => {
 
     const isTablet = useMediaQuery("(min-width: 768px)");
 
+    useEffect(() => {
+        // If screen size changes, clear selected endpoint to prevent stale state
+        setSelectedEndpoint(null);
+    }, [isTablet]);
+
     const toggleMobileMenu = () => setIsMobileMenuOpen(!isMobileMenuOpen);
 
     if (error) {
         return (
             <div className="flex flex-col h-screen">
                 <TopBar title="API Documentation" isMobileMenuOpen={isMobileMenuOpen}
-                        toggleMobileMenu={toggleMobileMenu}/>
+                        toggleMobileMenu={toggleMobileMenu} currentSpec={spec}/>
                 <div className="container mx-auto py-6 text-center flex-1">
                     <p className="text-destructive mb-4">{error}</p>
 
@@ -45,7 +51,7 @@ export const SpecPage: React.FC = () => {
 
     return (
         <div className="flex flex-col h-screen ">
-            <TopBar title="API Documentation" isMobileMenuOpen={isMobileMenuOpen} toggleMobileMenu={toggleMobileMenu}/>
+            <TopBar title="API Documentation" isMobileMenuOpen={isMobileMenuOpen} toggleMobileMenu={toggleMobileMenu} currentSpec={spec}/>
 
             <main className="flex-1 overflow-hidden">
                 {isLoading ? (
@@ -54,10 +60,15 @@ export const SpecPage: React.FC = () => {
                     </div>
                 ) : spec ? (
                     <>
-                        <SwaggerUI
-                            spec={spec}
-                            onEndpointSelected={setSelectedEndpoint} // Pass callback to sync selection
-                        />
+                        <ResizablePanelGroup direction="horizontal" className="flex-1">
+                            <ResizablePanel defaultSize={isTablet && selectedEndpoint ? 70 : 100}>
+                                <SwaggerUI
+                                    spec={spec}
+                                    onEndpointSelected={setSelectedEndpoint}
+                                />
+                            </ResizablePanel>
+                            
+                        </ResizablePanelGroup>
 
                         {!isTablet && selectedEndpoint && (
                             <Sheet open={!!selectedEndpoint} onOpenChange={() => setSelectedEndpoint(null)}>

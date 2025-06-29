@@ -6,8 +6,8 @@ import {EndpointDetail} from "./endpoint-detail"
 import {OpenApiDocument, OperationObject} from "@/common/openapi-spec.ts";
 import useMediaQuery from "@/core/hooks/useMediaQuery.ts";
 import {ResizableHandle, ResizablePanel, ResizablePanelGroup} from "@/core/components/ui/resizable.tsx";
-import TryItOut from "@/features/spec-page/components/try-it-out.tsx";
 import {groupEndpointsByTag} from "@/features/spec-page/lib/spec-utils.ts";
+import TryItOut from "@/features/spec-page/components/try-it-out.tsx";
 
 interface SwaggerUIProps {
     spec: OpenApiDocument
@@ -76,23 +76,16 @@ export function SwaggerUI({spec, onEndpointSelected}: SwaggerUIProps) {
                 )}
             </ResizablePanel>
 
-            {isDesktop && (
+            {isDesktop && selectedEndpoint && (
                 <>
                     <ResizableHandle withHandle/>
                     <ResizablePanel defaultSize={defaultLayout[2]} minSize={15} maxSize={35} className="overflow-hidden">
-                        {selectedEndpoint ? (
-                            <TryItOut
-                                key={`${selectedEndpoint.path}-${selectedEndpoint.method}`}
-                                path={selectedEndpoint.path}
-                                method={selectedEndpoint.method}
-                                operation={selectedEndpoint.operation}
-                                components={spec.components || {}}
-                            />
-                        ) : (
-                            <div className="flex items-center justify-center h-full text-muted-foreground">
-                                Select an endpoint to try it out
-                            </div>
-                        )}
+                        <TryItOut
+                            path={selectedEndpoint.path}
+                            method={selectedEndpoint.method}
+                            operation={selectedEndpoint.operation}
+                            components={spec.components || {}}
+                        />
                     </ResizablePanel>
                 </>
             )}
