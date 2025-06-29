@@ -1,9 +1,23 @@
-import { FileJson, Code, Database, Search, Zap, Share2, Shield } from "lucide-react"
-import { Link } from "react-router-dom"
-import { Button } from "@/core/components/ui/button"
-import { Card, CardDescription, CardHeader, CardTitle } from "@/core/components/ui/card"
+import {FileJson, Code, Database, Search, Zap, Share2, Shield} from "lucide-react"
+import {Link, useNavigate} from "react-router-dom"
+import {Button} from "@/core/components/ui/button"
+import {Card, CardDescription, CardHeader, CardTitle} from "@/core/components/ui/card"
+import {ImportSpec} from "@/features/directory/components/ImportSpec.tsx";
+import {OpenApiDocument} from "@/common/openapi-spec.ts";
+import {IndexedDBService} from "@/core/services/indexdbservice.ts";
+import React from "react";
 
 export default function LandingPage() {
+    const navigate = useNavigate()
+    const dbService = React.useMemo(() => new IndexedDBService(), []);
+    const handleSpecLoaded = async (loadedSpec: OpenApiDocument) => {
+        try {
+            const id = await dbService.saveSpec(loadedSpec)
+            navigate(`/spec/${id}`)
+        } catch (error) {
+            console.error("Error saving spec:", error)
+        }
+    }
 
     return (
         <div className="flex flex-col min-h-screen  ">
@@ -31,7 +45,7 @@ export default function LandingPage() {
             </header>
 
             <main className="flex-1">
-                 {/*Hero Section*/}
+                {/*Hero Section*/}
                 <section className="py-16 md:py-28 ">
                     <div className="px-4 md:px-20 w-full">
                         <div className="grid gap-8 lg:grid-cols-[1fr_500px] lg:gap-12 xl:grid-cols-[1fr_550px]">
@@ -51,7 +65,15 @@ export default function LandingPage() {
                                     </Button>
                                 </div>
                             </div>
-                            
+                            <div className="border rounded-lg p-4">
+                                <div className="mb-4">
+                                    <h3 className="text-lg font-semibold">Add New OpenAPI Specification</h3>
+                                    <p className="text-sm text-muted-foreground mt-2">
+                                        Choose how you want to add your OpenAPI 3.x JSON specification.
+                                    </p>
+                                </div>
+                                <ImportSpec onSpecLoaded={handleSpecLoaded}/>
+                            </div>
                         </div>
                     </div>
                 </section>

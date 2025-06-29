@@ -12,19 +12,19 @@ import {ThemeProvider} from "next-themes";
 
 createRoot(document.getElementById('root')!).render(
     <StrictMode>
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-            <BrowserRouter>
+        <BrowserRouter>
+            <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
                 <Toaster/>
 
                 <Routes>
                     <Route path="/" element={<LandingPage/>}/>
-                    <Route path="/app" element={<DirectoryPage/>}/>
+                    <Route path="/directory" element={<DirectoryPage/>}/>
 
                     <Route path="spec">
                         <Route index path=":id" element={<SpecProvider><SpecPage/></SpecProvider>}/>
                     </Route>
                 </Routes>
-            </BrowserRouter>
-        </ThemeProvider>
+            </ThemeProvider>
+        </BrowserRouter>
     </StrictMode>,
 )

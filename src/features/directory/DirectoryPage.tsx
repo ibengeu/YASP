@@ -12,11 +12,10 @@ import {
 import {Tabs, TabsContent, TabsList, TabsTrigger} from "@/core/components/ui/tabs.tsx";
 import {Textarea} from "@/core/components/ui/textarea.tsx";
 import {Alert, AlertDescription} from "@/core/components/ui/alert.tsx";
-import {AlertCircle, Upload} from "lucide-react";
+import {AlertCircle, Download, FileJson, Plus, Search, SortAsc, Tag, Trash2, Upload} from "lucide-react";
 
 import {Card, CardDescription, CardHeader, CardTitle} from "@/core/components/ui/card.tsx"
 import {Button} from "@/core/components/ui/button.tsx"
-import {Download, FileJson, Plus, Search, SortAsc, Tag, Trash2} from "lucide-react"
 import {Input} from "@/core/components/ui/input.tsx"
 import {cn} from "@/core/lib/utils.ts"
 import {IndexedDBService} from "@/core/services/indexdbservice.ts";
@@ -168,7 +167,8 @@ export function DirectoryPage() {
             } else {
                 setUrlError("Invalid OpenAPI 3.x JSON from URL.")
             }
-        } catch {
+        } catch (e) {
+            console.error(e)
             setUrlError("Failed to fetch or parse from URL.")
         }
     }
