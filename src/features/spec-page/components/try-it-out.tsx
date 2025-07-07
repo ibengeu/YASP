@@ -197,7 +197,18 @@ export default function TryItOut({path, method, operation, components}: TryItOut
         const resolved = resolveSchema(schema) as SchemaObject;
         if (!resolved) return null;
 
-        if (visited.has(JSON.stringify(resolved))) return {};
+        if (visited.has(JSON.stringify(resolved))) {
+            // Return appropriate empty value based on type for circular references
+            switch (resolved.type) {
+                case 'string': return '';
+                case 'number':
+                case 'integer': return 0;
+                case 'boolean': return false;
+                case 'array': return [];
+                case 'object': return {};
+                default: return null;
+            }
+        }
         visited.add(JSON.stringify(resolved));
 
         if ((resolved as { allOf?: unknown[] }).allOf) {
@@ -225,7 +236,23 @@ export default function TryItOut({path, method, operation, components}: TryItOut
             return [generateInitialJson(resolved.items as SchemaObject, visited)];
         }
 
-        return resolved.example ?? (resolved.type === 'number' || resolved.type === 'integer' ? 0 : (resolved.type === 'boolean' ? false : ''));
+        // Return appropriate empty values based on type
+        if (resolved.example !== undefined) return resolved.example;
+        if (resolved.default !== undefined) return resolved.default;
+        
+        switch (resolved.type) {
+            case 'string':
+                return '';
+            case 'number':
+            case 'integer':
+                return 0;
+            case 'boolean':
+                return false;
+            case 'array':
+                return [];
+            default:
+                return null;
+        }
     }, [resolveSchema]);
 
     useEffect(() => {
@@ -328,9 +355,25 @@ export default function TryItOut({path, method, operation, components}: TryItOut
     };
 
 
-    // Copy to clipboard
+    // Copy to clipboard with security validation
     const copyToClipboard = (text: string) => {
-        navigator.clipboard.writeText(text).then(() => toast.success("Copied to clipboard"));
+        // Validate and sanitize clipboard content
+        if (!text || typeof text !== 'string') {
+            toast.error("Invalid content to copy");
+            return;
+        }
+        
+        // Limit clipboard content size to prevent DoS
+        if (text.length > 50000) {
+            toast.error("Content too large to copy");
+            return;
+        }
+        
+        navigator.clipboard.writeText(text).then(() => {
+            toast.success("Copied to clipboard");
+        }).catch(() => {
+            toast.error("Failed to copy to clipboard");
+        });
     };
 
     // Handle execute

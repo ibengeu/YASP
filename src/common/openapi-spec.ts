@@ -94,6 +94,16 @@ export interface SchemaObject {
     format?: string;
     /** Schema description, supports CommonMark. */
     description?: string;
+    /** Default value for the schema. */
+    default?: JsonValue;
+    /** Minimum value for numeric types. */
+    minimum?: number;
+    /** Maximum value for numeric types. */
+    maximum?: number;
+    /** Enumeration of valid values. */
+    enum?: JsonValue[];
+    /** Schema title. */
+    title?: string;
 
     /** Specification extensions with "x-" prefix. */
     [key: `x-${string}`]: JsonValue;

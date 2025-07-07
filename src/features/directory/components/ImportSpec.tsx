@@ -54,6 +54,31 @@ export function ImportSpec({ onSpecLoaded }: ImportSpecProps) {
         }
     }
 
+    const handlePasteChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+        setPasteContent(e.target.value)
+        // Clear previous errors when user starts typing
+        if (pasteError) {
+            setPasteError(null)
+        }
+    }
+
+    const handlePasteEvent = async (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+        // Auto-load specification when pasting content
+        setTimeout(async () => {
+            const content = e.clipboardData.getData('text')
+            if (content.trim()) {
+                try {
+                    const spec = JSON.parse(content)
+                    if (spec.openapi && spec.info && spec.paths) {
+                        onSpecLoaded(spec)
+                    }
+                } catch {
+                    // Don't show error on paste - user can still manually load
+                }
+            }
+        }, 100)
+    }
+
     const handleUrlSubmit = async () => {
         try {
             const response = await fetch(urlInput)
@@ -102,12 +127,16 @@ export function ImportSpec({ onSpecLoaded }: ImportSpecProps) {
                 )}
             </TabsContent>
             <TabsContent value="paste" className="py-4 space-y-4">
-                <Textarea
-                    placeholder="Paste OpenAPI JSON here..."
-                    rows={6}
-                    value={pasteContent}
-                    onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setPasteContent(e.target.value)}
-                />
+                <div className="space-y-2">
+                    <p className="text-sm text-muted-foreground">Paste your OpenAPI 3.x JSON content directly. The specification will load automatically when you paste.</p>
+                    <Textarea
+                        placeholder="Paste OpenAPI JSON here..."
+                        value={pasteContent}
+                        onChange={handlePasteChange}
+                        onPaste={handlePasteEvent}
+                        className="min-h-[200px] max-h-[200px] resize-none overflow-y-auto"
+                    />
+                </div>
                 <Button onClick={handlePasteSubmit} className="w-full">Load Specification</Button>
                 {pasteError && (
                     <Alert variant="destructive">

@@ -7,6 +7,10 @@ interface StoredSpec {
     description?: string;
     spec: OpenApiDocument;
     createdAt: string;
+    workspaceType?: 'Personal' | 'Team' | 'Partner' | 'Public';
+    syncStatus?: 'synced' | 'syncing' | 'offline';
+    tags?: string[];
+    isDiscoverable?: boolean;
 }
 
 export class IndexedDBService {
@@ -89,7 +93,11 @@ export class IndexedDBService {
                 version: spec.info.version,
                 description: spec.info.description,
                 spec: spec,
-                createdAt: new Date().toISOString()
+                createdAt: new Date().toISOString(),
+                workspaceType: 'Personal',
+                syncStatus: 'synced',
+                tags: [],
+                isDiscoverable: false
             };
 
             const request = store.add(storedSpec);
@@ -108,6 +116,31 @@ export class IndexedDBService {
 
             request.onsuccess = () => resolve(request.result);
             request.onerror = () => reject(request.error);
+        });
+    }
+
+    async updateSpec(id: string | number, updates: Partial<StoredSpec>): Promise<void> {
+        const db = await this.initDB();
+        return new Promise((resolve, reject) => {
+            const transaction = db.transaction([this.storeName], 'readwrite');
+            const store = transaction.objectStore(this.storeName);
+            const getRequest = store.get(id);
+
+            getRequest.onsuccess = () => {
+                const existingSpec = getRequest.result;
+                if (!existingSpec) {
+                    reject(new Error('Spec not found'));
+                    return;
+                }
+
+                const updatedSpec = { ...existingSpec, ...updates };
+                const putRequest = store.put(updatedSpec);
+
+                putRequest.onsuccess = () => resolve();
+                putRequest.onerror = () => reject(putRequest.error);
+            };
+
+            getRequest.onerror = () => reject(getRequest.error);
         });
     }
 }

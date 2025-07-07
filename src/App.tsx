@@ -21,7 +21,7 @@ export default function LandingPage() {
 
     return (
         <div className="flex flex-col min-h-screen  ">
-            <header className="border-b border-border bg-background/80 backdrop-blur-sm sticky top-0 z-10 px-12">
+            <header className="border-b border-border bg-background/80 backdrop-blur-sm sticky top-0 z-10 px-12 z-50">
                 <div className=" mx-auto flex h-16 items-center justify-between px-4">
                     <div className="flex items-center gap-2">
                         <FileJson className="h-6 w-6 text-primary"/>
@@ -35,7 +35,11 @@ export default function LandingPage() {
                             <a href="#benefits" className="text-sm font-medium hover:text-primary transition-colors">
                                 Benefits
                             </a>
-                            <Link to="/directory"
+                            <Link to="/workspace"
+                                  className="text-sm font-medium hover:text-primary transition-colors">
+                                Workspace
+                            </Link>
+                            <Link to="/specs"
                                   className="text-sm font-medium hover:text-primary transition-colors">
                                 Get Started
                             </Link>
@@ -46,7 +50,9 @@ export default function LandingPage() {
 
             <main className="flex-1">
                 {/*Hero Section*/}
-                <section className="py-16 md:py-28 ">
+                <section className="py-16 md:py-28 relative overflow-hidden bg-cover bg-center bg-no-repeat" style={{backgroundImage: 'url("/src/assets/3d-abstract-blue-geometrical-background-connection-structure-science-background-futuristic-technology.jpg")'}}>
+                    <div className="absolute inset-0 bg-background/80 "></div>
+                    <div className="relative z-10">
                     <div className="px-4 md:px-20 w-full">
                         <div className="grid gap-8 lg:grid-cols-[1fr_500px] lg:gap-12 xl:grid-cols-[1fr_550px]">
                             <div className="flex flex-col justify-center space-y-4">
@@ -61,7 +67,10 @@ export default function LandingPage() {
                                 </div>
                                 <div className="flex flex-col sm:flex-row gap-3">
                                     <Button size="lg" asChild>
-                                        <Link to="/directory">Get Started</Link>
+                                        <Link to="/workspace">Try Workspace</Link>
+                                    </Button>
+                                    <Button size="lg" variant="outline" asChild>
+                                        <Link to="/specs">Get Started</Link>
                                     </Button>
                                 </div>
                             </div>
@@ -75,6 +84,7 @@ export default function LandingPage() {
                                 <ImportSpec onSpecLoaded={handleSpecLoaded}/>
                             </div>
                         </div>
+                    </div>
                     </div>
                 </section>
 
@@ -242,7 +252,7 @@ export default function LandingPage() {
                             </div>
                             <div className="flex flex-col sm:flex-row gap-3 pt-4">
                                 <Button size="lg" asChild>
-                                    <Link to="/directory">Launch App</Link>
+                                    <Link to="/specs">Launch App</Link>
                                 </Button>
                             </div>
                         </div>

@@ -6,7 +6,7 @@ import { Input } from '@/core/components/ui/input';
 import { Label } from '@/core/components/ui/label';
 import { Textarea } from '@/core/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/core/components/ui/select';
-import { Plus, FileText, Folder } from 'lucide-react';
+import { Plus, FileText, Folder, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Workspace } from '../WorkspacePage';
 
 interface SidebarProps {
@@ -18,6 +18,8 @@ interface SidebarProps {
   activeSpec: string;
   onSpecChange: (id: string) => void;
   onAddSpec: (name: string, format: 'yaml' | 'json') => void;
+  isCollapsed?: boolean;
+  onToggleCollapse?: () => void;
 }
 
 const Sidebar: React.FC<SidebarProps> = ({
@@ -28,7 +30,9 @@ const Sidebar: React.FC<SidebarProps> = ({
   currentWorkspace,
   activeSpec,
   onSpecChange,
-  onAddSpec
+  onAddSpec,
+  isCollapsed = false,
+  onToggleCollapse
 }) => {
   const [newWorkspaceName, setNewWorkspaceName] = useState('');
   const [newWorkspaceDesc, setNewWorkspaceDesc] = useState('');
@@ -55,25 +59,40 @@ const Sidebar: React.FC<SidebarProps> = ({
   };
 
   return (
-    <div className="w-80 h-screen bg-card border-r border-border flex flex-col">
+    <div className={`${isCollapsed ? 'w-16' : 'w-80'} h-screen bg-card border-r border-border flex flex-col transition-all duration-300`}>
       {/* Header */}
-      <div className="p-4 border-b border-border">
-        <h1 className="text-xl font-bold text-card-foreground mb-1">API Hub</h1>
-        <p className="text-sm text-muted-foreground">Workspace Manager</p>
+      <div className="p-4 border-b border-border flex items-center justify-between">
+        {!isCollapsed && (
+          <div>
+            <h1 className="text-xl font-bold text-card-foreground mb-1">API Hub</h1>
+            <p className="text-sm text-muted-foreground">Workspace Manager</p>
+          </div>
+        )}
+        {onToggleCollapse && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onToggleCollapse}
+            className="p-2"
+          >
+            {isCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+          </Button>
+        )}
       </div>
 
       {/* Workspaces */}
-      <div className="p-4 border-b border-border">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-sm font-semibold text-foreground uppercase tracking-wide">
-            Workspaces
-          </h2>
-          <Dialog open={workspaceDialogOpen} onOpenChange={setWorkspaceDialogOpen}>
-            <DialogTrigger asChild>
-              <Button size="sm" variant="ghost" className="h-6 w-6 p-0">
-                <Plus className="h-4 w-4" />
-              </Button>
-            </DialogTrigger>
+      {!isCollapsed && (
+        <div className="p-4 border-b border-border">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-semibold text-foreground uppercase tracking-wide">
+              Workspaces
+            </h2>
+            <Dialog open={workspaceDialogOpen} onOpenChange={setWorkspaceDialogOpen}>
+              <DialogTrigger asChild>
+                <Button size="sm" variant="ghost" className="h-6 w-6 p-0">
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </DialogTrigger>
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>Create New Workspace</DialogTitle>
@@ -130,10 +149,31 @@ const Sidebar: React.FC<SidebarProps> = ({
             </Card>
           ))}
         </div>
-      </div>
+        </div>
+      )}
+
+      {/* Collapsed workspace icons */}
+      {isCollapsed && (
+        <div className="p-2 border-b border-border">
+          <div className="space-y-2">
+            {workspaces.map((workspace) => (
+              <Button
+                key={workspace.id}
+                variant={activeWorkspace === workspace.id ? "default" : "ghost"}
+                size="sm"
+                className="w-full h-10 p-2"
+                onClick={() => onWorkspaceChange(workspace.id)}
+                title={workspace.name}
+              >
+                <Folder className="h-4 w-4" />
+              </Button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* API Specifications */}
-      {currentWorkspace && (
+      {currentWorkspace && !isCollapsed && (
         <div className="flex-1 p-4">
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-sm font-semibold text-foreground uppercase tracking-wide">
