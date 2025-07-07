@@ -28,8 +28,10 @@ export function useSpec(id: string | undefined) {
         }
 
         setIsLoading(true);
+        setError(null);
         try {
             const loadedSpec = await dbService.getSpecById(Number(id));
+            
             if (!loadedSpec || !loadedSpec.spec) {
                 throw new Error("Specification not found");
             }
@@ -38,8 +40,8 @@ export function useSpec(id: string | undefined) {
             }
             setSpec(loadedSpec.spec);
         } catch (err) {
-            setError(err instanceof Error ? err.message : "Failed to load specification");
             console.error("Error loading spec:", err);
+            setError(err instanceof Error ? err.message : "Failed to load specification");
         } finally {
             setIsLoading(false);
         }

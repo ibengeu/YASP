@@ -143,4 +143,35 @@ export class IndexedDBService {
             getRequest.onerror = () => reject(getRequest.error);
         });
     }
+
+    async updateSpecContent(id: number, newSpec: OpenApiDocument): Promise<void> {
+        const db = await this.initDB();
+        return new Promise((resolve, reject) => {
+            const transaction = db.transaction([this.storeName], 'readwrite');
+            const store = transaction.objectStore(this.storeName);
+            const getRequest = store.get(id);
+
+            getRequest.onsuccess = () => {
+                const existingSpec = getRequest.result;
+                if (!existingSpec) {
+                    reject(new Error('Spec not found'));
+                    return;
+                }
+
+                const updatedSpec = {
+                    ...existingSpec,
+                    spec: newSpec,
+                    title: newSpec.info.title,
+                    version: newSpec.info.version,
+                    description: newSpec.info.description
+                };
+                const putRequest = store.put(updatedSpec);
+
+                putRequest.onsuccess = () => resolve();
+                putRequest.onerror = () => reject(putRequest.error);
+            };
+
+            getRequest.onerror = () => reject(getRequest.error);
+        });
+    }
 }
