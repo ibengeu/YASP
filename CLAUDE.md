@@ -49,9 +49,8 @@ src/
 │   ├── services/   # Business logic (IndexedDBService)
 │   └── lib/        # Utility functions
 ├── features/       # Feature-specific code
-│   ├── directory/  # API specification listing and management (legacy)
-│   ├── spec-page/  # Individual API spec viewer and testing
-│   └── workspace/  # Multi-spec workspace editor with templates
+│   ├── directory/  # API specification listing and management
+│   └── spec-page/  # Individual API spec viewer and testing
 └── common/         # Shared types and interfaces
 ```
 
@@ -63,26 +62,26 @@ src/
 
 ### Routing Structure
 - `/` - Landing page with hero section and import functionality
-- `/specs` - Specification listing and management (legacy directory feature)
-- `/workspace` - Modern workspace feature with multi-spec editing and templates
+- `/specs` - Specification listing and management (directory feature)
 - `/spec/:id` - Individual specification viewer with interactive testing
+
+**Note**: The `/workspace` route is referenced in the UI but not yet implemented. The workspace feature exists only in documentation.
 
 ### Data Architecture
 
-The application uses dual client-side storage patterns:
+The application uses client-side storage:
 
-**Legacy Directory Feature** (`/specs`):
+**Directory Feature** (`/specs`):
 - **SpecContext** provides centralized state management
 - **IndexedDBService** handles CRUD operations for specifications
 - **OpenApiDocument** interface defines the complete OpenAPI spec structure
 - Specs are stored with metadata (id, title, version, createdAt, workspaceType, syncStatus, tags, isDiscoverable) plus the full specification
-- Recently upgraded with modern UI components: SpecCard, StatsGrid, AdvancedControls, SettingsPanel
+- Modern UI components: SpecCard, StatsGrid, AdvancedControls, SettingsPanel
 
-**Modern Workspace Feature** (`/workspace`):
-- **localStorage** persistence for workspace data and UI preferences
-- **Workspace** and **ApiSpec** interfaces for multi-spec organization
-- State managed locally within WorkspacePage component
-- Template system for quick-start workflows
+**Workspace Feature** (`/workspace` - **NOT YET IMPLEMENTED**):
+- Exists only in documentation (`/src/docs/WorkspaceFeatureSRS.markdown` and `/src/docs/WorkspaceFeatureUserJourney.markdown`)
+- Planned to use localStorage persistence for workspace data and UI preferences
+- Intended to support multi-spec organization with template system
 
 ### Security Features
 
@@ -112,12 +111,12 @@ The codebase includes security measures:
 ### Key Files to Understand
 
 1. **Main Entry** (`src/main.tsx`): App initialization with routing and providers
-2. **Spec Context** (`src/core/context/spec-context.tsx`): Central state management for legacy directory
-3. **Workspace Page** (`src/features/workspace/WorkspacePage.tsx`): Modern workspace with templates and localStorage
+2. **Spec Context** (`src/core/context/spec-context.tsx`): Central state management for directory feature
+3. **Directory Page** (`src/features/directory/DirectoryPage.tsx`): Main specification management interface
 4. **Try It Out** (`src/features/spec-page/components/try-it-out.tsx`): API testing interface
 5. **Execute API Request** (`src/features/spec-page/actions/execute-api-request.tsx`): Server action for API calls
 6. **OpenAPI Types** (`src/common/openapi-spec.ts`): Complete type definitions
-7. **Templates** (`src/features/workspace/templates/quick-start-templates.ts`): Pre-built workspace templates
+7. **IndexedDB Service** (`src/core/services/indexdbservice.ts`): Data persistence layer
 
 ### Important Conventions
 
@@ -133,35 +132,37 @@ The codebase includes security measures:
 ### Development Notes
 
 - The app works entirely client-side with no backend dependencies
-- Two storage systems: IndexedDB (legacy directory) and localStorage (workspace feature)
+- Single storage system: IndexedDB for specification persistence
 - OpenAPI specifications are parsed and validated on import
 - The "Try It Out" feature makes actual HTTP requests to external APIs
 - Security headers and validation prevent common web vulnerabilities
 - Monaco Editor provides syntax highlighting and validation for YAML/JSON
-- Workspace feature includes collapsible sidebar and template system for better UX
+- Mobile-first responsive design with 768px breakpoint
 
-### Workspace Feature Architecture
+### Workspace Feature Architecture (PLANNED - NOT IMPLEMENTED)
 
-The workspace feature (`/workspace`) represents the modern approach to API specification management:
+The workspace feature (`/workspace`) is designed as the next-generation approach to API specification management but currently exists only in documentation:
 
-**Components Structure:**
-- `WorkspacePage.tsx` - Main container with dual storage (localStorage) and empty state handling
+**Planned Components Structure:**
+- `WorkspacePage.tsx` - Main container with localStorage and empty state handling
 - `EmptyState.tsx` - Onboarding experience with template selection
 - `TemplateSelectionDialog.tsx` - Template picker with visual categories
 - `Sidebar.tsx` - Collapsible navigation with workspace/spec management
 - `ApiEditor.tsx` - Monaco Editor integration for YAML/JSON editing
 - `DocumentationViewer.tsx` - Live preview with "Try It Out" functionality
 
-**Key Workflow:**
+**Planned Workflow:**
 1. Empty state guides users to templates or custom workspace creation
 2. Templates create pre-populated workspaces with working API specifications
 3. Collapsible sidebar allows multi-workspace and multi-spec management
 4. Split view enables simultaneous editing and documentation preview
 5. All data persists in localStorage with graceful error handling
 
-### Directory Feature Architecture (Modern Upgrade)
+**Current Status:** UI navigation exists but routes to non-existent components. Implementation required.
 
-The directory feature (`/specs`) has been modernized with a comprehensive UI upgrade:
+### Directory Feature Architecture
+
+The directory feature (`/specs`) is the current main interface for API specification management:
 
 **Components Structure:**
 - `DirectoryPage.tsx` - Main container with gradient background and modern layout

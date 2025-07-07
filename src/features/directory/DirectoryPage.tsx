@@ -9,7 +9,7 @@ import {
     DialogTitle,
     DialogTrigger
 } from "@/core/components/ui/dialog";
-import {Plus, Search} from "lucide-react";
+import {Plus, Search, ArrowLeft} from "lucide-react";
 
 import {Button} from "@/core/components/ui/button.tsx"
 import {IndexedDBService} from "@/core/services/indexdbservice.ts";
@@ -18,7 +18,6 @@ import {useNavigate} from "react-router";
 
 // New modern components
 import {SpecCard} from "./components/SpecCard";
-import {StatsGrid} from "./components/StatsGrid";
 import {SettingsPanel} from "./components/SettingsPanel";
 import {AdvancedControls} from "./components/AdvancedControls";
 import {ImportSpec} from "./components/ImportSpec";
@@ -145,18 +144,28 @@ export function DirectoryPage() {
     }
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-background to-accent/20">
+        <div className="min-h-screen ">
             {/* Header */}
             <div className="bg-card shadow-sm border-b border-border">
                 <div className="max-w-7xl mx-auto px-6 py-6">
                     <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-                        <div>
-                            <h1 className="text-xl font-bold text-foreground mb-2">
-                                API Specifications
-                            </h1>
-                            <p className="text-muted-foreground">
-                                Manage your API collections, environments, and collaborative workspaces
-                            </p>
+                        <div className="flex items-center gap-4">
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => navigate("/")}
+                                className="p-2 hover:bg-muted"
+                            >
+                                <ArrowLeft className="w-4 h-4" />
+                            </Button>
+                            <div>
+                                <h1 className="text-xl font-bold text-foreground mb-2">
+                                    API Specifications
+                                </h1>
+                                <p className="text-muted-foreground">
+                                    Manage your API collections, environments, and collaborative workspaces
+                                </p>
+                            </div>
                         </div>
                         <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
                             <DialogTrigger asChild>
@@ -194,8 +203,7 @@ export function DirectoryPage() {
                     onSortChange={setSortBy}
                 />
 
-                {/* Stats */}
-                <StatsGrid specs={specs} />
+          
 
                 {isLoading ? (
                     <div className="flex items-center justify-center py-12">

@@ -5,7 +5,7 @@ import {Button} from "@/core/components/ui/button";
 import {ResizablePanel, ResizablePanelGroup} from "@/core/components/ui/resizable.tsx";
 import {SwaggerUI} from "./components/swagger-ui";
 import {OperationObject} from "../../common/openapi-spec.ts";
-import {Loader2, Edit3, Eye, Save} from "lucide-react";
+import {Loader2} from "lucide-react";
 import {useNavigate, useParams} from "react-router";
 import {Sheet, SheetContent} from "@/core/components/ui/sheet";
 import useMediaQuery from "@/core/hooks/useMediaQuery.ts";
@@ -13,7 +13,6 @@ import {TopBar} from "./components/top-bar.tsx";
 import TryItOut from "./components/try-it-out.tsx";
 import {useSpec} from "./hooks/useSpec.ts";
 import {Editor, loader} from "@monaco-editor/react";
-import {Badge} from "@/core/components/ui/badge.tsx";
 import {Card} from "@/core/components/ui/card.tsx";
 import {Textarea} from "@/core/components/ui/textarea.tsx";
 import {IndexedDBService} from "@/core/services/indexdbservice.ts";
@@ -154,13 +153,17 @@ export const SpecPage: React.FC = () => {
     if (error) {
         return (
             <div className="flex flex-col h-screen">
-                <TopBar title="API Documentation" isMobileMenuOpen={isMobileMenuOpen}
-                        toggleMobileMenu={toggleMobileMenu} currentSpec={spec}/>
+                <TopBar 
+                    title="API Documentation" 
+                    isMobileMenuOpen={isMobileMenuOpen}
+                    toggleMobileMenu={toggleMobileMenu} 
+                    currentSpec={spec}
+                />
                 <div className="container mx-auto py-6 text-center flex-1">
                     <p className="text-destructive mb-4">{error}</p>
 
-                    <Button onClick={() => navigate("/")} variant="outline">
-                        Back to Directory
+                    <Button onClick={() => navigate("/specs")} variant="outline">
+                        Back to Specs
                     </Button>
                 </div>
             </div>
@@ -169,60 +172,17 @@ export const SpecPage: React.FC = () => {
 
     return (
         <div className="flex flex-col h-screen ">
-            <TopBar title="API Documentation" isMobileMenuOpen={isMobileMenuOpen} toggleMobileMenu={toggleMobileMenu} currentSpec={spec}/>
-            
-            {/* Editor/View Toggle Bar */}
-            {spec && (
-                <div className="flex items-center justify-between px-4 py-2 bg-card border-b border-border">
-                    <div className="flex items-center space-x-4">
-                        <div className="flex items-center space-x-2">
-                            <Button
-                                variant={!isEditorMode ? "default" : "outline"}
-                                size="sm"
-                                onClick={() => !isEditorMode || setIsEditorMode(false)}
-                            >
-                                <Eye className="w-4 h-4 mr-1" />
-                                Documentation
-                            </Button>
-                            <Button
-                                variant={isEditorMode ? "default" : "outline"}
-                                size="sm"
-                                onClick={toggleEditorMode}
-                            >
-                                <Edit3 className="w-4 h-4 mr-1" />
-                                Editor
-                            </Button>
-                        </div>
-                        {isEditorMode && (
-                            <Badge variant="outline" className="uppercase text-xs">
-                                JSON
-                            </Badge>
-                        )}
-                    </div>
-                    {isEditorMode && (
-                        <div className="flex items-center space-x-2">
-                            {hasUnsavedChanges && (
-                                <Badge variant="secondary" className="text-xs">
-                                    Unsaved changes
-                                </Badge>
-                            )}
-                            <Button
-                                onClick={handleSaveSpec}
-                                disabled={isSaving || !hasUnsavedChanges}
-                                size="sm"
-                                className="bg-primary text-primary-foreground hover:bg-primary/90"
-                            >
-                                {isSaving ? (
-                                    <Loader2 className="w-4 h-4 mr-1 animate-spin" />
-                                ) : (
-                                    <Save className="w-4 h-4 mr-1" />
-                                )}
-                                Save
-                            </Button>
-                        </div>
-                    )}
-                </div>
-            )}
+            <TopBar 
+                title="API Documentation" 
+                isMobileMenuOpen={isMobileMenuOpen} 
+                toggleMobileMenu={toggleMobileMenu} 
+                currentSpec={spec}
+                isEditorMode={isEditorMode}
+                onToggleEditorMode={toggleEditorMode}
+                hasUnsavedChanges={hasUnsavedChanges}
+                onSave={handleSaveSpec}
+                isSaving={isSaving}
+            />
 
             <main className="flex-1 overflow-hidden">
                 {isLoading ? (
