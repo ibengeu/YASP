@@ -1,5 +1,5 @@
 import React from 'react';
-import { Cloud, Eye, Settings, FileJson, Tag, Trash2, Download } from 'lucide-react';
+import { Cloud, Eye, /* Settings, */ FileJson, Tag, Trash2, Download } from 'lucide-react';
 import { Button } from '@/core/components/ui/button';
 import { Badge } from '@/core/components/ui/badge';
 import { Card, CardHeader, CardTitle, CardDescription } from '@/core/components/ui/card';
@@ -17,7 +17,7 @@ interface SpecCardProps {
   isDiscoverable?: boolean;
   isRecentlyAdded?: boolean;
   onClick: () => void;
-  onSettingsClick?: (id: string | number) => void;
+  // onSettingsClick?: (id: string | number) => void; // Hidden for now
   onDeleteClick?: (id: string | number) => void;
 }
 
@@ -27,24 +27,25 @@ export function SpecCard({
   version,
   description,
   createdAt,
-  workspaceType = 'Personal',
+  // workspaceType = 'Personal', // Hidden for now
   syncStatus = 'synced',
   tags = [],
   isDiscoverable = false,
   isRecentlyAdded = false,
   onClick,
-  onSettingsClick,
+  // onSettingsClick, // Hidden for now
   onDeleteClick
 }: SpecCardProps) {
-  const getWorkspaceColor = (type: string) => {
-    switch (type) {
-      case 'Personal': return 'bg-chart-1/20 text-chart-1 border-chart-1/30';
-      case 'Team': return 'bg-chart-2/20 text-chart-2 border-chart-2/30';
-      case 'Partner': return 'bg-chart-3/20 text-chart-3 border-chart-3/30';
-      case 'Public': return 'bg-chart-4/20 text-chart-4 border-chart-4/30';
-      default: return 'bg-muted text-muted-foreground border-border';
-    }
-  };
+  // Workspace color function hidden for now
+  // const getWorkspaceColor = (type: string) => {
+  //   switch (type) {
+  //     case 'Personal': return 'bg-chart-1/20 text-chart-1 border-chart-1/30';
+  //     case 'Team': return 'bg-chart-2/20 text-chart-2 border-chart-2/30';
+  //     case 'Partner': return 'bg-chart-3/20 text-chart-3 border-chart-3/30';
+  //     case 'Public': return 'bg-chart-4/20 text-chart-4 border-chart-4/30';
+  //     default: return 'bg-muted text-muted-foreground border-border';
+  //   }
+  // };
 
   const getSyncIcon = () => {
     switch (syncStatus) {
@@ -67,10 +68,11 @@ export function SpecCard({
     return `${Math.floor(diffInDays / 30)} months ago`;
   };
 
-  const handleSettingsClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    onSettingsClick?.(id);
-  };
+  // Settings click handler hidden for now
+  // const handleSettingsClick = (e: React.MouseEvent) => {
+  //   e.stopPropagation();
+  //   onSettingsClick?.(id);
+  // };
 
   const handleDeleteClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -93,9 +95,10 @@ export function SpecCard({
                 <CardTitle className="text-lg font-semibold text-foreground group-hover:text-primary transition-colors truncate">
                   {title}
                 </CardTitle>
-                <Badge variant="secondary" className={cn("text-xs", getWorkspaceColor(workspaceType))}>
+                {/* Workspace badge hidden for now */}
+                {/* <Badge variant="secondary" className={cn("text-xs", getWorkspaceColor(workspaceType))}>
                   {workspaceType}
-                </Badge>
+                </Badge> */}
                 {isRecentlyAdded && (
                   <Badge variant="outline" className="text-xs bg-primary/10 text-primary border-primary/20">
                     New
@@ -149,21 +152,7 @@ export function SpecCard({
         "absolute top-1/2 -translate-y-1/2 -right-2 flex flex-col gap-1 bg-card border border-border rounded-lg shadow-lg p-1 transition-all duration-200 z-10",
         "opacity-0 scale-95 group-hover:opacity-100 group-hover:scale-100 pointer-events-none group-hover:pointer-events-auto"
       )}>
-        {onSettingsClick && (
-          <div className="relative group/tooltip">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleSettingsClick}
-              className="h-8 w-8 p-0 text-muted-foreground hover:text-primary"
-            >
-              <Settings className="w-4 h-4" />
-            </Button>
-            <div className="absolute top-1/2 -translate-y-1/2 right-full mr-2 px-2 py-1 text-xs text-primary-foreground bg-foreground rounded opacity-0 group-hover/tooltip:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
-              Settings
-            </div>
-          </div>
-        )}
+        {/* Settings button hidden for now */}
         
         <div className="relative group/tooltip">
           <Button

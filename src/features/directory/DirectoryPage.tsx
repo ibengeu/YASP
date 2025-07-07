@@ -18,7 +18,7 @@ import {useNavigate} from "react-router";
 
 // New modern components
 import {SpecCard} from "./components/SpecCard";
-import {SettingsPanel} from "./components/SettingsPanel";
+// import {SettingsPanel} from "./components/SettingsPanel"; // Hidden for now
 import {AdvancedControls} from "./components/AdvancedControls";
 import {ImportSpec} from "./components/ImportSpec";
 
@@ -42,7 +42,7 @@ export function DirectoryPage() {
     const [sortBy, setSortBy] = useState("recent")
     const [isLoading, setIsLoading] = useState(true)
     const [isModalOpen, setIsModalOpen] = useState(false)
-    const [selectedSpecId, setSelectedSpecId] = useState<string | number | null>(null)
+    // const [selectedSpecId, setSelectedSpecId] = useState<string | number | null>(null) // Hidden for now
     const dbService = React.useMemo(() => new IndexedDBService(), []);
 
     const loadSpecs = useCallback(async () => {
@@ -114,29 +114,30 @@ export function DirectoryPage() {
         return diffInDays <= 7
     }
 
-    const handleSettingsClick = (specId: string | number) => {
-        setSelectedSpecId(specId)
-    }
+    // Settings functionality hidden for now
+    // const handleSettingsClick = (specId: string | number) => {
+    //     setSelectedSpecId(specId)
+    // }
 
-    const handleSettingsChange = async (specId: string | number, newSettings: any) => {
-        try {
-            // Update in database
-            await dbService.updateSpec(specId, newSettings)
-            
-            // Update local state
-            setSpecs(prevSpecs => 
-                prevSpecs.map(spec => 
-                    spec.id === specId 
-                        ? { ...spec, ...newSettings }
-                        : spec
-                )
-            )
-        } catch (error) {
-            console.error('Error updating spec settings:', error)
-        }
-    }
+    // const handleSettingsChange = async (specId: string | number, newSettings: any) => {
+    //     try {
+    //         // Update in database
+    //         await dbService.updateSpec(specId, newSettings)
+    //         
+    //         // Update local state
+    //         setSpecs(prevSpecs => 
+    //             prevSpecs.map(spec => 
+    //                 spec.id === specId 
+    //                     ? { ...spec, ...newSettings }
+    //                     : spec
+    //             )
+    //         )
+    //     } catch (error) {
+    //         console.error('Error updating spec settings:', error)
+    //     }
+    // }
 
-    const selectedSpec = specs.find(spec => spec.id === selectedSpecId)
+    // const selectedSpec = specs.find(spec => spec.id === selectedSpecId)
 
     const handleSpecLoadedFromModal = async (loadedSpec: OpenApiDocument) => {
         await handleSpecLoaded(loadedSpec)
@@ -227,7 +228,6 @@ export function DirectoryPage() {
                                         isDiscoverable={spec.isDiscoverable}
                                         isRecentlyAdded={isRecentlyAdded(spec.createdAt)}
                                         onClick={() => navigate(`/spec/${spec.id}`)}
-                                        onSettingsClick={handleSettingsClick}
                                         onDeleteClick={(specId) => handleRemoveSpec(new MouseEvent('click') as any, specId)}
                                     />
                                 ))}
@@ -271,21 +271,7 @@ export function DirectoryPage() {
                     </>
                 )}
             
-            {/* Settings Panel */}
-            {selectedSpec && (
-                <SettingsPanel
-                    isOpen={!!selectedSpecId}
-                    onClose={() => setSelectedSpecId(null)}
-                    specId={selectedSpecId!}
-                    currentSettings={{
-                        title: selectedSpec.title,
-                        workspaceType: selectedSpec.workspaceType || 'Personal',
-                        tags: selectedSpec.tags || [],
-                        isDiscoverable: selectedSpec.isDiscoverable || false
-                    }}
-                    onSettingsChange={handleSettingsChange}
-                />
-            )}
+            {/* Settings Panel - Hidden for now */}
             </div>
         </div>
     )

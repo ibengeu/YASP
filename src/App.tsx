@@ -35,10 +35,6 @@ export default function LandingPage() {
                             <a href="#benefits" className="text-sm font-medium hover:text-primary transition-colors">
                                 Benefits
                             </a>
-                            <Link to="/workspace"
-                                  className="text-sm font-medium hover:text-primary transition-colors">
-                                Workspace
-                            </Link>
                             <Link to="/specs"
                                   className="text-sm font-medium hover:text-primary transition-colors">
                                 Get Started
@@ -57,9 +53,6 @@ export default function LandingPage() {
                         <div className="grid gap-8 lg:grid-cols-[1fr_500px] lg:gap-12 xl:grid-cols-[1fr_550px]">
                             <div className="flex flex-col justify-center space-y-4">
                                 <div className="space-y-2">
-                                    <div className="bg-primary/10 text-primary px-3 py-1 rounded-full text-sm font-medium mb-4 inline-block">
-                                        Used by 15,000+ developers
-                                    </div>
                                     <h1 className="text-3xl sm:text-4xl md:text-5xl xl:text-6xl font-bold tracking-tighter text-foreground">
                                         Test Any OpenAPI Spec in 10 Seconds
                                     </h1>
@@ -75,9 +68,6 @@ export default function LandingPage() {
                                     <Button size="lg" variant="outline" asChild>
                                         <Link to="/specs">Upload Your Spec</Link>
                                     </Button>
-                                </div>
-                                <div className="text-sm text-muted-foreground">
-                                    234 APIs tested in the last hour
                                 </div>
                             </div>
                             <div className="border rounded-lg p-4 bg-card shadow-lg">
@@ -261,7 +251,7 @@ export default function LandingPage() {
                                 </Button>
                             </div>
                             <div className="text-sm text-muted-foreground mt-4">
-                                2,847 APIs tested today • 100% private • Zero setup required
+                                100% private • Zero setup required
                             </div>
                         </div>
                     </div>
