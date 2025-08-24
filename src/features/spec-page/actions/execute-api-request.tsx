@@ -1,6 +1,40 @@
 import type {ParameterObject} from "@/common/openapi-spec.ts";
-import { safeFetch, isURLSafe } from "@/core/security/ssrf-protection.ts";
-import { APIRequestSchema } from "@/core/validation/schemas.ts";
+
+// Simple URL validation
+function isURLSafe(url: string): boolean {
+    try {
+        const parsedUrl = new URL(url);
+        return ['http:', 'https:'].includes(parsedUrl.protocol) &&
+               !parsedUrl.hostname.match(/^(localhost|127\.0\.0\.1|10\.|172\.(1[6-9]|2\d|3[01])\.|192\.168\.|169\.254\.)/);
+    } catch {
+        return false;
+    }
+}
+
+// Safe fetch wrapper
+async function safeFetch(url: string, options: RequestInit = {}): Promise<Response> {
+    if (!isURLSafe(url)) {
+        throw new Error('URL is not safe for external requests');
+    }
+    
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10000);
+    
+    try {
+        const response = await fetch(url, {
+            ...options,
+            signal: controller.signal,
+            mode: 'cors',
+            credentials: 'omit',
+            referrerPolicy: 'no-referrer'
+        });
+        clearTimeout(timeout);
+        return response;
+    } catch (error) {
+        clearTimeout(timeout);
+        throw error;
+    }
+}
 
 export interface ResponseData {
     status: number;
@@ -269,17 +303,9 @@ export async function executeApiRequest(formData: FormData): Promise<ResponseDat
             config.body = data.requestBody;
         }
 
-        // Validate complete request
-        const requestValidation = APIRequestSchema.safeParse({
-            method: config.method,
-            url: config.url.toString(),
-            headers: config.headers,
-            body: config.body || '',
-            timeout: 10000
-        });
-        
-        if (!requestValidation.success) {
-            throw new Error(`Request validation failed: ${requestValidation.error.errors[0]?.message}`);
+        // Basic request validation
+        if (!config.url || !config.method) {
+            throw new Error('Request validation failed: Missing URL or method');
         }
 
         const startTime = performance.now();
@@ -295,7 +321,7 @@ export async function executeApiRequest(formData: FormData): Promise<ResponseDat
                 'Cache-Control': 'no-cache'
             },
             body: config.body
-        }, 'api-test-user');
+        });
         
         const endTime = performance.now();
 
@@ -313,8 +339,6 @@ export async function executeApiRequest(formData: FormData): Promise<ResponseDat
         const errorMessage = error instanceof Error ? error.message : "Unknown error";
         console.error("API request error:", {
             message: errorMessage,
-            url: data?.baseUrl,
-            method: data?.method,
             timestamp: new Date().toISOString()
         });
         

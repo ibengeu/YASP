@@ -1,13 +1,31 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { Search, Filter, SortAsc, X, Tag, Clock, Layers } from 'lucide-react';
 import { Button } from '@/core/components/ui/button';
 import { Input } from '@/core/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/core/components/ui/select';
 import { Badge } from '@/core/components/ui/badge';
 import { Popover, PopoverContent, PopoverTrigger } from '@/core/components/ui/popover';
-import { Checkbox } from '@/core/components/ui/checkbox';
 import { Label } from '@/core/components/ui/label';
 import { Separator } from '@/core/components/ui/separator';
+
+// Simple checkbox component
+interface CheckboxProps {
+  id: string;
+  checked: boolean;
+  onCheckedChange: (checked: boolean) => void;
+}
+
+function Checkbox({ id, checked, onCheckedChange }: CheckboxProps) {
+  return (
+    <input
+      id={id}
+      type="checkbox"
+      checked={checked}
+      onChange={(e) => onCheckedChange(e.target.checked)}
+      className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+    />
+  );
+}
 
 export interface FilterOptions {
   workspaceTypes: string[];
@@ -200,7 +218,7 @@ export function AdvancedControls({
                             id={`workspace-${type}`}
                             checked={activeFilters.workspaceTypes.includes(type)}
                             onCheckedChange={(checked) => 
-                              handleFilterChange('workspaceTypes', type, checked as boolean)
+                              handleFilterChange('workspaceTypes', type, checked)
                             }
                           />
                           <Label htmlFor={`workspace-${type}`} className="text-sm">
@@ -230,7 +248,7 @@ export function AdvancedControls({
                             id={`sync-${status}`}
                             checked={activeFilters.syncStatuses.includes(status)}
                             onCheckedChange={(checked) => 
-                              handleFilterChange('syncStatuses', status, checked as boolean)
+                              handleFilterChange('syncStatuses', status, checked)
                             }
                           />
                           <Label htmlFor={`sync-${status}`} className="text-sm capitalize">
@@ -260,7 +278,7 @@ export function AdvancedControls({
                             id={`tag-${tag}`}
                             checked={activeFilters.tags.includes(tag)}
                             onCheckedChange={(checked) => 
-                              handleFilterChange('tags', tag, checked as boolean)
+                              handleFilterChange('tags', tag, checked)
                             }
                           />
                           <Label htmlFor={`tag-${tag}`} className="text-sm">

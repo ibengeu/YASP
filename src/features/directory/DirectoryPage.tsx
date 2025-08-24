@@ -19,7 +19,7 @@ import {useNavigate} from "react-router";
 // New modern components
 import {SpecCard} from "./components/SpecCard";
 // import {SettingsPanel} from "./components/SettingsPanel"; // Hidden for now
-import {AdvancedControls} from "./components/AdvancedControls";
+import {AdvancedControls, ActiveFilters, FilterOptions} from "./components/AdvancedControls";
 import {ImportSpec} from "./components/ImportSpec";
 
 interface Spec {
@@ -42,8 +42,19 @@ export function DirectoryPage() {
     const [sortBy, setSortBy] = useState("recent")
     const [isLoading, setIsLoading] = useState(true)
     const [isModalOpen, setIsModalOpen] = useState(false)
+    const [activeFilters, setActiveFilters] = useState<ActiveFilters>({
+        workspaceTypes: [],
+        syncStatuses: [],
+        tags: []
+    })
     // const [selectedSpecId, setSelectedSpecId] = useState<string | number | null>(null) // Hidden for now
     const dbService = React.useMemo(() => new IndexedDBService(), []);
+    
+    const filterOptions: FilterOptions = {
+        workspaceTypes: ['Personal', 'Team', 'Partner', 'Public'],
+        syncStatuses: ['synced', 'syncing', 'offline'],
+        tags: [...new Set(specs.flatMap(spec => spec.tags || []))]
+    };
 
     const loadSpecs = useCallback(async () => {
         setIsLoading(true)
@@ -202,6 +213,10 @@ export function DirectoryPage() {
                     onSearchChange={setSearchTerm}
                     sortBy={sortBy}
                     onSortChange={setSortBy}
+                    filterOptions={filterOptions}
+                    activeFilters={activeFilters}
+                    onFiltersChange={setActiveFilters}
+                    resultCount={filteredAndSortedSpecs.length}
                 />
 
           

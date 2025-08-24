@@ -4,11 +4,27 @@ import React, { useState } from "react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/core/components/ui/tabs.tsx"
 import { Textarea } from "@/core/components/ui/textarea.tsx"
 import { Alert, AlertDescription } from "@/core/components/ui/alert.tsx"
-import { AlertCircle, Upload, CheckCircle, Loader2 } from "lucide-react"
+import { AlertCircle, Upload, Loader2 } from "lucide-react"
 import { Button } from "@/core/components/ui/button.tsx"
 import { Input } from "@/core/components/ui/input.tsx"
 import { OpenApiDocument } from "@/common/openapi-spec.ts"
-import { OpenAPISpecSchema, FileImportSchema, URLImportSchema, PasteContentSchema } from "@/core/validation/schemas.ts"
+// Simplified validation schemas
+const validateOpenAPISpec = (spec: unknown): OpenApiDocument => {
+  if (!spec || typeof spec !== 'object') {
+    throw new Error('Invalid specification format');
+  }
+  
+  const s = spec as any;
+  if (!s.openapi || !s.info || !s.paths) {
+    throw new Error('Missing required OpenAPI fields (openapi, info, paths)');
+  }
+  
+  if (!s.openapi.match(/^3\.[0-1]\./)) {
+    throw new Error('Only OpenAPI 3.0.x and 3.1.x are supported');
+  }
+  
+  return s as OpenApiDocument;
+};
 import { toast } from "sonner"
 
 interface ImportSpecProps {
@@ -31,21 +47,8 @@ export function ImportSpec({ onSpecLoaded }: ImportSpecProps) {
         paste: false,
         url: false
     })
-    const [validationErrors, setValidationErrors] = useState<ValidationError[]>([])
+    const [validationErrors] = useState<ValidationError[]>([])
 
-    const validateOpenAPISpec = (spec: unknown): OpenApiDocument => {
-        const result = OpenAPISpecSchema.safeParse(spec)
-        if (!result.success) {
-            const errors = result.error.errors.map(err => ({
-                field: err.path.join('.') || 'root',
-                message: err.message
-            }))
-            setValidationErrors(errors)
-            throw new Error(`Validation failed: ${errors[0]?.message || 'Invalid specification'}`)
-        }
-        setValidationErrors([])
-        return result.data as OpenApiDocument
-    }
 
     const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0]
@@ -55,10 +58,13 @@ export function ImportSpec({ onSpecLoaded }: ImportSpecProps) {
         setFileError(null)
 
         try {
-            // Validate file before processing
-            const fileValidation = FileImportSchema.safeParse({ file })
-            if (!fileValidation.success) {
-                throw new Error(fileValidation.error.errors[0]?.message || 'Invalid file')
+            // Basic file validation
+            if (file.size > 10 * 1024 * 1024) {
+                throw new Error('File size must be less than 10MB')
+            }
+            
+            if (!file.name.match(/\.(json|yaml|yml)$/i)) {
+                throw new Error('File must be JSON or YAML format')
             }
 
             const content = await new Promise<string>((resolve, reject) => {
@@ -94,10 +100,13 @@ export function ImportSpec({ onSpecLoaded }: ImportSpecProps) {
         setPasteError(null)
 
         try {
-            // Validate content before processing
-            const contentValidation = PasteContentSchema.safeParse({ content: pasteContent })
-            if (!contentValidation.success) {
-                throw new Error(contentValidation.error.errors[0]?.message || 'Invalid content')
+            // Basic content validation
+            if (!pasteContent.trim()) {
+                throw new Error('Content cannot be empty')
+            }
+            
+            if (pasteContent.length > 10 * 1024 * 1024) {
+                throw new Error('Content too large (10MB limit)')
             }
 
             let parsedSpec: unknown
@@ -149,10 +158,14 @@ export function ImportSpec({ onSpecLoaded }: ImportSpecProps) {
         setUrlError(null)
 
         try {
-            // Validate URL before processing
-            const urlValidation = URLImportSchema.safeParse({ url: urlInput })
-            if (!urlValidation.success) {
-                throw new Error(urlValidation.error.errors[0]?.message || 'Invalid URL')
+            // Basic URL validation
+            try {
+                const parsedUrl = new URL(urlInput)
+                if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
+                    throw new Error('URL must be HTTP or HTTPS')
+                }
+            } catch {
+                throw new Error('Invalid URL format')
             }
 
             const controller = new AbortController()
@@ -174,7 +187,7 @@ export function ImportSpec({ onSpecLoaded }: ImportSpecProps) {
                 throw new Error(`Failed to fetch: ${response.status} ${response.statusText}`)
             }
 
-            const contentType = response.headers.get('content-type') || ''
+            // const contentType = response.headers.get('content-type') || ''
             const text = await response.text()
 
             let parsedSpec: unknown
