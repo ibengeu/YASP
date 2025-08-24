@@ -15,9 +15,19 @@ export default defineConfig({
     resolve: {
         alias: {
             "@": path.resolve(__dirname, "./src"),
-
         },
         extensions: ['.js', '.jsx', '.ts', '.tsx']
     },
-
+    build: {
+        rollupOptions: {
+            output: {
+                manualChunks: {
+                    monaco: ['monaco-editor', '@monaco-editor/react']
+                }
+            }
+        }
+    },
+    optimizeDeps: {
+        include: ['monaco-editor', '@monaco-editor/react']
+    }
 });

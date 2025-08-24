@@ -187,3 +187,234 @@ The directory feature (`/specs`) is the current main interface for API specifica
 - Consistent with existing Radix UI component patterns
 - Responsive design with mobile-first approach
 - Follows established TypeScript and component organization patterns
+
+## Security Guidelines
+
+The YASP project follows comprehensive security practices based on OWASP Top 10 2021 principles. All development work MUST adhere to these security guidelines.
+
+### OWASP Top 10 2021 Implementation Standards
+
+#### A01: Broken Access Control
+**Required Practices:**
+- Implement Role-Based Access Control (RBAC) for all user interactions
+- Use SQL Server row-level security for multi-tenant data isolation
+- Validate user permissions before any data access
+- Apply principle of least privilege for all accounts and services
+- Never trust client-side access control decisions
+
+**Implementation Pattern:**
+```typescript
+// Resource-based authorization middleware
+const requireResourceAccess = (resourceType: 'specification' | 'workspace' | 'team') => {
+  return async (req: Request, res: Response, next: NextFunction) => {
+    const hasAccess = await checkResourcePermission(req.user.id, resourceType, req.params.id);
+    if (!hasAccess) return res.status(403).json({ error: 'Insufficient permissions' });
+    next();
+  };
+};
+```
+
+#### A02: Cryptographic Failures
+**Required Practices:**
+- Use Azure Key Vault for all secrets and encryption keys
+- Enforce TLS 1.3 for all data in transit
+- Enable SQL Server Transparent Data Encryption (TDE)
+- Use Always Encrypted for PII fields
+- Hash passwords with bcrypt (minimum 12 rounds)
+
+**Implementation Pattern:**
+```typescript
+// Secure password hashing
+import bcrypt from 'bcrypt';
+const SALT_ROUNDS = 12;
+export const hashPassword = async (password: string) => bcrypt.hash(password, SALT_ROUNDS);
+
+// Azure Key Vault integration
+import { SecretClient } from '@azure/keyvault-secrets';
+const getSecret = async (secretName: string) => {
+  const secret = await secretClient.getSecret(secretName);
+  return secret.value!;
+};
+```
+
+#### A03: Injection
+**Required Practices:**
+- Use parameterized queries for all SQL operations
+- Implement JSON schema validation for all API inputs
+- Sanitize user-generated content in React components
+- Automate SQL injection testing in CI/CD
+
+**Implementation Pattern:**
+```typescript
+// Parameterized SQL queries (SQL Server)
+export const getSpecificationsByUser = async (userId: string) => {
+  const result = await pool.request()
+    .input('userId', userId)
+    .query('SELECT * FROM specifications WHERE user_id = @userId');
+  return result.recordset;
+};
+
+// Input validation with Joi
+import Joi from 'joi';
+const specSchema = Joi.object({
+  title: Joi.string().max(255).required(),
+  spec_data: Joi.object().required()
+});
+```
+
+#### A04: Insecure Design
+**Required Practices:**
+- Perform threat modeling for each major feature
+- Conduct security architecture reviews before implementation
+- Apply zero-trust principles to all service communications
+- Use secure defaults for all Azure service configurations
+
+#### A05: Security Misconfiguration
+**Required Practices:**
+- Maintain 90%+ Azure Security Center compliance
+- Use Infrastructure as Code (Terraform) with security configurations
+- Establish and monitor security baselines
+- Perform regular security configuration audits
+
+**Implementation Pattern:**
+```hcl
+# Secure Azure SQL Database configuration
+resource "azurerm_mssql_database" "yasp_db" {
+  transparent_data_encryption_enabled = true
+  threat_detection_policy {
+    state = "Enabled"
+    email_addresses = ["security@yasp.com"]
+  }
+}
+```
+
+#### A06: Vulnerable and Outdated Components
+**Required Practices:**
+- Integrate automated dependency scanning in CI/CD
+- Apply security updates within 48 hours for critical vulnerabilities
+- Maintain inventory of all third-party components
+- Track and apply Azure service updates promptly
+
+**Implementation Pattern:**
+```yaml
+# GitHub Actions security scanning
+name: Security Scan
+on: [push, pull_request]
+jobs:
+  security-scan:
+    steps:
+      - name: Run Snyk vulnerability scan
+        uses: snyk/actions/node@master
+      - name: Run npm audit
+        run: npm audit --audit-level=moderate
+```
+
+#### A07: Identification and Authentication Failures
+**Required Practices:**
+- Implement multi-factor authentication for paid tiers
+- Use secure session management with token rotation
+- Implement account lockout for brute force prevention
+- Enforce strong password policies
+
+**Implementation Pattern:**
+```typescript
+// Secure JWT token management
+export const generateTokens = async (userId: string) => {
+  const accessToken = jwt.sign({ userId }, await getSecret('jwt-secret'), { expiresIn: '15m' });
+  const refreshToken = jwt.sign({ userId }, await getSecret('refresh-secret'), { expiresIn: '7d' });
+  return { accessToken, refreshToken };
+};
+```
+
+#### A08: Software and Data Integrity Failures
+**Required Practices:**
+- Implement code signing for production deployments
+- Perform supply chain security scanning
+- Validate file integrity with checksums
+- Verify API response integrity
+
+#### A09: Security Logging and Monitoring Failures
+**Required Practices:**
+- Log all security events with Azure Application Insights
+- Implement real-time security monitoring
+- Maintain immutable audit trails
+- Trigger automated incident response
+
+**Implementation Pattern:**
+```typescript
+// Security event logging
+export const logSecurityEvent = (eventType: string, details: any, userId?: string) => {
+  applicationInsights.trackEvent({
+    name: `Security.${eventType}`,
+    properties: { userId, timestamp: new Date().toISOString(), details }
+  });
+};
+```
+
+#### A10: Server-Side Request Forgery (SSRF)
+**Required Practices:**
+- Validate and allowlist external URLs
+- Implement network segmentation
+- Use Azure WAF for request filtering
+- Prevent access to internal networks
+
+**Implementation Pattern:**
+```typescript
+// SSRF prevention for API testing
+const ALLOWED_DOMAINS = ['api.example.com', 'httpbin.org'];
+export const validateApiUrl = (url: string): boolean => {
+  const parsedUrl = new URL(url);
+  return ALLOWED_DOMAINS.some(domain => 
+    parsedUrl.hostname.endsWith(domain)
+  ) && !isPrivateNetwork(parsedUrl.hostname);
+};
+```
+
+### Security Testing Requirements
+
+**Automated Testing:**
+- Static Application Security Testing (SAST) with SonarQube
+- Dynamic Application Security Testing (DAST) with OWASP ZAP
+- Interactive Application Security Testing (IAST) for runtime monitoring
+- Dependency scanning with Snyk and npm audit
+
+**Manual Testing:**
+- Regular penetration testing
+- Security code reviews
+- Threat modeling sessions
+- Compliance audits
+
+### Azure Security Best Practices
+
+**Service Configuration:**
+- Enable Azure Security Center for all resources
+- Use Azure Key Vault for secrets management
+- Implement Azure Monitor for logging and alerting
+- Configure Azure WAF for web application protection
+
+**Database Security:**
+- Enable SQL Server Transparent Data Encryption
+- Use Always Encrypted for sensitive data
+- Implement row-level security for multi-tenancy
+- Configure threat detection and auditing
+
+**Network Security:**
+- Use Azure Virtual Network for isolation
+- Implement Network Security Groups (NSGs)
+- Enable DDoS protection
+- Configure private endpoints for services
+
+### Compliance and Governance
+
+**Standards:**
+- SOC 2 Type II compliance for Enterprise tier
+- GDPR compliance for data protection
+- ISO 27001 certification pursuit
+- Regular security audits and assessments
+
+**Incident Response:**
+- Documented incident response procedures
+- Automated threat detection and alerting
+- Security breach notification processes
+- Regular incident response plan testing
+- @src\docs\ProductRequirementsDocument.md @src\docs\MonetizationSRS.md

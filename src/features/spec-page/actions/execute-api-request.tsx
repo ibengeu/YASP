@@ -1,4 +1,6 @@
 import type {ParameterObject} from "@/common/openapi-spec.ts";
+import { safeFetch, isURLSafe } from "@/core/security/ssrf-protection.ts";
+import { APIRequestSchema } from "@/core/validation/schemas.ts";
 
 export interface ResponseData {
     status: number;
@@ -108,83 +110,107 @@ function parseFormData(formData: FormData): ExecuteRequestForm {
 }
 
 /**
- * Validates if a URL is safe for SSRF prevention
+ * Enhanced URL validation with comprehensive SSRF protection
  */
 function validateUrl(url: URL): boolean {
-    // Block dangerous protocols
-    const allowedProtocols = ['http:', 'https:'];
-    if (!allowedProtocols.includes(url.protocol)) {
-        return false;
-    }
-    
-    // Block URLs with credentials
-    if (url.username || url.password) {
-        return false;
-    }
-    
-    // Block non-standard ports that might be used for internal services
-    const dangerousPorts = [22, 23, 25, 53, 80, 110, 143, 993, 995, 1433, 1521, 3306, 5432, 6379, 9200, 27017];
-    if (url.port && dangerousPorts.includes(parseInt(url.port))) {
-        // Allow standard web ports
-        if (!['80', '443', '8080', '8443'].includes(url.port)) {
-            return false;
-        }
-    }
-    
-    return true;
+    return isURLSafe(url.toString());
 }
 
 /**
  * Constructs the final URL with path and query parameters
  */
 function buildUrl({path, baseUrl, parameters}: ExecuteRequestForm): URL {
+    // Validate base URL first
+    if (!isURLSafe(baseUrl)) {
+        throw new Error("Base URL is not safe for external requests");
+    }
+    
     const url = new URL(path.startsWith("/") ? path : `/${path}`, baseUrl);
     
-    // Validate URL for SSRF prevention
-    if (!validateUrl(url)) {
-        throw new Error("Invalid or unsafe URL detected");
-    }
-
-    // Handle path parameters
+    // Handle path parameters with proper encoding
     if (parameters.pathParams) {
         const pathParams = parameters.pathParams.reduce((acc: Record<string, string>, param: ParameterObject) => {
             if (param.in === "path" && parameters[param.name]) {
-                acc[param.name] = parameters[param.name] as string;
+                // Validate parameter value
+                const value = String(parameters[param.name]);
+                if (value.length > 1000) {
+                    throw new Error(`Path parameter ${param.name} too long`);
+                }
+                acc[param.name] = value;
             }
             return acc;
         }, {});
 
         let finalPath = path;
         Object.entries(pathParams).forEach(([name, value]) => {
-            finalPath = finalPath.replace(`{${name}}`, encodeURIComponent(String(value)));
+            // Sanitize and encode path parameter
+            const sanitizedValue = value.replace(/[<>"'&]/g, '');
+            finalPath = finalPath.replace(`{${name}}`, encodeURIComponent(sanitizedValue));
         });
         url.pathname = finalPath;
     }
 
-    // Handle query parameters
+    // Handle query parameters with validation
     if (parameters.queryParams) {
         const queryParams = new URLSearchParams();
         parameters.queryParams.forEach((param: ParameterObject) => {
             if (param.in === "query" && parameters[param.name]) {
-                queryParams.append(param.name, String(parameters[param.name]));
+                const value = String(parameters[param.name]);
+                if (value.length > 2000) {
+                    throw new Error(`Query parameter ${param.name} too long`);
+                }
+                // Sanitize query parameter
+                const sanitizedValue = value.replace(/[<>"'&]/g, '');
+                queryParams.append(param.name, sanitizedValue);
             }
         });
         url.search = queryParams.toString();
+    }
+
+    // Final URL safety check
+    if (!validateUrl(url)) {
+        throw new Error("Constructed URL is not safe for external requests");
     }
 
     return url;
 }
 
 /**
- * Builds headers object from header array
+ * Builds and sanitizes headers object from header array
  */
 function buildHeaders(headers: Header[]): Record<string, string> {
-    return headers.reduce((acc: Record<string, string>, header) => {
-        if (header.name && header.value) {
-            acc[header.name] = header.value;
+    const safeHeaders: Record<string, string> = {};
+    const blockedHeaders = [
+        'host', 'origin', 'referer', 'cookie', 'set-cookie',
+        'x-forwarded-for', 'x-real-ip', 'x-forwarded-proto'
+    ];
+    
+    headers.forEach(header => {
+        if (!header.name || !header.value) return;
+        
+        const lowerName = header.name.toLowerCase();
+        
+        // Block dangerous headers
+        if (blockedHeaders.includes(lowerName)) {
+            return;
         }
-        return acc;
-    }, {});
+        
+        // Validate header name
+        if (!/^[a-zA-Z0-9\-_]+$/.test(header.name)) {
+            return;
+        }
+        
+        // Sanitize header value
+        const sanitizedValue = header.value
+            .replace(/[\r\n]/g, '') // Remove CRLF injection
+            .slice(0, 1000); // Limit length
+            
+        if (sanitizedValue) {
+            safeHeaders[header.name] = sanitizedValue;
+        }
+    });
+    
+    return safeHeaders;
 }
 
 /**
@@ -243,21 +269,34 @@ export async function executeApiRequest(formData: FormData): Promise<ResponseDat
             config.body = data.requestBody;
         }
 
+        // Validate complete request
+        const requestValidation = APIRequestSchema.safeParse({
+            method: config.method,
+            url: config.url.toString(),
+            headers: config.headers,
+            body: config.body || '',
+            timeout: 10000
+        });
+        
+        if (!requestValidation.success) {
+            throw new Error(`Request validation failed: ${requestValidation.error.errors[0]?.message}`);
+        }
+
         const startTime = performance.now();
-        const response = await fetch(config.url.toString(), {
+        
+        // Use safeFetch with enhanced security
+        const response = await safeFetch(config.url.toString(), {
             method: config.method,
             headers: {
                 ...config.headers,
-                // Add security headers
-                'User-Agent': 'OpenAPI-Tester/1.0',
-                'X-Requested-With': 'XMLHttpRequest'
+                'User-Agent': 'YASP-API-Tester/1.0',
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json, text/plain, */*',
+                'Cache-Control': 'no-cache'
             },
-            body: config.body,
-            // Security options
-            redirect: 'follow',
-            referrerPolicy: 'no-referrer',
-            mode: 'cors'
-        });
+            body: config.body
+        }, 'api-test-user');
+        
         const endTime = performance.now();
 
         const body = await processResponseBody(response);
@@ -270,27 +309,47 @@ export async function executeApiRequest(formData: FormData): Promise<ResponseDat
             time: Math.round(endTime - startTime),
         };
     } catch (error) {
-        // Log error for debugging but don't expose sensitive information
-        console.error("Server error:", error instanceof Error ? error.message : "Unknown error");
+        // Enhanced error logging and handling
+        const errorMessage = error instanceof Error ? error.message : "Unknown error";
+        console.error("API request error:", {
+            message: errorMessage,
+            url: data?.baseUrl,
+            method: data?.method,
+            timestamp: new Date().toISOString()
+        });
         
-        // Return generic error message to prevent information disclosure
-        let errorMessage = "Request failed";
+        // Categorize and sanitize error messages
+        let safeErrorMessage = "Request failed";
         let statusCode = 500;
         
         if (error instanceof Error) {
-            // Only expose safe error messages
-            if (error.message.includes("Invalid") || 
-                error.message.includes("exceeds maximum") ||
-                error.message.includes("Missing required") ||
-                error.message.includes("unsafe URL")) {
-                errorMessage = error.message;
+            const message = error.message.toLowerCase();
+            
+            if (message.includes('rate limit')) {
+                safeErrorMessage = "Rate limit exceeded. Please try again later.";
+                statusCode = 429;
+            } else if (message.includes('timeout') || message.includes('aborted')) {
+                safeErrorMessage = "Request timeout. Please try again.";
+                statusCode = 408;
+            } else if (message.includes('network') || message.includes('fetch')) {
+                safeErrorMessage = "Network error. Please check your connection.";
+                statusCode = 503;
+            } else if (message.includes('validation') || 
+                       message.includes('invalid') ||
+                       message.includes('unsafe') ||
+                       message.includes('exceeds maximum') ||
+                       message.includes('missing required')) {
+                safeErrorMessage = error.message;
                 statusCode = 400;
+            } else if (message.includes('cors')) {
+                safeErrorMessage = "CORS error. The API doesn't allow requests from this domain.";
+                statusCode = 403;
             }
         }
         
         return {
             status: statusCode,
-            body: JSON.stringify({error: errorMessage}, null, 2),
+            body: JSON.stringify({error: safeErrorMessage, timestamp: new Date().toISOString()}, null, 2),
             headers: {"content-type": "application/json"},
             time: 0,
         };
