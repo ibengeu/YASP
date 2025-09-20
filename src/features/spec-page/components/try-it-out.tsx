@@ -16,7 +16,7 @@ import {executeApiRequest, ExecuteRequestForm} from "@/features/spec-page/action
 import {ScrollArea} from "@/core/components/ui/scroll-area";
 import {Input} from "@/core/components/ui/input";
 import {Button} from "@/core/components/ui/button";
-import {Loader2} from "lucide-react";
+import {Loader2, Copy, Check} from "lucide-react";
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@/core/components/ui/select.tsx";
 import {Textarea} from "@/core/components/ui/textarea";
 import {Tabs, TabsContent, TabsList, TabsTrigger} from "@/core/components/ui/tabs";
@@ -55,6 +55,9 @@ export default function TryItOut({path, method, operation, components}: TryItOut
     const [headers, setHeaders] = useState<Header[]>([]);
     const [response, setResponse] = useState<ResponseData | null>(null);
     const [isPending, startTransition] = useTransition();
+    const [copiedUrl, setCopiedUrl] = useState(false);
+    const [copiedBody, setCopiedBody] = useState(false);
+    const [copiedCurl, setCopiedCurl] = useState(false);
     const [activeTab, setActiveTab] = useState<string>("body");
 
     const [selectedServer, setSelectedServer] = useState<string>(
@@ -355,25 +358,39 @@ export default function TryItOut({path, method, operation, components}: TryItOut
     };
 
 
-    // Copy to clipboard with security validation
-    const copyToClipboard = (text: string) => {
+    // Copy to clipboard with security validation and icon feedback
+    const copyToClipboard = async (text: string, type: 'url' | 'body' | 'curl') => {
         // Validate and sanitize clipboard content
         if (!text || typeof text !== 'string') {
             toast.error("Invalid content to copy");
             return;
         }
-        
+
         // Limit clipboard content size to prevent DoS
         if (text.length > 50000) {
             toast.error("Content too large to copy");
             return;
         }
-        
-        navigator.clipboard.writeText(text).then(() => {
+
+        try {
+            await navigator.clipboard.writeText(text);
+
+            // Set the appropriate copied state based on type
+            if (type === 'url') {
+                setCopiedUrl(true);
+                setTimeout(() => setCopiedUrl(false), 2000);
+            } else if (type === 'body') {
+                setCopiedBody(true);
+                setTimeout(() => setCopiedBody(false), 2000);
+            } else if (type === 'curl') {
+                setCopiedCurl(true);
+                setTimeout(() => setCopiedCurl(false), 2000);
+            }
+
             toast.success("Copied to clipboard");
-        }).catch(() => {
+        } catch (error) {
             toast.error("Failed to copy to clipboard");
-        });
+        }
     };
 
     // Handle execute
@@ -525,7 +542,20 @@ export default function TryItOut({path, method, operation, components}: TryItOut
         if (!["POST", "PUT", "PATCH"].includes(method)) return null;
         return (
             <div className="space-y-4">
-                <h3 className="text-sm font-medium">Request Body</h3>
+                <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-medium">Request Body</h3>
+                    {requestBody && selectedContentType !== "multipart/form-data" && (
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => copyToClipboard(requestBody, 'body')}
+                            className="gap-2"
+                        >
+                            {copiedBody ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                            Copy
+                        </Button>
+                    )}
+                </div>
                 {contentTypes.length > 1 && (
                     <Select value={selectedContentType} onValueChange={setSelectedContentType}>
                         <SelectTrigger>
@@ -561,7 +591,15 @@ export default function TryItOut({path, method, operation, components}: TryItOut
             <pre className="bg-muted p-4 rounded-md text-xs overflow-x-auto whitespace-pre-wrap">
                 {generateCurlCommand}
             </pre>
-            <Button onClick={() => copyToClipboard(generateCurlCommand)}>Copy</Button>
+            <Button
+                variant="outline"
+                size="sm"
+                onClick={() => copyToClipboard(generateCurlCommand, 'curl')}
+                className="gap-2"
+            >
+                {copiedCurl ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                Copy
+            </Button>
         </div>
     );
 
@@ -584,7 +622,17 @@ export default function TryItOut({path, method, operation, components}: TryItOut
                                 </SelectContent>
                             </Select>
                         )}
-                        <span className="flex-1 border px-4 p-2">{constructUrl()}</span>
+                        <div className="flex items-center gap-2 flex-1">
+                            <span className="flex-1 border-input border rounded-md px-4 p-2 bg-muted font-mono text-sm">{constructUrl()}</span>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => copyToClipboard(constructUrl(), 'url')}
+                                className="gap-2"
+                            >
+                                {copiedUrl ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                            </Button>
+                        </div>
                     </div>
 
                     <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1">

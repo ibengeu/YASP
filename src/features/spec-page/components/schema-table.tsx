@@ -69,7 +69,7 @@ export const SchemaTable = ({schema, components}: SchemaTableProps) => {
         const isExpanded = expandedSchemas.has(fullPath);
 
         return (
-            <div key={fullPath} className="border-b border-border/50 last:border-0">
+            <div key={fullPath} className="border-b border-input/50 last:border-0">
                 <div
                     className={cn(
                         "flex items-center gap-3 py-3 px-4 transition-colors",
@@ -100,14 +100,14 @@ export const SchemaTable = ({schema, components}: SchemaTableProps) => {
                     {/* Property Name and Type */}
                     <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
-                            <span className="font-mono text-sm font-medium text-foreground truncate">
+                            <span className="font-mono text-sm font-medium text-foreground break-all">
                                 {name || <span className="text-muted-foreground/60">unnamed</span>}
                                 {isArray && <span className="text-primary">[]</span>}
                             </span>
                             {hasNestedProperties && (
                                 <Badge
                                     variant="outline"
-                                    className="text-xs bg-secondary text-secondary-foreground border-border"
+                                    className="text-xs bg-secondary text-secondary-foreground border border-input"
                                 >
                                     {isArray ? "array object" : "object"}
                                 </Badge>
@@ -185,8 +185,8 @@ export const SchemaTable = ({schema, components}: SchemaTableProps) => {
     // If it's a simple type without properties (e.g. string, number directly as root), render its details.
     if (resolvedRootSchema.properties || resolvedRootSchema.type === "array") {
         return (
-            <div className="rounded-lg border border-border shadow-sm bg-background overflow-x-auto">
-                <div className="min-w-max">
+            <div className="rounded-lg border border-input shadow-sm bg-background overflow-x-auto">
+                <div className="w-full">
                     {resolvedRootSchema.properties ? (
                         Object.entries(resolvedRootSchema.properties).map(([name, prop]) =>
                             renderSchema(
@@ -215,8 +215,8 @@ export const SchemaTable = ({schema, components}: SchemaTableProps) => {
     } else if (resolvedRootSchema.type) {
         // Render a single schema without properties (e.g., a root schema that is just a string or number)
         return (
-            <div className="rounded-lg border border-border shadow-sm bg-background overflow-x-auto">
-                <div className="min-w-max">
+            <div className="rounded-lg border border-input shadow-sm bg-background overflow-x-auto">
+                <div className="w-full">
                     {renderSchema(resolvedRootSchema, resolvedRootSchema.type, [], "", 0)}
                 </div>
             </div>

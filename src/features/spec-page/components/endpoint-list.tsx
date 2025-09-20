@@ -85,7 +85,7 @@ export const EndpointList: React.FC<EndpointListProps> = ({
 
     return (
         <div className="h-full flex flex-col">
-            <div className="p-3 border-b">
+            <div className="p-3 border-b border-input">
                 <div className="relative">
                     <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground"/>
                     <Input

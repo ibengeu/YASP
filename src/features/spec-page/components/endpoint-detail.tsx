@@ -120,24 +120,24 @@ export const EndpointDetail: React.FC<EndpointDetailProps> = ({path, method, ope
     };
 
     return (
-        <div className="h-full overflow-hidden ">
+        <div className="h-full overflow-hidden">
             <ScrollArea className="h-full">
-                <div className="p-6">
-                    <div className="flex items-center gap-4 mb-4">
+                <div className="p-6 min-w-0">
+                    <div className="flex items-start gap-4 mb-4">
                         <Badge
                             className={cn(
-                                "uppercase text-white",
+                                "uppercase text-white flex-shrink-0",
                                 methodColors[method.toLowerCase()] ?? "bg-gray-500"
                             )}
                         >
                             {method}
                         </Badge>
-                        <code className="text-sm font-mono">{path}</code>
+                        <code className="text-sm font-mono break-all flex-1 min-w-0">{path}</code>
                     </div>
 
-                    {operation.summary && <h3 className="font-semibold mb-2">{operation.summary}</h3>}
+                    {operation.summary && <h3 className="font-semibold mb-2 break-words">{operation.summary}</h3>}
                     {operation.description && (
-                        <div className="text-muted-foreground mb-6 prose dark:prose-invert">
+                        <div className="text-muted-foreground mb-6 prose dark:prose-invert max-w-none prose-p:break-words prose-code:break-all prose-table:block prose-table:overflow-x-auto prose-td:break-words prose-th:break-words">
                             <ReactMarkdown remarkPlugins={[remarkGfm]}>{operation.description}</ReactMarkdown>
                         </div>
                     )}
@@ -145,20 +145,20 @@ export const EndpointDetail: React.FC<EndpointDetailProps> = ({path, method, ope
                     {parameters.length > 0 && (
                         <div className="mb-6">
                             <h4 className="text-sm font-semibold mb-2">Parameters</h4>
-                            <div className="rounded-lg border border-border shadow-sm bg-background">
+                            <div className="rounded-lg border border-input shadow-sm bg-background">
                                 {parameters.map((parameter, index) => (
                                     <div
                                         key={index}
                                         className={cn(
-                                            "flex flex-col py-3 px-4 border-b border-border/50 last:border-0",
+                                            "flex flex-col py-3 px-4 border-b border-input/50 last:border-0",
                                             "hover:bg-muted/50 transition-colors"
                                         )}
                                     >
                                         <div className="flex items-center gap-3">
                                             <div className="flex-1 min-w-0">
-                                                <div className="flex items-center gap-2">
+                                                <div className="flex items-center gap-2 min-w-0">
                                                     <span
-                                                        className="font-mono text-sm font-medium text-foreground truncate">
+                                                        className="font-mono text-sm font-medium text-foreground break-all flex-1 min-w-0">
                                                         {parameter.name}
                                                     </span>
                                                     <Badge
@@ -251,7 +251,7 @@ export const EndpointDetail: React.FC<EndpointDetailProps> = ({path, method, ope
                                                     onValueChange={value => handleResponseTypeChange(code, value)}
                                                     className="w-full"
                                                 >
-                                                    <TabsList className="mb-2 bg-muted">
+                                                    <TabsList className="mb-2 bg-muted w-full flex-wrap">
                                                         {responseContentTypes.map(type => (
                                                             <TabsTrigger key={type} value={type} className="text-xs">
                                                                 {type}
