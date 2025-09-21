@@ -1,9 +1,8 @@
 "use client"
 
 import React, {useEffect, useMemo, useState} from "react"
-import ReactMarkdown from "react-markdown"
-import remarkGfm from "remark-gfm"
 import {Badge} from "@/core/components/ui/badge.tsx"
+import {SecureMarkdown} from "@/core/components/ui/secure-markdown.tsx"
 import {cn} from "@/core/lib/utils.ts"
 import {ScrollArea} from "@/core/components/ui/scroll-area.tsx"
 
@@ -138,7 +137,7 @@ export const EndpointDetail: React.FC<EndpointDetailProps> = ({path, method, ope
                     {operation.summary && <h3 className="font-semibold mb-2 break-words">{operation.summary}</h3>}
                     {operation.description && (
                         <div className="text-muted-foreground mb-6 prose dark:prose-invert max-w-none prose-p:break-words prose-code:break-all prose-table:block prose-table:overflow-x-auto prose-td:break-words prose-th:break-words">
-                            <ReactMarkdown remarkPlugins={[remarkGfm]}>{operation.description}</ReactMarkdown>
+                            <SecureMarkdown>{operation.description}</SecureMarkdown>
                         </div>
                     )}
 
@@ -182,7 +181,7 @@ export const EndpointDetail: React.FC<EndpointDetailProps> = ({path, method, ope
                                         </div>
                                         {parameter.description && (
                                             <div className="mt-1 text-sm text-muted-foreground pl-2 prose dark:prose-invert">
-                                                <ReactMarkdown remarkPlugins={[remarkGfm]}>{parameter.description}</ReactMarkdown>
+                                                <SecureMarkdown>{parameter.description}</SecureMarkdown>
                                             </div>
                                         )}
                                     </div>
@@ -239,7 +238,7 @@ export const EndpointDetail: React.FC<EndpointDetailProps> = ({path, method, ope
                                             </Badge>
                                             <span className="text-sm font-medium">
                                                 <div className="prose dark:prose-invert inline">
-                                                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{response.description ?? "No description"}</ReactMarkdown>
+                                                    <SecureMarkdown>{response.description ?? "No description"}</SecureMarkdown>
                                                 </div>
                                             </span>
                                         </div>

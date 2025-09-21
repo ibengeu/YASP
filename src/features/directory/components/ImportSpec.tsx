@@ -8,22 +8,30 @@ import { AlertCircle, Upload, Loader2 } from "lucide-react"
 import { Button } from "@/core/components/ui/button.tsx"
 import { Input } from "@/core/components/ui/input.tsx"
 import { OpenApiDocument } from "@/common/openapi-spec.ts"
-// Simplified validation schemas
+import { sanitizeOpenAPISpec, sanitizeURL } from "@/core/lib/sanitize.ts"
+
+// Enhanced validation with security sanitization
 const validateOpenAPISpec = (spec: unknown): OpenApiDocument => {
   if (!spec || typeof spec !== 'object') {
     throw new Error('Invalid specification format');
   }
-  
+
   const s = spec as any;
   if (!s.openapi || !s.info || !s.paths) {
     throw new Error('Missing required OpenAPI fields (openapi, info, paths)');
   }
-  
+
   if (!s.openapi.match(/^3\.[0-1]\./)) {
     throw new Error('Only OpenAPI 3.0.x and 3.1.x are supported');
   }
-  
-  return s as OpenApiDocument;
+
+  // Sanitize the specification content for security
+  const sanitizedSpec = sanitizeOpenAPISpec(s);
+  if (!sanitizedSpec) {
+    throw new Error('Specification failed security validation');
+  }
+
+  return sanitizedSpec as OpenApiDocument;
 };
 import { toast } from "sonner"
 
@@ -158,20 +166,16 @@ export function ImportSpec({ onSpecLoaded }: ImportSpecProps) {
         setUrlError(null)
 
         try {
-            // Basic URL validation
-            try {
-                const parsedUrl = new URL(urlInput)
-                if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
-                    throw new Error('URL must be HTTP or HTTPS')
-                }
-            } catch {
-                throw new Error('Invalid URL format')
+            // Enhanced URL validation with security checks
+            const sanitizedUrl = sanitizeURL(urlInput);
+            if (!sanitizedUrl) {
+                throw new Error('Invalid or unsafe URL');
             }
 
             const controller = new AbortController()
             const timeoutId = setTimeout(() => controller.abort(), 10000) // 10 second timeout
 
-            const response = await fetch(urlInput, {
+            const response = await fetch(sanitizedUrl, {
                 signal: controller.signal,
                 headers: {
                     'Accept': 'application/json, application/x-yaml, text/yaml',
