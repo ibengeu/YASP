@@ -54,6 +54,7 @@ export interface ExecuteRequestForm {
     };
     requestBody: string;
     headers: Header[];
+    formDataFields?: Record<string, string | string[] | File | File[]>;
 }
 
 export interface Header {
@@ -65,7 +66,7 @@ interface RequestConfig {
     url: URL;
     headers: Record<string, string>;
     method: string;
-    body?: string;
+    body?: string | FormData;
 }
 
 /**
@@ -98,40 +99,40 @@ function validateHttpMethod(method: string): boolean {
  * Validates and parses form data into ExecuteRequestForm
  * @throws Error if request data is invalid
  */
-function parseFormData(formData: FormData): ExecuteRequestForm {
+function parseFormData(formData: FormData): ExecuteRequestForm & { formDataEntries: FormData } {
     const requestDataStr = formData.get("requestData");
     if (!requestDataStr || typeof requestDataStr !== "string") {
         throw new Error("Invalid request data");
     }
-    
+
     // Limit JSON size to prevent DoS
     if (requestDataStr.length > 100000) { // 100KB limit
         throw new Error("Request data exceeds maximum size");
     }
-    
+
     let parsed: ExecuteRequestForm;
     try {
         parsed = JSON.parse(requestDataStr) as ExecuteRequestForm;
     } catch {
         throw new Error("Invalid JSON format");
     }
-    
+
     // Validate required fields
     if (!parsed.method || !parsed.baseUrl || !parsed.path) {
         throw new Error("Missing required fields");
     }
-    
+
     // Validate HTTP method
     if (!validateHttpMethod(parsed.method)) {
         throw new Error("Invalid HTTP method");
     }
-    
+
     // Sanitize string fields
     parsed.method = sanitizeString(parsed.method, 10);
     parsed.baseUrl = sanitizeString(parsed.baseUrl, 2000);
     parsed.path = sanitizeString(parsed.path, 2000);
     parsed.requestBody = sanitizeString(parsed.requestBody || '', 1000000); // 1MB limit
-    
+
     // Validate headers
     if (parsed.headers) {
         parsed.headers = parsed.headers.map(header => ({
@@ -139,8 +140,55 @@ function parseFormData(formData: FormData): ExecuteRequestForm {
             value: sanitizeString(header.value, 1000)
         }));
     }
-    
-    return parsed;
+
+    // Extract and validate FormData fields (excluding requestData)
+    const formDataFields: Record<string, string | string[] | File | File[]> = {};
+    const processedKeys = new Set<string>();
+
+    for (const [key, value] of formData.entries()) {
+        if (key === 'requestData') continue; // Skip the main request data
+
+        // Validate field name
+        if (!/^[a-zA-Z0-9_-]+$/.test(key)) {
+            continue; // Skip invalid field names
+        }
+
+        if (value instanceof File) {
+            // Validate file size
+            if (value.size > 10 * 1024 * 1024) { // 10MB limit per file
+                throw new Error(`File ${key} exceeds maximum size of 10MB`);
+            }
+
+            // Handle multiple files with same name
+            if (processedKeys.has(key)) {
+                if (!Array.isArray(formDataFields[key])) {
+                    formDataFields[key] = [formDataFields[key] as File];
+                }
+                (formDataFields[key] as File[]).push(value);
+            } else {
+                formDataFields[key] = value;
+                processedKeys.add(key);
+            }
+        } else if (typeof value === 'string') {
+            // Sanitize string values
+            const sanitizedValue = sanitizeString(value, 10000);
+
+            // Handle multiple values with same name
+            if (processedKeys.has(key)) {
+                if (!Array.isArray(formDataFields[key])) {
+                    formDataFields[key] = [formDataFields[key] as string];
+                }
+                (formDataFields[key] as string[]).push(sanitizedValue);
+            } else {
+                formDataFields[key] = sanitizedValue;
+                processedKeys.add(key);
+            }
+        }
+    }
+
+    parsed.formDataFields = formDataFields;
+
+    return { ...parsed, formDataEntries: formData };
 }
 
 /**
@@ -299,8 +347,36 @@ export async function executeApiRequest(formData: FormData): Promise<ResponseDat
             method: data.method.toUpperCase(),
         };
 
-        if (shouldIncludeBody(data.method) && data.requestBody) {
-            config.body = data.requestBody;
+        // Handle body based on content type
+        if (shouldIncludeBody(data.method)) {
+            if (data.formDataFields && Object.keys(data.formDataFields).length > 0) {
+                // Build FormData body for multipart/form-data
+                const formDataBody = new FormData();
+
+                Object.entries(data.formDataFields).forEach(([fieldName, value]) => {
+                    if (Array.isArray(value)) {
+                        // Handle arrays - append multiple values with same name
+                        value.forEach(item => {
+                            if (item instanceof File) {
+                                formDataBody.append(fieldName, item);
+                            } else if (item !== '') {
+                                formDataBody.append(fieldName, String(item));
+                            }
+                        });
+                    } else if (value instanceof File) {
+                        formDataBody.append(fieldName, value);
+                    } else if (value !== undefined && value !== null && value !== '') {
+                        formDataBody.append(fieldName, String(value));
+                    }
+                });
+
+                config.body = formDataBody;
+                // Remove Content-Type header to let browser set it with boundary
+                delete config.headers['Content-Type'];
+                delete config.headers['content-type'];
+            } else if (data.requestBody) {
+                config.body = data.requestBody;
+            }
         }
 
         // Basic request validation

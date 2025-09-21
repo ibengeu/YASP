@@ -16,10 +16,12 @@ import {executeApiRequest, ExecuteRequestForm} from "@/features/spec-page/action
 import {ScrollArea} from "@/core/components/ui/scroll-area";
 import {Input} from "@/core/components/ui/input";
 import {Button} from "@/core/components/ui/button";
-import {Loader2, Copy, Check} from "lucide-react";
+import {Loader2, Copy, Check, X, Plus} from "lucide-react";
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@/core/components/ui/select.tsx";
 import {Textarea} from "@/core/components/ui/textarea";
 import {Tabs, TabsContent, TabsList, TabsTrigger} from "@/core/components/ui/tabs";
+import {Checkbox} from "@/core/components/ui/checkbox";
+import {Label} from "@/core/components/ui/label";
 
 
 type ParameterValue = string | number | boolean | string[] | Record<string, unknown>;
@@ -40,6 +42,22 @@ interface SecurityInput {
     name: string;
     type: "query" | "header" | "cookie";
     value: string;
+}
+
+// FormData field types
+interface FormDataField {
+    name: string;
+    type: 'string' | 'number' | 'integer' | 'boolean' | 'file' | 'array';
+    format?: string;
+    required?: boolean;
+    description?: string;
+    example?: any;
+    enum?: any[];
+    items?: FormDataField;
+}
+
+interface FormDataFieldValue {
+    [fieldName: string]: string | number | boolean | File | File[] | string[] | (string | File)[];
 }
 
 interface TryItOutProps {
@@ -64,8 +82,9 @@ export default function TryItOut({path, method, operation, components}: TryItOut
         operation.servers?.[0]?.url || "https://api.example.com"
     );
     const [selectedContentType, setSelectedContentType] = useState<string>("");
-    const [fileInput, setFileInput] = useState<File | null>(null);
     const [securityInputs, setSecurityInputs] = useState<SecurityInput[]>([]);
+    const [formDataFields, setFormDataFields] = useState<FormDataField[]>([]);
+    const [formDataValues, setFormDataValues] = useState<FormDataFieldValue>({});
 
     const {handleSubmit} = useForm<{ requestData: string }>({
         defaultValues: {requestData: ""},
@@ -189,6 +208,69 @@ export default function TryItOut({path, method, operation, components}: TryItOut
         return currentSchema as SchemaObject
     }, [components?.schemas]);
 
+    // Parse FormData schema into field definitions
+    const parseFormDataSchema = useCallback((schema: SchemaObject | ReferenceObject | null | undefined): FormDataField[] => {
+        if (!schema) return [];
+
+        const resolved = resolveSchema(schema) as SchemaObject;
+        if (!resolved || resolved.type !== 'object' || !resolved.properties) return [];
+
+        const fields: FormDataField[] = [];
+        const requiredFields = resolved.required || [];
+
+        Object.entries(resolved.properties).forEach(([name, propSchema]) => {
+            const resolvedProp = resolveSchema(propSchema) as SchemaObject;
+            if (!resolvedProp) return;
+
+            let fieldType: FormDataField['type'] = 'string';
+
+            // Determine field type based on schema
+            if (resolvedProp.type === 'string' && resolvedProp.format === 'binary') {
+                fieldType = 'file';
+            } else if (resolvedProp.type === 'array') {
+                fieldType = 'array';
+            } else if (resolvedProp.type === 'number') {
+                fieldType = 'number';
+            } else if (resolvedProp.type === 'integer') {
+                fieldType = 'integer';
+            } else if (resolvedProp.type === 'boolean') {
+                fieldType = 'boolean';
+            } else {
+                fieldType = 'string';
+            }
+
+            const field: FormDataField = {
+                name,
+                type: fieldType,
+                format: resolvedProp.format,
+                required: requiredFields.includes(name),
+                description: resolvedProp.description,
+                example: resolvedProp.example,
+                enum: resolvedProp.enum
+            };
+
+            // Handle array items
+            if (fieldType === 'array' && resolvedProp.items) {
+                const itemSchema = resolveSchema(resolvedProp.items) as SchemaObject;
+                if (itemSchema) {
+                    field.items = {
+                        name: `${name}[]`,
+                        type: itemSchema.type === 'string' && itemSchema.format === 'binary' ? 'file' :
+                              itemSchema.type === 'number' ? 'number' :
+                              itemSchema.type === 'integer' ? 'integer' :
+                              itemSchema.type === 'boolean' ? 'boolean' : 'string',
+                        format: itemSchema.format,
+                        description: itemSchema.description,
+                        example: itemSchema.example
+                    };
+                }
+            }
+
+            fields.push(field);
+        });
+
+        return fields;
+    }, [resolveSchema]);
 
     // console.log("schema:", Object.entries());4
     const schm = Object.entries((resolveSchema(requestBodySchema) as SchemaObject)?.properties || {})
@@ -265,9 +347,35 @@ export default function TryItOut({path, method, operation, components}: TryItOut
         }
     }, [requestBodySchema, generateInitialJson]);
 
+    // Parse FormData fields when content type is multipart/form-data
+    useEffect(() => {
+        if (selectedContentType === "multipart/form-data" && requestBodySchema) {
+            const fields = parseFormDataSchema(requestBodySchema);
+            setFormDataFields(fields);
+
+            // Initialize form values with defaults
+            const initialValues: FormDataFieldValue = {};
+            fields.forEach(field => {
+                if (field.type === 'boolean') {
+                    initialValues[field.name] = false;
+                } else if (field.type === 'array') {
+                    initialValues[field.name] = [];
+                } else if (field.example !== undefined) {
+                    initialValues[field.name] = field.example;
+                } else {
+                    initialValues[field.name] = '';
+                }
+            });
+            setFormDataValues(initialValues);
+        } else {
+            setFormDataFields([]);
+            setFormDataValues({});
+        }
+    }, [selectedContentType, requestBodySchema, parseFormDataSchema]);
 
     console.log("schema:2", resolveSchema(requestBodySchema));
     console.log("schema:2", schm);
+    console.log("formDataFields:", formDataFields);
 
 
     // Construct URL with path parameter substitution
@@ -333,16 +441,46 @@ export default function TryItOut({path, method, operation, components}: TryItOut
         setRequestBody(value);
     };
 
-    // Handle file upload for multipart/form-data
-    const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (file) {
-            if (file.size > MAX_BODY_SIZE) {
-                toast.error("File exceeds maximum size of 1MB.");
-                return;
-            }
-            setFileInput(file);
-        }
+
+    // Handle FormData field changes
+    const handleFormDataFieldChange = (fieldName: string, value: string | number | boolean | File | File[]) => {
+        setFormDataValues(prev => ({
+            ...prev,
+            [fieldName]: value
+        }));
+    };
+
+    // Handle array field changes (add/remove items)
+    const handleArrayFieldAdd = (fieldName: string) => {
+        setFormDataValues(prev => {
+            const currentValue = prev[fieldName] as string[] || [];
+            return {
+                ...prev,
+                [fieldName]: [...currentValue, '']
+            };
+        });
+    };
+
+    const handleArrayFieldRemove = (fieldName: string, index: number) => {
+        setFormDataValues(prev => {
+            const currentValue = prev[fieldName] as string[] || [];
+            return {
+                ...prev,
+                [fieldName]: currentValue.filter((_, i) => i !== index)
+            };
+        });
+    };
+
+    const handleArrayFieldChange = (fieldName: string, index: number, value: string | File) => {
+        setFormDataValues(prev => {
+            const currentValue = prev[fieldName] as (string | File)[] || [];
+            const newValue = [...currentValue];
+            newValue[index] = value;
+            return {
+                ...prev,
+                [fieldName]: newValue
+            };
+        });
     };
 
     // Format JSON
@@ -401,8 +539,30 @@ export default function TryItOut({path, method, operation, components}: TryItOut
             const timeoutId = setTimeout(() => controller.abort(), 30000);
             const formData = new FormData();
             formData.append("requestData", data.requestData);
-            if (fileInput && selectedContentType === "multipart/form-data") {
-                formData.append("file", fileInput);
+
+            // Add FormData fields when using multipart/form-data
+            if (selectedContentType === "multipart/form-data") {
+                // Handle schema-based form fields
+                Object.entries(formDataValues).forEach(([fieldName, value]) => {
+                    if (value !== undefined && value !== null && value !== '') {
+                        if (Array.isArray(value)) {
+                            // Handle arrays
+                            value.forEach((item) => {
+                                if (item instanceof File) {
+                                    formData.append(fieldName, item);
+                                } else if (item !== '') {
+                                    formData.append(fieldName, String(item));
+                                }
+                            });
+                        } else if (value instanceof File) {
+                            formData.append(fieldName, value);
+                        } else {
+                            formData.append(fieldName, String(value));
+                        }
+                    }
+                });
+
+                // Note: Legacy single file upload support has been replaced with schema-based forms
             }
             try {
                 const responseData = await executeApiRequest(formData);
@@ -536,6 +696,136 @@ export default function TryItOut({path, method, operation, components}: TryItOut
         );
     };
 
+    // Render FormData fields
+    const renderFormDataFields = () => {
+        if (formDataFields.length === 0) {
+            return <div className="text-center py-6 text-muted-foreground">No form fields defined</div>;
+        }
+
+        return (
+            <ScrollArea className="max-h-[500px]">
+                <div className="space-y-4">
+                    {formDataFields.map((field) => (
+                        <div key={field.name} className="space-y-2">
+                            <Label htmlFor={`formdata-${field.name}`} className="flex items-center gap-2">
+                                {field.name}
+                                {field.required && <span className="text-red-500">*</span>}
+                                {field.description && (
+                                    <span className="text-xs text-muted-foreground">({field.description})</span>
+                                )}
+                            </Label>
+
+                            {field.type === 'boolean' ? (
+                                <div className="flex items-center space-x-2">
+                                    <Checkbox
+                                        id={`formdata-${field.name}`}
+                                        checked={formDataValues[field.name] as boolean || false}
+                                        onCheckedChange={(checked) =>
+                                            handleFormDataFieldChange(field.name, checked as boolean)
+                                        }
+                                    />
+                                    <Label htmlFor={`formdata-${field.name}`}>{field.name}</Label>
+                                </div>
+                            ) : field.type === 'file' ? (
+                                <Input
+                                    id={`formdata-${field.name}`}
+                                    type="file"
+                                    onChange={(e) => {
+                                        const file = e.target.files?.[0];
+                                        if (file) {
+                                            if (file.size > MAX_BODY_SIZE) {
+                                                toast.error("File exceeds maximum size of 1MB.");
+                                                return;
+                                            }
+                                            handleFormDataFieldChange(field.name, file);
+                                        }
+                                    }}
+                                />
+                            ) : field.type === 'array' ? (
+                                <div className="space-y-2">
+                                    {(formDataValues[field.name] as (string | File)[] || []).map((item, index) => (
+                                        <div key={index} className="flex items-center gap-2">
+                                            {field.items?.type === 'file' ? (
+                                                <Input
+                                                    type="file"
+                                                    className="flex-1"
+                                                    onChange={(e) => {
+                                                        const file = e.target.files?.[0];
+                                                        if (file) {
+                                                            if (file.size > MAX_BODY_SIZE) {
+                                                                toast.error("File exceeds maximum size of 1MB.");
+                                                                return;
+                                                            }
+                                                            handleArrayFieldChange(field.name, index, file);
+                                                        }
+                                                    }}
+                                                />
+                                            ) : (
+                                                <Input
+                                                    type={field.items?.type === 'number' || field.items?.type === 'integer' ? 'number' : 'text'}
+                                                    className="flex-1"
+                                                    value={item as string}
+                                                    onChange={(e) => handleArrayFieldChange(field.name, index, e.target.value)}
+                                                    placeholder={field.items?.example?.toString() || `Enter ${field.name} item`}
+                                                />
+                                            )}
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => handleArrayFieldRemove(field.name, index)}
+                                            >
+                                                <X className="h-4 w-4" />
+                                            </Button>
+                                        </div>
+                                    ))}
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => handleArrayFieldAdd(field.name)}
+                                        className="w-full"
+                                    >
+                                        <Plus className="h-4 w-4 mr-2" />
+                                        Add {field.name}
+                                    </Button>
+                                </div>
+                            ) : field.enum ? (
+                                <Select
+                                    value={formDataValues[field.name] as string || ''}
+                                    onValueChange={(value) => handleFormDataFieldChange(field.name, value)}
+                                >
+                                    <SelectTrigger id={`formdata-${field.name}`}>
+                                        <SelectValue placeholder={`Select ${field.name}`} />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {field.enum.map((option, index) => (
+                                            <SelectItem key={index} value={String(option)}>
+                                                {String(option)}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            ) : (
+                                <Input
+                                    id={`formdata-${field.name}`}
+                                    type={field.type === 'number' || field.type === 'integer' ? 'number' : 'text'}
+                                    value={formDataValues[field.name] as string || ''}
+                                    onChange={(e) => {
+                                        const value = field.type === 'number' || field.type === 'integer'
+                                            ? Number(e.target.value)
+                                            : e.target.value;
+                                        handleFormDataFieldChange(field.name, value);
+                                    }}
+                                    placeholder={field.example?.toString() || `Enter ${field.name}`}
+                                />
+                            )}
+                        </div>
+                    ))}
+                </div>
+            </ScrollArea>
+        );
+    };
 
     // Render body input
     const renderBodyInput = () => {
@@ -571,7 +861,7 @@ export default function TryItOut({path, method, operation, components}: TryItOut
                     </Select>
                 )}
                 {selectedContentType === "multipart/form-data" ? (
-                    <Input type="file" onChange={handleFileUpload}/>
+                    renderFormDataFields()
                 ) : (
                     <Textarea
                         value={requestBody}
