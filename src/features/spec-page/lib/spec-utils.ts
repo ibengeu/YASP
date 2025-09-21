@@ -1,5 +1,5 @@
 import {OpenApiDocument, PathItemObject} from "@/common/openapi-spec";
-import {EndpointEntry} from "@/features/spec-page/components/endpoint-list";
+import {EndpointInfo} from "@/features/spec-page/components/endpoints-list";
 
 /**
  * Groups API endpoints by their tags from an OpenAPI specification.
@@ -8,8 +8,8 @@ import {EndpointEntry} from "@/features/spec-page/components/endpoint-list";
  * @param spec The OpenAPI document.
  * @returns A record where keys are tags and values are arrays of endpoints.
  */
-export function groupEndpointsByTag(spec: OpenApiDocument): Record<string, EndpointEntry[]> {
-    const pathsByTag = Object.entries(spec.paths).reduce<Record<string, EndpointEntry[]>>(
+export function groupEndpointsByTag(spec: OpenApiDocument): Record<string, EndpointInfo[]> {
+    const pathsByTag = Object.entries(spec.paths).reduce<Record<string, EndpointInfo[]>>(
         (acc, [path, pathItem]) => {
             if (!pathItem) return acc;
 

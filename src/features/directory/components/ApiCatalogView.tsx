@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Input } from '@/core/components/ui/input';
 import { Button } from '@/core/components/ui/button';
 import { Badge } from '@/core/components/ui/badge';
@@ -30,8 +30,19 @@ import {
   Archive,
   ExternalLink,
   AlertCircle,
-  Package
+  Package,
+  MoreVertical,
+  Download,
+  Edit,
+  Eye
 } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator
+} from '@/core/components/ui/dropdown-menu';
 import { OpenApiDocument } from '@/common/openapi-spec';
 
 interface ApiCatalogItem {
@@ -180,6 +191,7 @@ export function ApiCatalogView({ onViewDocumentation, onAddApi, items, loading }
     setSelectedApis([]);
   };
 
+
   const getLifecycleBadgeVariant = (lifecycle: string) => {
     switch (lifecycle) {
       case 'stable': return 'default' as const;
@@ -198,11 +210,6 @@ export function ApiCatalogView({ onViewDocumentation, onAddApi, items, loading }
     });
   };
 
-  const handleKeyDown = (event: React.KeyboardEvent) => {
-    if (event.key === 'Escape') {
-      clearSelection();
-    }
-  };
 
   if (loading) {
     return (
@@ -247,7 +254,7 @@ export function ApiCatalogView({ onViewDocumentation, onAddApi, items, loading }
   }
 
   return (
-    <div className="h-screen flex flex-col" onKeyDown={handleKeyDown} tabIndex={0}>
+    <div className="h-screen flex flex-col">
       {/* Header */}
       <div className="border-b border-input bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="p-6">
@@ -259,7 +266,7 @@ export function ApiCatalogView({ onViewDocumentation, onAddApi, items, loading }
               </div>
               <Button onClick={onAddApi} className="gap-2">
                 <Plus className="h-4 w-4" />
-                Add API
+                Add Collection
               </Button>
             </div>
 
@@ -361,6 +368,7 @@ export function ApiCatalogView({ onViewDocumentation, onAddApi, items, loading }
                 </div>
               </div>
             )}
+
           </div>
         </div>
       </div>
@@ -505,7 +513,7 @@ export function ApiCatalogView({ onViewDocumentation, onAddApi, items, loading }
                     </Button>
                   )}
                   <Button onClick={onAddApi}>
-                    Add API
+                    Add Collection
                   </Button>
                 </div>
               </div>
@@ -518,11 +526,11 @@ export function ApiCatalogView({ onViewDocumentation, onAddApi, items, loading }
                   {paginatedApis.map(api => (
                     <Card
                       key={api.id}
-                      className={`relative transition-colors hover:bg-accent/50 ${
+                      className={`relative transition-colors hover:bg-accent/50 group ${
                         selectedApis.includes(api.id.toString()) ? 'ring-2 ring-primary' : ''
                       }`}
                     >
-                      <div className="absolute top-4 left-4">
+                      <div className="absolute bottom-4 left-4">
                         <Checkbox
                           checked={selectedApis.includes(api.id.toString())}
                           onCheckedChange={() => toggleApiSelection(api.id)}
@@ -530,7 +538,40 @@ export function ApiCatalogView({ onViewDocumentation, onAddApi, items, loading }
                         />
                       </div>
 
-                      <CardHeader className="pb-3 pt-12">
+                      <div className="absolute top-4 right-4">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => onViewDocumentation(api.id)}>
+                              <Eye className="h-4 w-4" />
+                              View Documentation
+                            </DropdownMenuItem>
+                            <DropdownMenuItem>
+                              <Download className="h-4 w-4" />
+                              Download
+                            </DropdownMenuItem>
+                            <DropdownMenuItem>
+                              <Edit className="h-4 w-4" />
+                              Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem variant="destructive">
+                              <Trash2 className="h-4 w-4" />
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+
+                      <CardHeader className="pb-3 pt-4">
                         <div className="flex items-start justify-between gap-2">
                           <div className="flex-1 min-w-0">
                             <CardTitle className="text-lg truncate">{api.title}</CardTitle>
@@ -580,7 +621,7 @@ export function ApiCatalogView({ onViewDocumentation, onAddApi, items, loading }
                           </div>
                         </div>
 
-                        <div className="flex gap-2 pt-2">
+                        <div className="flex gap-2 pt-2 pb-8">
                           <Button
                             variant="outline"
                             size="sm"

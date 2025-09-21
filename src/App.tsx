@@ -1,7 +1,5 @@
 import {FileJson, Code, Database, Search, Zap, Share2, Shield} from "lucide-react"
 import {Link, useNavigate} from "react-router-dom"
-import {Button} from "@/core/components/ui/button"
-import {Card, CardDescription, CardHeader, CardTitle} from "@/core/components/ui/card"
 import {ImportSpec} from "@/features/directory/components/ImportSpec.tsx";
 import {OpenApiDocument} from "@/common/openapi-spec.ts";
 import {IndexedDBService} from "@/core/services/indexdbservice.ts";
@@ -21,236 +19,218 @@ export default function LandingPage() {
 
     return (
         <div className="flex flex-col min-h-screen  ">
-            <header className="border-b border-border bg-background/80 backdrop-blur-sm sticky top-0 z-10 px-12 z-50">
-                <div className=" mx-auto flex h-16 items-center justify-between px-4">
+            <header className="border-b border-border bg-background/95 backdrop-blur-xl sticky top-0 z-50">
+                <div className="mx-auto max-w-7xl flex h-11 items-center justify-between px-6">
                     <div className="flex items-center gap-2">
-                        <FileJson className="h-6 w-6 text-primary"/>
-                        <span className="text-xl font-semibold tracking-tight">YASP</span>
+                        <FileJson className="h-5 w-5 text-primary"/>
+                        <span className="text-headline font-semibold">YASP</span>
                     </div>
-                    <div className="flex items-center gap-4">
-                        <nav className="hidden md:flex items-center gap-6">
-                            <a href="#features" className="text-sm font-medium hover:text-primary transition-colors">
-                                Features
-                            </a>
-                            <a href="#benefits" className="text-sm font-medium hover:text-primary transition-colors">
-                                Benefits
-                            </a>
-                            <Link to="/specs"
-                                  className="text-sm font-medium hover:text-primary transition-colors">
-                                Get Started
-                            </Link>
-                        </nav>
-                    </div>
+                    <nav className="hidden md:flex items-center gap-8">
+                        <a href="#features" className="text-body hover:text-primary transition-colors duration-200">
+                            Features
+                        </a>
+                        <a href="#benefits" className="text-body hover:text-primary transition-colors duration-200">
+                            Benefits
+                        </a>
+                        <Link to="/auth" className="text-body hover:text-primary transition-colors duration-200">
+                            Sign In
+                        </Link>
+                        <Link to="/specs" className="btn-apple text-body">
+                            Get Started
+                        </Link>
+                    </nav>
                 </div>
             </header>
 
             <main className="flex-1">
-                {/*Hero Section*/}
-                <section className="py-16 md:py-28 relative overflow-hidden bg-cover bg-center bg-no-repeat" style={{backgroundImage: 'url("/src/assets/3d-abstract-blue-geometrical-background-connection-structure-science-background-futuristic-technology.jpg")'}}>
-                    <div className="absolute inset-0 bg-background/80 "></div>
-                    <div className="relative z-10">
-                    <div className="px-4 md:px-20 w-full">
-                        <div className="grid gap-8 lg:grid-cols-[1fr_500px] lg:gap-12 xl:grid-cols-[1fr_550px]">
-                            <div className="flex flex-col justify-center space-y-4">
-                                <div className="space-y-2">
-                                    <h1 className="text-3xl sm:text-4xl md:text-5xl xl:text-6xl font-bold tracking-tighter text-foreground">
-                                        Test Any OpenAPI Spec in 10 Seconds
+                {/*Hero Section - Apple inspired clean design*/}
+                <section className="py-16 md:py-24 bg-background">
+                    <div className="mx-auto max-w-7xl px-6">
+                        <div className="grid gap-8 lg:grid-cols-[1fr_480px] lg:gap-12 xl:grid-cols-[1fr_520px] items-center">
+                            <div className="flex flex-col space-y-6">
+                                <div className="space-y-4">
+                                    <h1 className="text-largetitle md:text-6xl font-semibold tracking-tight text-foreground leading-tight">
+                                        Test Any OpenAPI Spec<br/>
+                                        <span className="text-primary">in 10 Seconds</span>
                                     </h1>
-                                    <p className="max-w-[600px] text-lg md:text-xl text-muted-foreground">
-                                        While others spend hours configuring tools, you're already testing APIs. 
-                                        No accounts, no setup, no hassle. Just drop your spec and go.
+                                    <p className="text-title3 text-muted-foreground max-w-lg leading-relaxed">
+                                        While others spend hours configuring tools, you're already testing APIs.
+                                        No accounts, no setup, no hassle.
                                     </p>
                                 </div>
-                                <div className="flex flex-col sm:flex-row gap-3">
-                                    <Button size="lg" asChild className="bg-primary hover:bg-primary/90">
-                                        <Link to="/specs">Try with Sample API →</Link>
-                                    </Button>
-                                    <Button size="lg" variant="outline" asChild>
-                                        <Link to="/specs">Upload Your Spec</Link>
-                                    </Button>
+                                <div className="flex flex-col sm:flex-row gap-4">
+                                    <Link to="/specs" className="btn-apple inline-flex items-center justify-center">
+                                        Try with Sample API
+                                    </Link>
+                                    <Link to="/specs" className="btn-apple-secondary inline-flex items-center justify-center">
+                                        Upload Your Spec
+                                    </Link>
                                 </div>
                             </div>
-                            <div className="border rounded-lg p-4 bg-card shadow-lg">
+                            <div className="card-apple">
                                 <div className="mb-4">
-                                    <h3 className="text-lg font-semibold">Instant API Testing</h3>
-                                    <p className="text-sm text-muted-foreground mt-2">
-                                        Drop your OpenAPI spec and watch it come alive in seconds.
+                                    <h3 className="text-title2 font-semibold mb-2">Instant API Testing</h3>
+                                    <p className="text-subheadline text-muted-foreground">
+                                        Drop your OpenAPI spec and watch it come alive.
                                     </p>
                                 </div>
                                 <ImportSpec onSpecLoaded={handleSpecLoaded}/>
-                                <div className="mt-3 text-xs text-muted-foreground">
+                                <div className="mt-3 text-caption1 text-muted-foreground">
                                     Your data never leaves your browser • Works 100% offline
                                 </div>
                             </div>
                         </div>
                     </div>
-                    </div>
                 </section>
 
-                {/* Features Section */}
-                <section id="features" className="py-20 bg-background bg-secondary">
-                    <div className="px-4 md:px-20">
-                        <div className="flex flex-col items-center justify-center space-y-4 text-center">
-                            <div className="space-y-2">
-                                <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">Zero Setup Required</h2>
-                                <p className="max-w-[700px] text-muted-foreground md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
-                                    No configuration, no accounts, no installation. Just upload your spec and start testing.
+                {/* Features Section - Apple clean design */}
+                <section id="features" className="py-20 bg-secondary">
+                    <div className="mx-auto max-w-7xl px-6">
+                        <div className="text-center mb-12">
+                            <h2 className="text-largetitle font-semibold tracking-tight mb-4">Zero Setup Required</h2>
+                            <p className="text-title3 text-muted-foreground max-w-2xl mx-auto">
+                                No configuration, no accounts, no installation. Just upload your spec and start testing.
+                            </p>
+                        </div>
+                        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+                            <div className="card-apple text-center">
+                                <FileJson className="h-12 w-12 text-primary mb-4 mx-auto"/>
+                                <h3 className="text-headline mb-3">Instant Upload</h3>
+                                <p className="text-subheadline text-muted-foreground">
+                                    Drag, drop, done. Your API spec is live in seconds, not hours.
+                                </p>
+                            </div>
+                            <div className="card-apple text-center">
+                                <Database className="h-12 w-12 text-primary mb-4 mx-auto"/>
+                                <h3 className="text-headline mb-3">Complete Privacy</h3>
+                                <p className="text-subheadline text-muted-foreground">
+                                    Your APIs never leave your browser. No cloud storage, no tracking, no vendor lock-in.
+                                </p>
+                            </div>
+                            <div className="card-apple text-center">
+                                <Search className="h-12 w-12 text-primary mb-4 mx-auto"/>
+                                <h3 className="text-headline mb-3">Smart Search</h3>
+                                <p className="text-subheadline text-muted-foreground">
+                                    Find endpoints, parameters, or responses instantly. No more scrolling through docs.
+                                </p>
+                            </div>
+                            <div className="card-apple text-center">
+                                <Code className="h-12 w-12 text-primary mb-4 mx-auto"/>
+                                <h3 className="text-headline mb-3">Live Testing</h3>
+                                <p className="text-subheadline text-muted-foreground">
+                                    Click to test real endpoints. No external tools or collection imports needed.
+                                </p>
+                            </div>
+                            <div className="card-apple text-center">
+                                <Zap className="h-12 w-12 text-primary mb-4 mx-auto"/>
+                                <h3 className="text-headline mb-3">High Performance</h3>
+                                <p className="text-subheadline text-muted-foreground">
+                                    Load large specifications instantly. Optimized for speed and efficiency.
+                                </p>
+                            </div>
+                            <div className="card-apple text-center">
+                                <Share2 className="h-12 w-12 text-primary mb-4 mx-auto"/>
+                                <h3 className="text-headline mb-3">Easy Sharing</h3>
+                                <p className="text-subheadline text-muted-foreground">
+                                    Generate shareable links in one click. Export to multiple formats.
                                 </p>
                             </div>
                         </div>
-                        <div className="mx-auto grid max-w-5xl grid-cols-1 gap-6 py-12 md:grid-cols-2 lg:grid-cols-3">
-                            <Card className=" transition-all hover:border-primary/50 hover:shadow-md">
-                                <CardHeader>
-                                    <FileJson className="h-10 w-10 text-primary mb-2"/>
-                                    <CardTitle>Instant Upload</CardTitle>
-                                    <CardDescription>
-                                        Drag, drop, done. Your API spec is live in seconds, not hours.
-                                    </CardDescription>
-                                </CardHeader>
-                            </Card>
-                            <Card className=" transition-all hover:border-primary/50 hover:shadow-md">
-                                <CardHeader>
-                                    <Database className="h-10 w-10 text-primary mb-2"/>
-                                    <CardTitle>Complete Privacy</CardTitle>
-                                    <CardDescription>
-                                        Your APIs never leave your browser. No cloud storage, no tracking, no vendor lock-in.
-                                    </CardDescription>
-                                </CardHeader>
-                            </Card>
-                            <Card className=" transition-all hover:border-primary/50 hover:shadow-md">
-                                <CardHeader>
-                                    <Search className="h-10 w-10 text-primary mb-2"/>
-                                    <CardTitle>Smart Search</CardTitle>
-                                    <CardDescription>
-                                        Find endpoints, parameters, or responses instantly. No more scrolling through docs.
-                                    </CardDescription>
-                                </CardHeader>
-                            </Card>
-                            <Card className=" transition-all hover:border-primary/50 hover:shadow-md">
-                                <CardHeader>
-                                    <Code className="h-10 w-10 text-primary mb-2"/>
-                                    <CardTitle>Live Testing</CardTitle>
-                                    <CardDescription>
-                                        Click to test real endpoints. No external tools or collection imports needed.
-                                    </CardDescription>
-                                </CardHeader>
-                            </Card>
-                            <Card className=" transition-all hover:border-primary/50 hover:shadow-md">
-                                <CardHeader>
-                                    <Zap className="h-10 w-10 text-primary mb-2"/>
-                                    <CardTitle>High Performance</CardTitle>
-                                    <CardDescription>
-                                        Load large specifications instantly. Optimized for speed and efficiency.
-                                    </CardDescription>
-                                </CardHeader>
-                            </Card>
-                            <Card className=" transition-all hover:border-primary/50 hover:shadow-md">
-                                <CardHeader>
-                                    <Share2 className="h-10 w-10 text-primary mb-2"/>
-                                    <CardTitle>Easy Sharing</CardTitle>
-                                    <CardDescription>
-                                        Generate shareable links in one click. Export to multiple formats.
-                                    </CardDescription>
-                                </CardHeader>
-                            </Card>
-                        </div>
                     </div>
                 </section>
 
-                {/* Benefits Section */}
+                {/* Benefits Section - Apple focused content */}
                 <section id="benefits" className="py-20 bg-background">
-                    <div className="container px-4 md:px-20">
-                        <div className="grid gap-6 lg:grid-cols-[500px_1fr] lg:gap-12 xl:grid-cols-[550px_1fr]">
+                    <div className="mx-auto max-w-7xl px-6">
+                        <div className="grid gap-12 lg:grid-cols-[520px_1fr] lg:gap-16 items-center">
                             <div className="relative flex items-center justify-center order-last lg:order-first">
-                                <div
-                                    className="relative w-full rounded-lg overflow-hidden shadow-xl aspect-video">
+                                <div className="relative w-full rounded-3xl overflow-hidden shadow-xl aspect-video">
                                     <img
                                         src="/img_1.png"
                                         alt="Developer using API Collection Tool"
                                         className="object-cover h-full w-full"
                                     />
-                                    <div
-                                        className="absolute inset-0 bg-gradient-to-tr from-primary/20 to-transparent"></div>
+                                    <div className="absolute inset-0 bg-gradient-to-tr from-primary/10 to-transparent"></div>
                                 </div>
                             </div>
-                            <div className="flex flex-col justify-center space-y-4">
-                                <div className="space-y-2">
-                                    <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">
+                            <div className="flex flex-col space-y-6">
+                                <div className="space-y-4">
+                                    <h2 className="text-largetitle font-semibold tracking-tight">
                                         Why Developers Choose YASP
                                     </h2>
-                                    <p className="max-w-[600px] text-muted-foreground md:text-xl">
+                                    <p className="text-title3 text-muted-foreground max-w-lg">
                                         Focus on building features instead of configuring tools. Get productive immediately.
                                     </p>
                                 </div>
-                                <ul className="space-y-4">
-                                    <li className="flex items-start gap-3">
+                                <div className="space-y-4">
+                                    <div className="flex items-start gap-4">
                                         <div className="flex-shrink-0 mt-1">
-                                            <Shield className="h-5 w-5 text-primary"/>
+                                            <Shield className="h-6 w-6 text-primary"/>
                                         </div>
                                         <div>
-                                            <h3 className="font-medium">Time Savings</h3>
-                                            <p className="text-muted-foreground">
+                                            <h3 className="text-headline mb-2">Time Savings</h3>
+                                            <p className="text-subheadline text-muted-foreground">
                                                 Skip the setup time. Start testing APIs immediately without complex configuration.
                                             </p>
                                         </div>
-                                    </li>
-                                    <li className="flex items-start gap-3">
+                                    </div>
+                                    <div className="flex items-start gap-4">
                                         <div className="flex-shrink-0 mt-1">
-                                            <Shield className="h-5 w-5 text-primary"/>
+                                            <Shield className="h-6 w-6 text-primary"/>
                                         </div>
                                         <div>
-                                            <h3 className="font-medium">Simplified Workflow</h3>
-                                            <p className="text-muted-foreground">
+                                            <h3 className="text-headline mb-2">Simplified Workflow</h3>
+                                            <p className="text-subheadline text-muted-foreground">
                                                 Everything in one place. No context switching between multiple tools.
                                             </p>
                                         </div>
-                                    </li>
-                                    <li className="flex items-start gap-3">
+                                    </div>
+                                    <div className="flex items-start gap-4">
                                         <div className="flex-shrink-0 mt-1">
-                                            <Shield className="h-5 w-5 text-primary"/>
+                                            <Shield className="h-6 w-6 text-primary"/>
                                         </div>
                                         <div>
-                                            <h3 className="font-medium">No Subscriptions</h3>
-                                            <p className="text-muted-foreground">
+                                            <h3 className="text-headline mb-2">No Subscriptions</h3>
+                                            <p className="text-subheadline text-muted-foreground">
                                                 Free to use. No monthly fees or enterprise licensing costs.
                                             </p>
                                         </div>
-                                    </li>
-                                    <li className="flex items-start gap-3">
+                                    </div>
+                                    <div className="flex items-start gap-4">
                                         <div className="flex-shrink-0 mt-1">
-                                            <Shield className="h-5 w-5 text-primary"/>
+                                            <Shield className="h-6 w-6 text-primary"/>
                                         </div>
                                         <div>
-                                            <h3 className="font-medium">Data Security</h3>
-                                            <p className="text-muted-foreground">
+                                            <h3 className="text-headline mb-2">Data Security</h3>
+                                            <p className="text-subheadline text-muted-foreground">
                                                 Your sensitive API data stays private. No third-party servers, complete local control.
                                             </p>
                                         </div>
-                                    </li>
-                                </ul>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </section>
 
-                {/* CTA Section */}
-                <section id="get-started" className="py-20 bg-background">
-                    <div className="px-4 md:px-20">
-                        <div className="flex flex-col items-center justify-center space-y-4 text-center">
-                            <div className="space-y-2">
-                                <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">
+                {/* CTA Section - Apple minimal approach */}
+                <section id="get-started" className="py-20 bg-secondary">
+                    <div className="mx-auto max-w-7xl px-6">
+                        <div className="text-center space-y-6">
+                            <div className="space-y-4">
+                                <h2 className="text-largetitle font-semibold tracking-tight">
                                     Ready to Get Started?
                                 </h2>
-                                <p className="max-w-[600px] mx-auto text-muted-foreground md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
+                                <p className="text-title3 text-muted-foreground max-w-xl mx-auto">
                                     Upload your OpenAPI specification and start testing in seconds.
                                 </p>
                             </div>
-                            <div className="flex flex-col sm:flex-row gap-3 pt-4">
-                                <Button size="lg" asChild className="bg-primary hover:bg-primary/90">
-                                    <Link to="/specs">Start Testing Now →</Link>
-                                </Button>
+                            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                                <Link to="/specs" className="btn-apple">
+                                    Start Testing Now
+                                </Link>
                             </div>
-                            <div className="text-sm text-muted-foreground mt-4">
+                            <div className="text-caption1 text-muted-foreground">
                                 100% private • Zero setup required
                             </div>
                         </div>
@@ -258,25 +238,24 @@ export default function LandingPage() {
                 </section>
             </main>
 
-            <footer className="bg-secondary py-6 md:py-8">
-                <div
-                    className="container flex flex-col gap-4 md:flex-row md:items-center md:justify-between px-4 md:px-20">
-                    <div className="flex items-center gap-2">
-                        <FileJson className="h-5 w-5 text-primary"/>
-                        <span className="text-sm font-semibold">YASP API Collection</span>
-                    </div>
-                    <p className="text-sm text-muted-foreground">
-                        © {new Date().getFullYear()} API Collection. All rights reserved.
-                    </p>
-                    <div className="flex gap-4">
-                        <Link to="#"
-                              className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                            Privacy Policy
-                        </Link>
-                        <Link to="#"
-                              className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                            Terms of Service
-                        </Link>
+            <footer className="bg-background border-t border-border py-8">
+                <div className="mx-auto max-w-7xl px-6">
+                    <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
+                        <div className="flex items-center gap-2">
+                            <FileJson className="h-5 w-5 text-primary"/>
+                            <span className="text-subheadline font-semibold">YASP API Collection</span>
+                        </div>
+                        <p className="text-footnote text-muted-foreground">
+                            © {new Date().getFullYear()} API Collection. All rights reserved.
+                        </p>
+                        <div className="flex gap-6">
+                            <Link to="#" className="text-footnote text-muted-foreground hover:text-foreground transition-colors duration-200">
+                                Privacy Policy
+                            </Link>
+                            <Link to="#" className="text-footnote text-muted-foreground hover:text-foreground transition-colors duration-200">
+                                Terms of Service
+                            </Link>
+                        </div>
                     </div>
                 </div>
             </footer>

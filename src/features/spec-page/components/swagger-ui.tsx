@@ -52,7 +52,7 @@ export function SwaggerUI({spec, onEndpointSelected}: SwaggerUIProps) {
                     selectedTag={selectedTag}
                     setSelectedTag={setSelectedTag}
                     selectedEndpoint={selectedEndpoint}
-                    setSelectedEndpoint={(endpoint) => {
+                    setSelectedEndpoint={(endpoint: { path: string; method: string; operation: OperationObject } | null) => {
                         setSelectedEndpoint(endpoint)
                         onEndpointSelected?.(endpoint)
                     }}

@@ -2,8 +2,7 @@
 
 import React, {useState, useEffect, useMemo} from "react";
 import {Button} from "@/core/components/ui/button";
-import {ResizablePanel, ResizablePanelGroup} from "@/core/components/ui/resizable.tsx";
-import {SwaggerUI} from "./components/swagger-ui";
+import {ResizablePanel, ResizablePanelGroup, ResizableHandle} from "@/core/components/ui/resizable.tsx";
 import {OperationObject} from "../../common/openapi-spec.ts";
 import {Loader2} from "lucide-react";
 import {useNavigate, useParams} from "react-router";
@@ -17,6 +16,8 @@ import {Card} from "@/core/components/ui/card.tsx";
 import {Textarea} from "@/core/components/ui/textarea.tsx";
 import {IndexedDBService} from "@/core/services/indexdbservice.ts";
 import {OpenApiDocument} from "@/common/openapi-spec.ts";
+import {EndpointsList} from "./components/endpoints-list";
+import {EndpointDetail} from "./components/endpoint-detail";
 
 // Configure Monaco loader to use CDN with fallback
 try {
@@ -48,10 +49,39 @@ export const SpecPage: React.FC = () => {
 
     const isTablet = useMediaQuery("(min-width: 768px)");
 
+    // Extract endpoints from spec
+    const endpoints = useMemo(() => {
+        if (!spec?.paths) return [];
+
+        const extractedEndpoints: any[] = [];
+        Object.entries(spec.paths).forEach(([path, pathItem]) => {
+            if (!pathItem) return;
+            Object.entries(pathItem).forEach(([method, operation]) => {
+                if (operation && typeof operation === 'object' && 'responses' in operation) {
+                    const tags = operation.tags || ['default'];
+                    tags.forEach((tag: string) => {
+                        extractedEndpoints.push({
+                            path,
+                            method,
+                            operation,
+                            tag
+                        });
+                    });
+                }
+            });
+        });
+        return extractedEndpoints;
+    }, [spec]);
+
     useEffect(() => {
-        // If screen size changes, clear selected endpoint to prevent stale state
-        setSelectedEndpoint(null);
-    }, [isTablet]);
+        // If screen size changes, re-select first endpoint if available
+        if (endpoints.length > 0 && !isEditorMode) {
+            setSelectedEndpoint(endpoints[0]);
+        } else {
+            setSelectedEndpoint(null);
+        }
+    }, [isTablet, endpoints, isEditorMode]);
+
 
     useEffect(() => {
         // Initialize editor content when spec loads
@@ -65,8 +95,15 @@ export const SpecPage: React.FC = () => {
     const toggleMobileMenu = () => setIsMobileMenuOpen(!isMobileMenuOpen);
 
     const toggleEditorMode = () => {
-        setIsEditorMode(!isEditorMode);
-        setSelectedEndpoint(null); // Clear selected endpoint when switching modes
+        const newEditorMode = !isEditorMode;
+        setIsEditorMode(newEditorMode);
+
+        // When switching back from editor mode, auto-select first endpoint
+        if (!newEditorMode && endpoints.length > 0) {
+            setSelectedEndpoint(endpoints[0]);
+        } else {
+            setSelectedEndpoint(null);
+        }
     };
 
     const handleEditorChange = (value: string | undefined) => {
@@ -261,13 +298,54 @@ export const SpecPage: React.FC = () => {
                             </div>
                         ) : (
                             <ResizablePanelGroup direction="horizontal" className="flex-1">
-                                <ResizablePanel defaultSize={isTablet && selectedEndpoint ? 70 : 100}>
-                                    <SwaggerUI
-                                        spec={spec}
-                                        onEndpointSelected={setSelectedEndpoint}
+                                {/* Endpoints List */}
+                                <ResizablePanel defaultSize={25} minSize={20} maxSize={40}>
+                                    <EndpointsList
+                                        endpoints={endpoints}
+                                        selectedEndpoint={selectedEndpoint}
+                                        onEndpointSelect={setSelectedEndpoint}
                                     />
                                 </ResizablePanel>
-                                
+
+                                <ResizableHandle />
+
+                                {/* Documentation */}
+                                <ResizablePanel defaultSize={40} minSize={30}>
+                                    {selectedEndpoint ? (
+                                        <EndpointDetail
+                                            path={selectedEndpoint.path}
+                                            method={selectedEndpoint.method}
+                                            operation={selectedEndpoint.operation}
+                                            components={spec.components || {}}
+                                        />
+                                    ) : (
+                                        <div className="h-full flex items-center justify-center">
+                                            <div className="text-center text-muted-foreground">
+                                                <p>Select an endpoint to view documentation</p>
+                                            </div>
+                                        </div>
+                                    )}
+                                </ResizablePanel>
+
+                                <ResizableHandle />
+
+                                {/* Try It Out */}
+                                <ResizablePanel defaultSize={35} minSize={30}>
+                                    {selectedEndpoint ? (
+                                        <TryItOut
+                                            path={selectedEndpoint.path}
+                                            method={selectedEndpoint.method}
+                                            operation={selectedEndpoint.operation}
+                                            components={spec.components || {}}
+                                        />
+                                    ) : (
+                                        <div className="h-full flex items-center justify-center">
+                                            <div className="text-center text-muted-foreground">
+                                                <p>Select an endpoint to try it out</p>
+                                            </div>
+                                        </div>
+                                    )}
+                                </ResizablePanel>
                             </ResizablePanelGroup>
                         )}
 

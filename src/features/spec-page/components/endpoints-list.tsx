@@ -4,7 +4,7 @@ import { Badge } from '@/core/components/ui/badge';
 import { ScrollArea } from '@/core/components/ui/scroll-area';
 import { Button } from '@/core/components/ui/button';
 
-interface EndpointInfo {
+export interface EndpointInfo {
   path: string;
   method: string;
   operation: any;

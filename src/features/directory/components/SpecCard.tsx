@@ -1,8 +1,6 @@
 import React from 'react';
 import { Cloud, Eye, /* Settings, */ FileJson, Tag, Trash2, Download } from 'lucide-react';
 import { Button } from '@/core/components/ui/button';
-import { Badge } from '@/core/components/ui/badge';
-import { Card, CardHeader, CardTitle, CardDescription } from '@/core/components/ui/card';
 import { cn } from '@/core/lib/utils';
 
 interface SpecCardProps {
@@ -81,32 +79,46 @@ export function SpecCard({
 
   return (
     <div className="relative group">
-      <Card 
-        className="hover:shadow-lg transition-all duration-200 hover:-translate-y-1 border-0 shadow-md cursor-pointer bg-card"
+      <div
+        className="card-apple cursor-pointer h-full group"
         onClick={onClick}
       >
-        <CardHeader className="pb-4">
-          <div className="flex items-start gap-3">
-            <div className="mt-1 bg-primary/10 rounded-md p-1.5">
-              <FileJson className="h-4 w-4 text-primary" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-2">
-                <CardTitle className="text-lg font-semibold text-foreground group-hover:text-primary transition-colors truncate">
-                  {title}
-                </CardTitle>
-                {/* Workspace badge hidden for now */}
-                {/* <Badge variant="secondary" className={cn("text-xs", getWorkspaceColor(workspaceType))}>
-                  {workspaceType}
-                </Badge> */}
-                {isRecentlyAdded && (
-                  <Badge variant="outline" className="text-xs bg-primary/10 text-primary border-primary/20">
-                    New
-                  </Badge>
-                )}
+        <div className="h-full flex flex-col">
+          {/* Header Section */}
+          <div className="flex-shrink-0 mb-3">
+            <div className="flex items-start gap-3">
+              <div className="mt-1 bg-primary/10 rounded-lg p-2">
+                <FileJson className="h-5 w-5 text-primary" />
               </div>
-              
-              <div className="flex items-center gap-4 text-sm text-muted-foreground mb-2">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-2">
+                  <h3 className="text-headline font-semibold text-foreground group-hover:text-primary transition-colors truncate">
+                    {title}
+                  </h3>
+                  {isRecentlyAdded && (
+                    <span className="text-caption2 bg-primary/10 text-primary px-2 py-1 rounded-full">
+                      New
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Content Section */}
+          <div className="flex-1 flex flex-col space-y-3">
+            {/* Fixed height description area */}
+            <div className="h-10">
+              {description && (
+                <p className="text-subheadline text-muted-foreground line-clamp-2 leading-relaxed">
+                  {description}
+                </p>
+              )}
+            </div>
+
+            {/* Metadata and status row - always at same position */}
+            <div className="flex items-center justify-between mt-auto">
+              <div className="flex items-center gap-3 text-footnote text-muted-foreground">
                 <span className="font-medium flex items-center gap-1">
                   <Tag className="h-3 w-3" />
                   v{version}
@@ -114,19 +126,13 @@ export function SpecCard({
                 <span>•</span>
                 <span>{getTimeAgo(createdAt)}</span>
               </div>
-              
-              {description && (
-                <CardDescription className="text-muted-foreground text-sm leading-relaxed line-clamp-2">
-                  {description}
-                </CardDescription>
-              )}
-              
-              <div className="flex items-center gap-2 mt-2">
+
+              <div className="flex items-center gap-2">
                 {getSyncIcon()}
                 {isDiscoverable && (
                   <div className="relative group/tooltip">
                     <Eye className="w-4 h-4 text-chart-1" />
-                    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs text-primary-foreground bg-foreground rounded opacity-0 group-hover/tooltip:opacity-100 transition-opacity whitespace-nowrap z-20">
+                    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-caption2 text-primary-foreground bg-foreground rounded-lg opacity-0 group-hover/tooltip:opacity-100 transition-opacity whitespace-nowrap z-20">
                       Visible to community
                     </div>
                   </div>
@@ -134,18 +140,21 @@ export function SpecCard({
               </div>
             </div>
           </div>
-          
+
+          {/* Footer Section */}
           {tags.length > 0 && (
-            <div className="flex flex-wrap gap-1 mt-3 pt-2 border-t border-border">
-              {tags.map((tag, index) => (
-                <Badge key={index} variant="outline" className="text-xs">
-                  {tag}
-                </Badge>
-              ))}
+            <div className="border-t border-border pt-3 mt-3 flex-shrink-0">
+              <div className="flex flex-wrap gap-1 w-full">
+                {tags.map((tag, index) => (
+                  <span key={index} className="text-caption2 bg-secondary text-secondary-foreground px-2 py-1 rounded-md">
+                    {tag}
+                  </span>
+                ))}
+              </div>
             </div>
           )}
-        </CardHeader>
-      </Card>
+        </div>
+      </div>
       
       {/* Hover Actions - Side Panel */}
       <div className={cn(
