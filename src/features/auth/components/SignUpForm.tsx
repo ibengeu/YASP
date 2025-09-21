@@ -117,8 +117,8 @@ export function SignUpForm({
       {/* Error Alert */}
       {error && (
         <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
         >
           <Alert variant="destructive" className="border-destructive/20 bg-destructive/5 rounded-xl">
             <AlertDescription>{error}</AlertDescription>
@@ -160,8 +160,8 @@ export function SignUpForm({
             </div>
             {getFieldError('firstName') && (
               <motion.p
-                initial={{ opacity: 0, y: -5 }}
-                animate={{ opacity: 1, y: 0 }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
                 id="firstName-error"
                 className="text-sm text-destructive"
               >
@@ -191,8 +191,8 @@ export function SignUpForm({
             </div>
             {getFieldError('lastName') && (
               <motion.p
-                initial={{ opacity: 0, y: -5 }}
-                animate={{ opacity: 1, y: 0 }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
                 id="lastName-error"
                 className="text-sm text-destructive"
               >
@@ -272,8 +272,8 @@ export function SignUpForm({
             </div>
             {getFieldError('password') && (
               <motion.p
-                initial={{ opacity: 0, y: -5 }}
-                animate={{ opacity: 1, y: 0 }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
                 id="password-error"
                 className="text-sm text-destructive"
               >
@@ -318,8 +318,8 @@ export function SignUpForm({
             </div>
             {getFieldError('confirmPassword') && (
               <motion.p
-                initial={{ opacity: 0, y: -5 }}
-                animate={{ opacity: 1, y: 0 }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
                 id="confirmPassword-error"
                 className="text-sm text-destructive"
               >

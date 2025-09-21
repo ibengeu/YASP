@@ -2,6 +2,7 @@
 export { AuthScreen } from './components/AuthScreen';
 export { LoginForm } from './components/LoginForm';
 export { SignUpForm } from './components/SignUpForm';
+export { ForgotPasswordForm } from './components/ForgotPasswordForm';
 export { SocialAuthButtons } from './components/SocialAuthButtons';
 export { PasswordStrengthMeter } from './components/PasswordStrengthMeter';
 

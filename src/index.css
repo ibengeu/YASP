@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Geist:wght@100..900&display=swap');
 @import "tailwindcss";
 @import "tw-animate-css";
 
@@ -34,7 +35,7 @@
     --sidebar-accent-foreground: oklch(0.2177 0.0356 251.2935);
     --sidebar-border: oklch(0.8671 0.0106 247.9485);
     --sidebar-ring: oklch(0.6048 0.2166 257.2136);
-    --font-sans: Geist, ui-sans-serif, sans-serif, system-ui;
+    --font-sans: "Geist", ui-sans-serif, system-ui, sans-serif;
     --font-serif: Georgia;
     --font-mono: Roboto Mono;
     --radius: 0.25rem;
@@ -83,7 +84,7 @@
     --sidebar-accent-foreground: oklch(0.9078 0.0055 117.9313);
     --sidebar-border: oklch(0.4599 0.0564 252.6711);
     --sidebar-ring: oklch(0.6959 0.1670 242.6058);
-    --font-sans: Geist, ui-sans-serif, sans-serif, system-ui;
+    --font-sans: "Geist", ui-sans-serif, system-ui, sans-serif;
     --font-serif: Georgia;
     --font-mono: Roboto Mono;
     --radius: 0.25rem;
@@ -131,9 +132,9 @@
     --color-sidebar-border: var(--sidebar-border);
     --color-sidebar-ring: var(--sidebar-ring);
 
-    --font-sans: var(--font-sans);
-    --font-mono: var(--font-mono);
-    --font-serif: var(--font-serif);
+    --font-sans: "Geist", ui-sans-serif, system-ui, -apple-system, "BlinkMacSystemFont", "Segoe UI", "Roboto", "Helvetica Neue", "Arial", "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+    --font-mono: "Roboto Mono", ui-monospace, "SFMono-Regular", "Monaco", "Consolas", "Liberation Mono", "Courier New", monospace;
+    --font-serif: "Georgia", ui-serif, "Times New Roman", "Times", serif;
 
     --radius-sm: calc(var(--radius) - 4px);
     --radius-md: calc(var(--radius) - 2px);
@@ -159,6 +160,7 @@
 
 
 body {
+    font-family: var(--font-sans);
     letter-spacing: var(--tracking-normal);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
