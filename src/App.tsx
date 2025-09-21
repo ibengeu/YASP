@@ -125,7 +125,7 @@ export default function LandingPage() {
                                 <Zap className="h-12 w-12 text-primary mb-4 mx-auto"/>
                                 <h3 className="text-headline mb-3">Smart Code Editing</h3>
                                 <p className="text-subheadline text-muted-foreground">
-                                    Professional Monaco editor catches errors as you type with full OpenAPI schema validation and intelligent autocomplete.
+                                    Professional code editor with syntax highlighting, error detection, and intelligent autocomplete for OpenAPI specifications.
                                 </p>
                             </div>
                             <div className="card-apple text-center">

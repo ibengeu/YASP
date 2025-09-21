@@ -11,24 +11,13 @@ import useMediaQuery from "@/core/hooks/useMediaQuery.ts";
 import {TopBar} from "./components/top-bar.tsx";
 import TryItOut from "./components/try-it-out.tsx";
 import {useSpec} from "./hooks/useSpec.ts";
-import {Editor, loader} from "@monaco-editor/react";
+import {CodeEditor} from "@/core/components/ui/code-editor";
 import {Card} from "@/core/components/ui/card.tsx";
-import {Textarea} from "@/core/components/ui/textarea.tsx";
 import {IndexedDBService} from "@/core/services/indexdbservice.ts";
 import {OpenApiDocument} from "@/common/openapi-spec.ts";
 import {EndpointsList} from "./components/endpoints-list";
 import {EndpointDetail} from "./components/endpoint-detail";
 
-// Configure Monaco loader to use CDN with fallback
-try {
-    loader.config({
-        paths: {
-            vs: 'https://cdn.jsdelivr.net/npm/monaco-editor@0.50.0/min/vs'
-        }
-    });
-} catch (error) {
-    console.warn('Failed to configure Monaco loader:', error);
-}
 
 export const SpecPage: React.FC = () => {
     const {id} = useParams<{ id: string }>();
@@ -44,7 +33,6 @@ export const SpecPage: React.FC = () => {
     const [editorContent, setEditorContent] = useState("");
     const [isSaving, setIsSaving] = useState(false);
     const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-    const [monacoError, setMonacoError] = useState(false);
     const dbService = useMemo(() => new IndexedDBService(), []);
 
     const isTablet = useMediaQuery("(min-width: 768px)");
@@ -136,56 +124,6 @@ export const SpecPage: React.FC = () => {
         }
     };
 
-    const handleEditorDidMount = (_editor: unknown, monaco: unknown) => {
-        try {
-            // Configure JSON schema for OpenAPI
-            const monacoInstance = monaco as any;
-            if (monacoInstance?.languages?.json?.jsonDefaults?.setDiagnosticsOptions) {
-                monacoInstance.languages.json.jsonDefaults.setDiagnosticsOptions({
-                    validate: true,
-                    allowComments: false,
-                    schemas: [{
-                        uri: 'http://swagger.io/v3/schema.json',
-                        fileMatch: ['*'],
-                        schema: {
-                            type: 'object',
-                            properties: {
-                                openapi: { type: 'string' },
-                                info: { type: 'object' },
-                                paths: { type: 'object' }
-                            },
-                            required: ['openapi', 'info', 'paths']
-                        }
-                    }]
-                });
-            }
-        } catch (error) {
-            console.warn('Failed to configure Monaco JSON schema:', error);
-        }
-    };
-
-    // Add error boundary for Monaco
-    useEffect(() => {
-        const handleMonacoError = (error?: any) => {
-            console.warn('Monaco initialization failed, falling back to textarea:', error);
-            setMonacoError(true);
-        };
-
-        // Listen for Monaco initialization errors
-        loader.init().catch(handleMonacoError);
-
-        // Set a timeout to fallback if Monaco takes too long to load
-        const timeout = setTimeout(() => {
-            if (!monacoError) {
-                console.warn('Monaco taking too long to load, switching to fallback editor');
-                handleMonacoError('Timeout');
-            }
-        }, 10000); // 10 second timeout
-
-        return () => {
-            clearTimeout(timeout);
-        };
-    }, [monacoError]);
 
     if (error) {
         return (
@@ -229,63 +167,16 @@ export const SpecPage: React.FC = () => {
                 ) : spec ? (
                     <>
                         {isEditorMode ? (
-                            <div className="h-full p-4 overflow-hidden">
-                                <Card className="h-full overflow-hidden">
+                            <div className="h-full p-4">
+                                <Card className="h-full flex flex-col">
                                     {editorContent ? (
-                                        monacoError ? (
-                                            <div className="h-full p-4">
-                                                <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
-                                                    <p className="text-sm text-yellow-800">
-                                                        Monaco Editor failed to load. Using fallback text editor.
-                                                    </p>
-                                                </div>
-                                                <Textarea
-                                                    value={editorContent}
-                                                    onChange={(e) => handleEditorChange(e.target.value)}
-                                                    className="h-full font-mono text-sm resize-none"
-                                                    placeholder="OpenAPI JSON content..."
-                                                />
-                                            </div>
-                                        ) : (
-                                            <Editor
-                                                height="100%"
-                                                language="json"
-                                                value={editorContent}
-                                                onChange={handleEditorChange}
-                                                onMount={handleEditorDidMount}
-                                                theme="vs-light"
-                                                loading={
-                                                    <div className="flex items-center justify-center h-full">
-                                                        <div className="text-center">
-                                                            <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-2" />
-                                                            <p className="text-muted-foreground">Loading Monaco Editor...</p>
-                                                        </div>
-                                                    </div>
-                                                }
-                                                options={{
-                                                    minimap: { enabled: false },
-                                                    fontSize: 14,
-                                                    lineNumbers: 'on',
-                                                    folding: true,
-                                                    wordWrap: 'on',
-                                                    automaticLayout: true,
-                                                    scrollBeyondLastLine: false,
-                                                    tabSize: 2,
-                                                    insertSpaces: true,
-                                                    renderWhitespace: 'selection'
-                                                }}
-                                                beforeMount={(monaco) => {
-                                                    // This runs before Monaco mounts, good place to catch early errors
-                                                    try {
-                                                        return monaco;
-                                                    } catch (error) {
-                                                        console.warn('Monaco beforeMount error:', error);
-                                                        setMonacoError(true);
-                                                        return monaco;
-                                                    }
-                                                }}
-                                            />
-                                        )
+                                        <CodeEditor
+                                            value={editorContent}
+                                            onChange={handleEditorChange}
+                                            language="json"
+                                            height="100%"
+                                            className="flex-1 min-h-0"
+                                        />
                                     ) : (
                                         <div className="flex items-center justify-center h-full">
                                             <div className="text-center">

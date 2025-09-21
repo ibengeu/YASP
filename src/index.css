@@ -2,6 +2,24 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
+/* CodeMirror Editor Styling */
+.code-editor .cm-editor {
+  height: 100%;
+  overflow: auto;
+  font-family: var(--font-mono), monospace;
+}
+
+.code-editor .cm-scroller {
+  overflow: auto;
+  max-height: 100%;
+  font-family: var(--font-mono), monospace;
+}
+
+.code-editor .cm-content {
+  padding: 12px;
+  font-family: var(--font-mono), monospace;
+}
+
 :root {
     --background: oklch(1.0000 0 0);
     --foreground: oklch(0.2177 0.0356 251.2935);
