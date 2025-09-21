@@ -6,47 +6,15 @@ import DOMPurify from 'dompurify';
  */
 
 // Configure DOMPurify with secure defaults
-const createSecureDOMPurify = () => {
-  // Allow only safe HTML elements and attributes for markdown content
-  const ALLOWED_TAGS = [
-    'p', 'br', 'strong', 'em', 'u', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
-    'ul', 'ol', 'li', 'blockquote', 'code', 'pre', 'table', 'thead', 'tbody',
-    'tr', 'td', 'th', 'a', 'img', 'hr'
-  ];
+const ALLOWED_TAGS = [
+  'p', 'br', 'strong', 'em', 'u', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+  'ul', 'ol', 'li', 'blockquote', 'code', 'pre', 'table', 'thead', 'tbody',
+  'tr', 'td', 'th', 'a', 'img', 'hr'
+];
 
-  const ALLOWED_ATTR = [
-    'href', 'title', 'alt', 'src', 'width', 'height', 'class'
-  ];
-
-  // Configure DOMPurify instance
-  DOMPurify.addHook('beforeSanitizeElements', (node, data) => {
-    // Remove any script-like content
-    if (data.tagName === 'script' || data.tagName === 'style') {
-      node.remove();
-    }
-  });
-
-  DOMPurify.addHook('beforeSanitizeAttributes', (node) => {
-    // Remove event handlers and javascript: URLs
-    const attributes = node.attributes;
-    if (attributes) {
-      for (let i = attributes.length - 1; i >= 0; i--) {
-        const attr = attributes[i];
-        if (attr.name.startsWith('on') ||
-            (attr.value && attr.value.toLowerCase().includes('javascript:'))) {
-          node.removeAttribute(attr.name);
-        }
-      }
-    }
-  });
-
-  return {
-    ALLOWED_TAGS,
-    ALLOWED_ATTR
-  };
-};
-
-const { ALLOWED_TAGS, ALLOWED_ATTR } = createSecureDOMPurify();
+const ALLOWED_ATTR = [
+  'href', 'title', 'alt', 'src', 'width', 'height', 'class'
+];
 
 /**
  * Sanitizes HTML content for safe rendering

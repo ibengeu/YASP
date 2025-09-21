@@ -10,28 +10,40 @@ import {AuthScreen} from "@/features/auth";
 import {Toaster} from "@/core/components/ui/sonner";
 import {SpecProvider} from "@/core/context/spec-context.tsx";
 import {ThemeProvider} from "next-themes";
+import {AuthProvider} from "@/core/context/auth-context.tsx";
+import {ProtectedRoute} from "@/core/components/auth/ProtectedRoute.tsx";
 
 createRoot(document.getElementById('root')!).render(
     <StrictMode>
         <BrowserRouter>
             <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-                <SpecProvider>
-                    <Toaster/>
+                <AuthProvider>
+                    <SpecProvider>
+                        <Toaster/>
 
-                    <Routes>
-                        <Route path="/" element={<LandingPage/>}/>
-                        <Route path="/specs" element={<DirectoryPage/>}/>
-                        <Route path="/auth" element={<AuthScreen onAuthSuccess={(user) => {
-                            console.log('User authenticated:', user);
-                            // Navigate to specs or dashboard after successful auth
-                            window.location.href = '/specs';
-                        }}/>}/>
+                        <Routes>
+                            <Route path="/" element={<LandingPage/>}/>
+                            <Route path="/specs" element={
+                                <ProtectedRoute>
+                                    <DirectoryPage/>
+                                </ProtectedRoute>
+                            }/>
+                            <Route path="/auth" element={<AuthScreen onAuthSuccess={(user) => {
+                                console.log('User authenticated:', user);
+                                // Navigate to specs or dashboard after successful auth
+                                window.location.href = '/specs';
+                            }}/>}/>
 
-                        <Route path="spec">
-                            <Route index path=":id" element={<SpecPage/>}/>
-                        </Route>
-                    </Routes>
-                </SpecProvider>
+                            <Route path="spec">
+                                <Route index path=":id" element={
+                                    <ProtectedRoute>
+                                        <SpecPage/>
+                                    </ProtectedRoute>
+                                }/>
+                            </Route>
+                        </Routes>
+                    </SpecProvider>
+                </AuthProvider>
             </ThemeProvider>
         </BrowserRouter>
     </StrictMode>,

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Upload, FileText, Link, Plus, X, ChevronRight } from 'lucide-react';
+import { Upload, FileText, Link, Plus, ChevronRight } from 'lucide-react';
 import { Button } from '@/core/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/core/components/ui/dialog';
 import { Input } from '@/core/components/ui/input';
@@ -289,25 +289,16 @@ export function AddApiDialog({ open, onOpenChange }: AddApiDialogProps) {
               )}
               <div>
                 <DialogTitle className="text-xl tracking-tight">
-                  {currentStep === 'method' ? 'Add New API' : 'API Details'}
+                  {currentStep === 'method' ? 'Add New Collection' : 'Collection Details'}
                 </DialogTitle>
                 <DialogDescription className="mt-1 text-muted-foreground">
                   {currentStep === 'method'
-                    ? 'Choose how you\'d like to add your API specification'
-                    : 'Fill in the details for your API'
+                    ? 'Choose how you\'d like to add your collection'
+                    : 'Fill in the details for your collection'
                   }
                 </DialogDescription>
               </div>
             </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => onOpenChange(false)}
-              disabled={loading}
-              className="h-8 w-8 p-0 rounded-full hover:bg-secondary/50"
-            >
-              <X className="h-4 w-4" />
-            </Button>
           </div>
 
           {/* Content */}
@@ -316,8 +307,8 @@ export function AddApiDialog({ open, onOpenChange }: AddApiDialogProps) {
               {currentStep === 'method' ? (
                 <motion.div
                   key="method"
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
                   exit={{ opacity: 0, x: -20 }}
                   transition={{ duration: 0.2 }}
                   className="p-6 space-y-4"
@@ -358,8 +349,8 @@ export function AddApiDialog({ open, onOpenChange }: AddApiDialogProps) {
               ) : (
                 <motion.div
                   key="details"
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
                   exit={{ opacity: 0, x: 20 }}
                   transition={{ duration: 0.2 }}
                   className="p-6"
@@ -462,7 +453,7 @@ export function AddApiDialog({ open, onOpenChange }: AddApiDialogProps) {
                             onValueChange={(value) => setFormData(prev => ({ ...prev, workspaceType: value as any }))}
                             disabled={loading}
                           >
-                            <SelectTrigger className="bg-input-background border-border/50 focus:border-primary focus:ring-primary/30">
+                            <SelectTrigger className="w-full bg-input-background border-border/50 focus:border-primary focus:ring-primary/30">
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
@@ -482,7 +473,7 @@ export function AddApiDialog({ open, onOpenChange }: AddApiDialogProps) {
                             onValueChange={(value) => setFormData(prev => ({ ...prev, category: value }))}
                             disabled={loading}
                           >
-                            <SelectTrigger className="bg-input-background border-border/50 focus:border-primary focus:ring-primary/30">
+                            <SelectTrigger className="w-full bg-input-background border-border/50 focus:border-primary focus:ring-primary/30">
                               <SelectValue placeholder="Select category" />
                             </SelectTrigger>
                             <SelectContent>
@@ -593,7 +584,7 @@ export function AddApiDialog({ open, onOpenChange }: AddApiDialogProps) {
                   ) : (
                     <>
                       <Plus className="h-4 w-4 mr-2" />
-                      Add API
+                      Add Collection
                     </>
                   )}
                 </Button>

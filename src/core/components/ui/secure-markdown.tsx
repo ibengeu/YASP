@@ -86,15 +86,16 @@ export const SecureMarkdown: React.FC<SecureMarkdownProps> = ({
   };
 
   return (
-    <ReactMarkdown
-      className={className}
-      remarkPlugins={[remarkGfm]}
-      components={secureComponents}
-      // Disable raw HTML to prevent XSS
-      disallowedElements={['script', 'style', 'iframe', 'object', 'embed', 'form', 'input', 'button']}
-      unwrapDisallowed={true}
-    >
-      {sanitizedContent}
-    </ReactMarkdown>
+    <div className={className}>
+      <ReactMarkdown
+        remarkPlugins={[remarkGfm]}
+        components={secureComponents}
+        // Disable raw HTML to prevent XSS
+        disallowedElements={['script', 'style', 'iframe', 'object', 'embed', 'form', 'input', 'button']}
+        unwrapDisallowed={true}
+      >
+        {sanitizedContent}
+      </ReactMarkdown>
+    </div>
   );
 };

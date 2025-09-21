@@ -1,4 +1,4 @@
-import {FileJson, Code, Database, Search, Zap, Share2, Shield} from "lucide-react"
+import {FileJson, Code, Database, Search, Zap, Shield} from "lucide-react"
 import {Link, useNavigate} from "react-router-dom"
 import {ImportSpec} from "@/features/directory/components/ImportSpec.tsx";
 import {OpenApiDocument} from "@/common/openapi-spec.ts";
@@ -50,33 +50,33 @@ export default function LandingPage() {
                             <div className="flex flex-col space-y-6">
                                 <div className="space-y-4">
                                     <h1 className="text-largetitle md:text-6xl font-semibold tracking-tight text-foreground leading-tight">
-                                        Test Any OpenAPI Spec<br/>
-                                        <span className="text-primary">in 10 Seconds</span>
+                                        Stop Wrestling With<br/>
+                                        <span className="text-primary">Scattered API Docs</span>
                                     </h1>
                                     <p className="text-title3 text-muted-foreground max-w-lg leading-relaxed">
-                                        While others spend hours configuring tools, you're already testing APIs.
-                                        No accounts, no setup, no hassle.
+                                        Import, test, and organize all your OpenAPI specs in one place. No setup, no servers,
+                                        no vendor lock-in – just pure API productivity in your browser.
                                     </p>
                                 </div>
                                 <div className="flex flex-col sm:flex-row gap-4">
                                     <Link to="/specs" className="btn-apple inline-flex items-center justify-center">
-                                        Try with Sample API
+                                        Start Organizing Now
                                     </Link>
-                                    <Link to="/specs" className="btn-apple-secondary inline-flex items-center justify-center">
-                                        Upload Your Spec
+                                    <Link to="/auth" className="btn-apple-secondary inline-flex items-center justify-center">
+                                        Sign In
                                     </Link>
                                 </div>
                             </div>
                             <div className="card-apple">
                                 <div className="mb-4">
-                                    <h3 className="text-title2 font-semibold mb-2">Instant API Testing</h3>
+                                    <h3 className="text-title2 font-semibold mb-2">Get Started in Seconds</h3>
                                     <p className="text-subheadline text-muted-foreground">
-                                        Drop your OpenAPI spec and watch it come alive.
+                                        Drop a file, paste your spec, or import from URL – YASP instantly validates and loads your API for testing.
                                     </p>
                                 </div>
                                 <ImportSpec onSpecLoaded={handleSpecLoaded}/>
                                 <div className="mt-3 text-caption1 text-muted-foreground">
-                                    Your data never leaves your browser • Works 100% offline
+                                    Full OpenAPI 3.x support • Your data stays private • Zero configuration
                                 </div>
                             </div>
                         </div>
@@ -87,52 +87,52 @@ export default function LandingPage() {
                 <section id="features" className="py-20 bg-secondary">
                     <div className="mx-auto max-w-7xl px-6">
                         <div className="text-center mb-12">
-                            <h2 className="text-largetitle font-semibold tracking-tight mb-4">Zero Setup Required</h2>
+                            <h2 className="text-largetitle font-semibold tracking-tight mb-4">API Documentation That Actually Works</h2>
                             <p className="text-title3 text-muted-foreground max-w-2xl mx-auto">
-                                No configuration, no accounts, no installation. Just upload your spec and start testing.
+                                End the chaos of scattered docs, broken tools, and endless setup. YASP puts everything you need in one powerful, local workspace.
                             </p>
                         </div>
                         <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
                             <div className="card-apple text-center">
                                 <FileJson className="h-12 w-12 text-primary mb-4 mx-auto"/>
-                                <h3 className="text-headline mb-3">Instant Upload</h3>
+                                <h3 className="text-headline mb-3">Import from Anywhere</h3>
                                 <p className="text-subheadline text-muted-foreground">
-                                    Drag, drop, done. Your API spec is live in seconds, not hours.
-                                </p>
-                            </div>
-                            <div className="card-apple text-center">
-                                <Database className="h-12 w-12 text-primary mb-4 mx-auto"/>
-                                <h3 className="text-headline mb-3">Complete Privacy</h3>
-                                <p className="text-subheadline text-muted-foreground">
-                                    Your APIs never leave your browser. No cloud storage, no tracking, no vendor lock-in.
-                                </p>
-                            </div>
-                            <div className="card-apple text-center">
-                                <Search className="h-12 w-12 text-primary mb-4 mx-auto"/>
-                                <h3 className="text-headline mb-3">Smart Search</h3>
-                                <p className="text-subheadline text-muted-foreground">
-                                    Find endpoints, parameters, or responses instantly. No more scrolling through docs.
+                                    Drag & drop files, paste raw specs, or pull from any URL. Works with all OpenAPI 3.x formats and validates everything automatically.
                                 </p>
                             </div>
                             <div className="card-apple text-center">
                                 <Code className="h-12 w-12 text-primary mb-4 mx-auto"/>
-                                <h3 className="text-headline mb-3">Live Testing</h3>
+                                <h3 className="text-headline mb-3">Test Real APIs Instantly</h3>
                                 <p className="text-subheadline text-muted-foreground">
-                                    Click to test real endpoints. No external tools or collection imports needed.
+                                    Make actual HTTP requests with full authentication support. No mocking – test against live endpoints and see real responses.
+                                </p>
+                            </div>
+                            <div className="card-apple text-center">
+                                <Database className="h-12 w-12 text-primary mb-4 mx-auto"/>
+                                <h3 className="text-headline mb-3">Your Data Stays Yours</h3>
+                                <p className="text-subheadline text-muted-foreground">
+                                    Everything stored locally in your browser. No cloud dependencies, no data sharing, complete privacy and control.
+                                </p>
+                            </div>
+                            <div className="card-apple text-center">
+                                <Search className="h-12 w-12 text-primary mb-4 mx-auto"/>
+                                <h3 className="text-headline mb-3">Organize Like a Pro</h3>
+                                <p className="text-subheadline text-muted-foreground">
+                                    Create Personal, Team, Partner, and Public workspaces. Tag, search, and filter specs effortlessly with advanced tools.
                                 </p>
                             </div>
                             <div className="card-apple text-center">
                                 <Zap className="h-12 w-12 text-primary mb-4 mx-auto"/>
-                                <h3 className="text-headline mb-3">High Performance</h3>
+                                <h3 className="text-headline mb-3">Smart Code Editing</h3>
                                 <p className="text-subheadline text-muted-foreground">
-                                    Load large specifications instantly. Optimized for speed and efficiency.
+                                    Professional Monaco editor catches errors as you type with full OpenAPI schema validation and intelligent autocomplete.
                                 </p>
                             </div>
                             <div className="card-apple text-center">
-                                <Share2 className="h-12 w-12 text-primary mb-4 mx-auto"/>
-                                <h3 className="text-headline mb-3">Easy Sharing</h3>
+                                <Shield className="h-12 w-12 text-primary mb-4 mx-auto"/>
+                                <h3 className="text-headline mb-3">Enterprise-Grade Security</h3>
                                 <p className="text-subheadline text-muted-foreground">
-                                    Generate shareable links in one click. Export to multiple formats.
+                                    SSRF protection, input validation, and secure headers. Built with security best practices from day one.
                                 </p>
                             </div>
                         </div>
@@ -156,10 +156,10 @@ export default function LandingPage() {
                             <div className="flex flex-col space-y-6">
                                 <div className="space-y-4">
                                     <h2 className="text-largetitle font-semibold tracking-tight">
-                                        Why Developers Choose YASP
+                                        Finally, OpenAPI Management Without the Headaches
                                     </h2>
                                     <p className="text-title3 text-muted-foreground max-w-lg">
-                                        Focus on building features instead of configuring tools. Get productive immediately.
+                                        Stop fighting with broken tools and vendor lock-in. YASP turns API chaos into organized productivity.
                                     </p>
                                 </div>
                                 <div className="space-y-4">
@@ -168,9 +168,9 @@ export default function LandingPage() {
                                             <Shield className="h-6 w-6 text-primary"/>
                                         </div>
                                         <div>
-                                            <h3 className="text-headline mb-2">Time Savings</h3>
+                                            <h3 className="text-headline mb-2">Keep Control</h3>
                                             <p className="text-subheadline text-muted-foreground">
-                                                Skip the setup time. Start testing APIs immediately without complex configuration.
+                                                Your data lives in your browser, not our servers. Export anytime, own forever. No vendor lock-in.
                                             </p>
                                         </div>
                                     </div>
@@ -179,9 +179,9 @@ export default function LandingPage() {
                                             <Shield className="h-6 w-6 text-primary"/>
                                         </div>
                                         <div>
-                                            <h3 className="text-headline mb-2">Simplified Workflow</h3>
+                                            <h3 className="text-headline mb-2">Zero Configuration</h3>
                                             <p className="text-subheadline text-muted-foreground">
-                                                Everything in one place. No context switching between multiple tools.
+                                                No installation, no accounts required to start. Just open and begin working immediately.
                                             </p>
                                         </div>
                                     </div>
@@ -190,9 +190,9 @@ export default function LandingPage() {
                                             <Shield className="h-6 w-6 text-primary"/>
                                         </div>
                                         <div>
-                                            <h3 className="text-headline mb-2">No Subscriptions</h3>
+                                            <h3 className="text-headline mb-2">Enterprise Power</h3>
                                             <p className="text-subheadline text-muted-foreground">
-                                                Free to use. No monthly fees or enterprise licensing costs.
+                                                Advanced search, multi-workspace organization, and real API testing – all the features you need.
                                             </p>
                                         </div>
                                     </div>
@@ -201,9 +201,9 @@ export default function LandingPage() {
                                             <Shield className="h-6 w-6 text-primary"/>
                                         </div>
                                         <div>
-                                            <h3 className="text-headline mb-2">Data Security</h3>
+                                            <h3 className="text-headline mb-2">Built by Developers</h3>
                                             <p className="text-subheadline text-muted-foreground">
-                                                Your sensitive API data stays private. No third-party servers, complete local control.
+                                                Thoughtful UX, keyboard shortcuts, and intuitive workflows designed for how developers actually work.
                                             </p>
                                         </div>
                                     </div>
@@ -219,19 +219,22 @@ export default function LandingPage() {
                         <div className="text-center space-y-6">
                             <div className="space-y-4">
                                 <h2 className="text-largetitle font-semibold tracking-tight">
-                                    Ready to Get Started?
+                                    Ready to End API Documentation Chaos?
                                 </h2>
                                 <p className="text-title3 text-muted-foreground max-w-xl mx-auto">
-                                    Upload your OpenAPI specification and start testing in seconds.
+                                    Join developers who've already organized thousands of API specs with YASP. Zero setup, maximum productivity.
                                 </p>
                             </div>
                             <div className="flex flex-col sm:flex-row gap-4 justify-center">
                                 <Link to="/specs" className="btn-apple">
-                                    Start Testing Now
+                                    Start Organizing Now
+                                </Link>
+                                <Link to="/auth" className="btn-apple-secondary">
+                                    Sign In
                                 </Link>
                             </div>
                             <div className="text-caption1 text-muted-foreground">
-                                100% private • Zero setup required
+                                100% free • Your data stays private • Works offline
                             </div>
                         </div>
                     </div>
@@ -243,10 +246,10 @@ export default function LandingPage() {
                     <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
                         <div className="flex items-center gap-2">
                             <FileJson className="h-5 w-5 text-primary"/>
-                            <span className="text-subheadline font-semibold">YASP API Collection</span>
+                            <span className="text-subheadline font-semibold">YASP - OpenAPI Management</span>
                         </div>
                         <p className="text-footnote text-muted-foreground">
-                            © {new Date().getFullYear()} API Collection. All rights reserved.
+                            © {new Date().getFullYear()} YASP. All rights reserved.
                         </p>
                         <div className="flex gap-6">
                             <Link to="#" className="text-footnote text-muted-foreground hover:text-foreground transition-colors duration-200">

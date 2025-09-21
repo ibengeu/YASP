@@ -1,96 +1,103 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { LoginForm } from './LoginForm';
 import { SignUpForm } from './SignUpForm';
-import { AuthView, LoginFormData, SignUpFormData, User } from '../types';
-import { generateMockUser } from '../utils';
+import { ForgotPasswordForm } from './ForgotPasswordForm';
+import { AuthView, LoginFormData, SignUpFormData, ResetPasswordFormData, User } from '../types';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
+import { useAuth } from '@/core/context/auth-context';
+import { useNavigate, useLocation } from 'react-router';
 
 interface AuthScreenProps {
-  onAuthSuccess: (user: User) => void;
+  onAuthSuccess?: (user: User) => void;
   initialView?: AuthView;
-  user?: User | null;
 }
 
-export function AuthScreen({ onAuthSuccess, initialView = 'login', user }: AuthScreenProps) {
-  const [currentView, setCurrentView] = useState<AuthView>(user ? 'profile' : initialView);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+export function AuthScreen({ onAuthSuccess, initialView = 'login' }: AuthScreenProps) {
+  const [currentView, setCurrentView] = useState<AuthView>(initialView);
+  const { login, signup, isLoading, error, clearError, isAuthenticated, user } = useAuth();
   const [success, setSuccess] = useState<string | null>(null);
-  const [, setCurrentUser] = useState<User | null>(user || null);
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      const from = location.state?.from || '/specs';
+      onAuthSuccess?.(user);
+      navigate(from, { replace: true });
+    }
+  }, [isAuthenticated, user, navigate, location.state, onAuthSuccess]);
 
   const clearMessages = () => {
-    setError(null);
+    clearError();
     setSuccess(null);
   };
 
   const handleLogin = async (data: LoginFormData) => {
-    setLoading(true);
     clearMessages();
 
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      const result = await login(data.email, data.password);
 
-      // Mock authentication logic
-      if (data.email === 'admin@example.com' && data.password === 'password') {
-        const mockUser = generateMockUser();
-        setCurrentUser(mockUser);
-        onAuthSuccess(mockUser);
+      if (result.success) {
         toast.success('Welcome back! You have successfully signed in.');
+        // Navigation will be handled by the useEffect above
       } else {
-        throw new Error('Invalid email or password. Try admin@example.com / password');
+        toast.error(result.error || 'Login failed');
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Login failed');
-    } finally {
-      setLoading(false);
+      const errorMessage = err instanceof Error ? err.message : 'Login failed';
+      toast.error(errorMessage);
     }
   };
 
   const handleSignUp = async (data: SignUpFormData) => {
-    setLoading(true);
     clearMessages();
 
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
-
-      // Mock user creation
-      const newUser: User = {
-        id: `user-${Date.now()}`,
-        email: data.email,
+      const signupData = {
         firstName: data.firstName,
         lastName: data.lastName,
+        email: data.email,
+        password: data.password,
         company: data.company,
         role: data.role,
-        avatar: '',
-        emailVerified: false,
-        twoFactorEnabled: false,
-        socialAccounts: [],
-        notificationPreferences: {
-          emailNotifications: true,
-          apiUpdates: true,
-          securityAlerts: true,
-          marketingEmails: false
-        },
-        createdAt: new Date().toISOString(),
-        lastLogin: new Date().toISOString()
       };
 
-      setCurrentUser(newUser);
-      onAuthSuccess(newUser);
-      toast.success('Account created successfully! Welcome to YASP.');
+      const result = await signup(signupData);
+
+      if (result.success) {
+        toast.success('Account created successfully! Welcome to YASP.');
+        // Navigation will be handled by the useEffect above
+      } else {
+        toast.error(result.error || 'Signup failed');
+      }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Sign up failed');
-    } finally {
-      setLoading(false);
+      const errorMessage = err instanceof Error ? err.message : 'Signup failed';
+      toast.error(errorMessage);
     }
   };
 
   const handleForgotPassword = () => {
     setCurrentView('forgot-password');
     clearMessages();
+  };
+
+  const handleResetPassword = async (_data: ResetPasswordFormData) => {
+    clearMessages();
+
+    try {
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      // Mock reset password logic
+      setSuccess('Password reset email sent successfully!');
+      toast.success('Password reset link sent to your email address.');
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to send reset email';
+      toast.error(errorMessage);
+    }
   };
 
   // Auto-clear messages after 5 seconds
@@ -103,17 +110,17 @@ export function AuthScreen({ onAuthSuccess, initialView = 'login', user }: AuthS
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
+      <div className="w-full max-w-xl">
         <AnimatePresence mode="wait">
           <motion.div
             key={currentView}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
             transition={{ duration: 0.3 }}
           >
             {currentView === 'login' && (
-              <div className="bg-card border border-border/50 rounded-2xl p-8 shadow-lg">
+              <div className="p-8">
                 <LoginForm
                   onSubmit={handleLogin}
                   onForgotPassword={handleForgotPassword}
@@ -121,22 +128,37 @@ export function AuthScreen({ onAuthSuccess, initialView = 'login', user }: AuthS
                     setCurrentView('signup');
                     clearMessages();
                   }}
-                  loading={loading}
+                  loading={isLoading}
                   error={error}
                 />
               </div>
             )}
 
             {currentView === 'signup' && (
-              <div className="bg-card border border-border/50 rounded-2xl p-8 shadow-lg">
+              <div className="p-8">
                 <SignUpForm
                   onSubmit={handleSignUp}
                   onSignIn={() => {
                     setCurrentView('login');
                     clearMessages();
                   }}
-                  loading={loading}
+                  loading={isLoading}
                   error={error}
+                />
+              </div>
+            )}
+
+            {currentView === 'forgot-password' && (
+              <div className="p-8">
+                <ForgotPasswordForm
+                  onSubmit={handleResetPassword}
+                  onBackToLogin={() => {
+                    setCurrentView('login');
+                    clearMessages();
+                  }}
+                  loading={isLoading}
+                  error={error}
+                  success={!!success}
                 />
               </div>
             )}
