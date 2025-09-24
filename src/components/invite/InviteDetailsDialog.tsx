@@ -125,7 +125,7 @@ export function InviteDetailsDialog({
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto p-0 font-sans" aria-describedby="invite-details-description">
         <DialogHeader className="px-8 py-6 border-b border-border">
           <DialogTitle className="flex items-start gap-4">
-            <div className={`flex-shrink-0 p-3 rounded ${statusConfig.bgColor}`}>
+            <div className={`shrink-0 p-3 rounded ${statusConfig.bgColor}`}>
               <StatusIcon className={`h-5 w-5 ${statusConfig.color}`} />
             </div>
             <div className="flex-1 space-y-2">
@@ -280,7 +280,7 @@ export function InviteDetailsDialog({
                   {relatedAuditLogs.length > 0 ? (
                     relatedAuditLogs.map((log) => (
                       <div key={log.id} className="flex gap-4 pb-6 border-b border-border last:border-0 last:pb-0">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted border border-border flex-shrink-0">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted border border-border shrink-0">
                           <History className="h-4 w-4 text-muted-foreground" />
                         </div>
                         <div className="flex-1 space-y-3">

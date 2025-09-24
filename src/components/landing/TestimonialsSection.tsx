@@ -71,7 +71,7 @@ export function TestimonialsSection() {
   ];
 
   return (
-    <section className="py-24 bg-gradient-to-br from-secondary/30 via-background to-background">
+    <section className="py-24 bg-linear-to-br from-secondary/30 via-background to-background">
       <div className="max-w-6xl mx-auto px-6">
         {/* Section Header */}
         <motion.div
@@ -194,7 +194,7 @@ export function TestimonialsSection() {
           transition={{ duration: 0.8, delay: 0.4 }}
           className="text-center mt-16"
         >
-          <div className="bg-gradient-to-r from-primary/10 via-accent/10 to-primary/10 rounded-2xl p-8 md:p-12 border border-primary/20">
+          <div className="bg-linear-to-r from-primary/10 via-accent/10 to-primary/10 rounded-2xl p-8 md:p-12 border border-primary/20">
             <h3 className="text-2xl md:text-3xl font-semibold mb-4">
               Join the community
             </h3>

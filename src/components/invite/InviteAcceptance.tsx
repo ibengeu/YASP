@@ -252,7 +252,7 @@ export function InviteAcceptance({
   return (
     <div className="min-h-screen bg-background">
       {/* Hero Section */}
-      <div className="bg-gradient-to-br from-primary/5 via-background to-secondary/5 pt-16 pb-8">
+      <div className="bg-linear-to-br from-primary/5 via-background to-secondary/5 pt-16 pb-8">
         <div className="container max-w-4xl mx-auto px-4">
           <motion.div
             initial={{ opacity: 0, y: 20 }}

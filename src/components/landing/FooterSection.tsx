@@ -104,7 +104,7 @@ export function FooterSection() {
                       placeholder="Enter your email"
                       className="flex-1 h-10 px-3 text-sm bg-background border border-border/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
                     />
-                    <Button size="sm" className="h-10 px-4 bg-primary hover:bg-primary/90 rounded-lg">
+                    <Button size="sm" className="h-10 px-4">
                       Subscribe
                     </Button>
                   </div>

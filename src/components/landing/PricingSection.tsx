@@ -112,7 +112,7 @@ export function PricingSection({ onGetStarted }: PricingSectionProps) {
         >
           <Badge 
             variant="secondary" 
-            className="mb-4 px-3 py-1 text-sm font-medium bg-primary/10 text-primary border-primary/20 rounded-full"
+            className="mb-4 px-3 py-1 text-sm font-medium bg-primary/10 text-primary border-primary/20"
           >
             Pricing
           </Badge>
@@ -175,7 +175,7 @@ export function PricingSection({ onGetStarted }: PricingSectionProps) {
                     <Badge variant="outline" className={`text-xs ${plan.badgeColor}`}>
                       {plan.badge}
                     </Badge>
-                    <div className={`h-10 w-10 rounded-lg bg-gradient-to-br ${
+                    <div className={`h-10 w-10 rounded-lg bg-linear-to-br ${
                       plan.name === 'Starter' ? 'from-green-500 to-emerald-500' :
                       plan.name === 'Professional' ? 'from-blue-500 to-cyan-500' :
                       'from-purple-500 to-pink-500'
@@ -212,7 +212,7 @@ export function PricingSection({ onGetStarted }: PricingSectionProps) {
                   {/* CTA Button */}
                   <Button
                     onClick={plan.name === 'Enterprise' ? undefined : onGetStarted}
-                    className={`w-full h-12 rounded-xl transition-all ${
+                    className={`w-full h-12 transition-all ${
                       plan.popular
                         ? 'bg-primary hover:bg-primary/90 text-primary-foreground card-shadow-sm'
                         : 'bg-secondary hover:bg-secondary/80 text-secondary-foreground'
@@ -233,7 +233,7 @@ export function PricingSection({ onGetStarted }: PricingSectionProps) {
                     </h4>
                     {plan.features.map((feature) => (
                       <div key={feature} className="flex items-start gap-3">
-                        <Check className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                        <Check className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
                         <span className="text-sm leading-relaxed">{feature}</span>
                       </div>
                     ))}
@@ -247,7 +247,7 @@ export function PricingSection({ onGetStarted }: PricingSectionProps) {
                       </h4>
                       {plan.limitations.map((limitation) => (
                         <div key={limitation} className="flex items-start gap-3 mb-2">
-                          <div className="h-4 w-4 border border-muted-foreground/30 rounded-full mt-0.5 flex-shrink-0" />
+                          <div className="h-4 w-4 border border-muted-foreground/30 rounded-full mt-0.5 shrink-0" />
                           <span className="text-sm text-muted-foreground leading-relaxed">{limitation}</span>
                         </div>
                       ))}
@@ -291,7 +291,7 @@ export function PricingSection({ onGetStarted }: PricingSectionProps) {
             <p className="text-muted-foreground mb-4">
               Have more questions? We're here to help.
             </p>
-            <Button variant="outline" className="border-border/50 hover:bg-secondary/50 rounded-lg">
+            <Button variant="outline" className="border-border/50 hover:bg-secondary/50">
               Contact Support
             </Button>
           </div>

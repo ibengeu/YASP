@@ -82,7 +82,7 @@ export function WorkspaceSwitcher({ className }: WorkspaceSwitcherProps) {
           disabled
         >
           <div className="flex items-center gap-3 min-w-0">
-            <div className="h-6 w-6 rounded-lg flex items-center justify-center bg-gray-200 text-gray-500 flex-shrink-0">
+            <div className="h-6 w-6 rounded-lg flex items-center justify-center bg-gray-200 text-gray-500 shrink-0">
               👤
             </div>
             <div className="min-w-0 text-left">
@@ -104,7 +104,7 @@ export function WorkspaceSwitcher({ className }: WorkspaceSwitcherProps) {
           >
             <div className="flex items-center gap-3 min-w-0">
               <div 
-                className="h-6 w-6 rounded-lg flex items-center justify-center text-white flex-shrink-0"
+                className="h-6 w-6 rounded-lg flex items-center justify-center text-white shrink-0"
                 style={{ backgroundColor: currentWorkspace.color || '#007aff' }}
               >
                 {currentWorkspace.icon || '📁'}
@@ -168,7 +168,7 @@ export function WorkspaceSwitcher({ className }: WorkspaceSwitcherProps) {
               >
                 <div className="flex items-center gap-3 w-full min-w-0">
                   <div 
-                    className="h-6 w-6 rounded-md flex items-center justify-center text-white text-sm flex-shrink-0"
+                    className="h-6 w-6 rounded-md flex items-center justify-center text-white text-sm shrink-0"
                     style={{ backgroundColor: workspace.color || '#007aff' }}
                   >
                     {workspace.icon || '📁'}
@@ -266,7 +266,7 @@ export function WorkspaceSwitcher({ className }: WorkspaceSwitcherProps) {
                     <CardContent className="p-6">
                       <div className="flex items-start gap-4">
                         <div 
-                          className="h-10 w-10 rounded-lg flex items-center justify-center text-white flex-shrink-0"
+                          className="h-10 w-10 rounded-lg flex items-center justify-center text-white shrink-0"
                           style={{ backgroundColor: workspace.color || '#007aff' }}
                         >
                           {workspace.icon || '📁'}

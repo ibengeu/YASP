@@ -14,7 +14,7 @@ import { BatchActions } from './BatchActions';
 import { ApiMetadata, CatalogState, FilterState, PaginationInfo } from './types';
 import { demoApis, sortOptions, getFilterOptions, getWorkspaceApis } from './demo-data';
 import { useWorkspace } from '../workspace/WorkspaceContext';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
 import { motion } from 'motion/react';
 
 interface ApiCatalogProps {
@@ -334,7 +334,7 @@ export function ApiCatalog({ onViewDocumentation, onAddApi }: ApiCatalogProps) {
     <div className="h-full flex bg-background">
       {/* Sidebar */}
       <div className="w-80 border-r border-border bg-sidebar/30 overflow-y-auto">
-        <div className="p-[var(--spacing-06)]">
+        <div className="p-(--spacing-06)">
           <FilterSidebar
             filters={state.filters}
             onFiltersChange={handleFiltersChange}
@@ -350,7 +350,7 @@ export function ApiCatalog({ onViewDocumentation, onAddApi }: ApiCatalogProps) {
       <div className="flex-1 flex flex-col min-w-0">
         {/* Header */}
         <div className="border-b border-border bg-background/95 backdrop-blur-sm">
-          <div className="p-[var(--spacing-07)] pb-0">
+          <div className="p-(--spacing-07) pb-0">
             <div className="flex items-start justify-between mb-6">
               <div className="space-y-1">
                 <div className="flex items-center gap-3">
@@ -445,7 +445,7 @@ export function ApiCatalog({ onViewDocumentation, onAddApi }: ApiCatalogProps) {
         </div>
 
         {/* Content */}
-        <div className="flex-1 p-[var(--spacing-07)] overflow-y-auto">
+        <div className="flex-1 p-(--spacing-07) overflow-y-auto">
           {paginatedApis.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-96 text-center">
               <div className="max-w-md space-y-4">

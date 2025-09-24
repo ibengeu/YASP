@@ -1,235 +1,202 @@
-import React, { useState } from "react";
-import { ApiExplorer } from "./components/api-explorer/ApiExplorer";
-import { OpenAPICatalog } from "./components/openapi-catalog/OpenAPICatalog";
-import { AuthScreen } from "./components/auth/AuthScreen";
-import { LandingPage } from "./components/landing/LandingPage";
-import { WorkspaceProvider } from "./components/workspace/WorkspaceContext";
-import { WorkspaceDashboard } from "./components/workspace/WorkspaceDashboard";
-
-import { CreateWorkspaceDialog } from "./components/workspace/CreateWorkspaceDialog";
-import { AppLayout, PageContainer, Section } from "./components/layout/AppLayout";
-import { AppView } from "./components/layout/AppHeader";
-import { InviteManagement } from "./components/invite/InviteManagement";
-import { ApiMetadata } from "./components/api-catalog/types";
-import { User } from "./components/auth/types";
-import { demoApiSpec } from "./components/api-explorer/demo-data";
-import { Toaster } from "./components/ui/sonner";
-import { CarbonMigrationDemo } from "./components/carbon/CarbonMigrationDemo";
-import { CarbonProvider } from "./components/carbon/CarbonProvider";
-
+import React, {useState} from "react";
+import {Route, Routes} from "react-router-dom";
+import {useAuth} from "@/core/context/auth-context";
+import {ApiExplorer} from "./components/api-explorer/ApiExplorer";
+import {OpenAPICatalog} from "./components/openapi-catalog/OpenAPICatalog";
+import {AuthScreen} from "./features/auth/components/AuthScreen";
+import {LandingPage} from "./components/landing/LandingPage";
+import {WorkspaceProvider} from "./components/workspace/WorkspaceContext";
+import {CreateWorkspaceDialog} from "./components/workspace/CreateWorkspaceDialog";
+import {AppLayout, PageContainer, Section} from "./components/layout/AppLayout";
+import {ApiMetadata} from "./components/api-catalog/types";
+import {demoApiSpec} from "./components/api-explorer/demo-data";
+import {Toaster} from "./components/ui/sonner";
+import {CarbonMigrationDemo} from "./components/carbon/CarbonMigrationDemo";
+import {CarbonProvider} from "./components/carbon/CarbonProvider";
+import {LoginPage} from "./pages/LoginPage";
+import {SignUpPage} from "./pages/SignUpPage";
+import {InviteManagementPage} from "./pages/InviteManagementPage";
+import {useNavigate} from "react-router";
 
 
 export default function App() {
-  const [currentView, setCurrentView] =
-    useState<AppView>("landing");
-  const [currentUser, setCurrentUser] = useState<User | null>(
-    null,
-  );
-  const [selectedApi, setSelectedApi] =
-    useState<ApiMetadata | null>(null);
-  const [createWorkspaceDialogOpen, setCreateWorkspaceDialogOpen] =
-    useState(false);
-
-  const handleAuthSuccess = (user: User) => {
-    setCurrentUser(user);
-    setCurrentView("openapi-catalog"); // Main catalog view
-  };
-
-  const handleLogout = () => {
-    setCurrentUser(null);
-    setCurrentView("auth");
-    setSelectedApi(null);
-  };
-
-  const handleViewProfile = () => {
-    setCurrentView("profile");
-  };
-
-  const handleViewDocumentation = (api: ApiMetadata) => {
-    setSelectedApi(api);
-    setCurrentView("explorer");
-  };
-
-  const handleViewOpenAPISpec = (spec: any) => {
-    // Convert OpenAPI spec to ApiMetadata format for the explorer
-    const apiMetadata: ApiMetadata = {
-      id: spec.id,
-      title: spec.title || spec.displayName,
-      description: spec.description,
-      version: spec.version,
-      author: spec.owner?.name || 'Unknown',
-      category: spec.category || 'Other',
-      tags: spec.tags?.map((tag: any) => tag.name || tag) || [],
-      endpoint: spec.servers?.[0]?.url || 'https://api.example.com',
-      documentation: '/docs',
-      openapi: spec.originalContent || '{}',
-      status: spec.status === 'published' ? 'active' : 'draft',
-      lastUpdated: spec.updatedAt || new Date(),
-      rating: 4.5,
-      downloads: spec.downloadCount || 0
+    const {user: currentUser, logout} = useAuth();
+    const navigate = useNavigate();
+    const [, setSelectedApi] = useState<ApiMetadata | null>(null);
+    const [createWorkspaceDialogOpen, setCreateWorkspaceDialogOpen] = useState(false);
+    const handleLogout = () => {
+        logout();
+        setSelectedApi(null);
+        // Navigation will be handled by React Router
     };
-    setSelectedApi(apiMetadata);
-    setCurrentView("explorer");
-  };
+    const handleViewOpenAPISpec = (spec: any) => {
+        // Convert OpenAPI spec to ApiMetadata format for the explorer
+        const apiMetadata: ApiMetadata = {
+            id: spec.id,
+            title: spec.title || spec.displayName,
+            description: spec.description,
+            version: spec.version,
+            author: spec.owner?.name || 'Unknown',
+            category: spec.category || 'Other',
+            tags: spec.tags?.map((tag: any) => tag.name || tag) || [],
+            endpoints: Object.keys(spec.paths || {}).length,
+            lifecycle: spec.status === 'published' ? 'production' : 'development',
+            lastUpdated: spec.updatedAt || new Date().toISOString(),
+            isPublic: true,
+            workspaceId: 'default'
+        };
+        setSelectedApi(apiMetadata);
+        navigate('/explorer');
+        // Navigation will be handled by React Router
+    };
 
-  const handleBackToCatalog = () => {
-    setCurrentView("openapi-catalog");
-    setSelectedApi(null);
-  };
+    const handleBackToCatalog = () => {
+        setSelectedApi(null);
+        navigate('/catalog');
+    };
 
-  const handleBackFromProfile = () => {
-    setCurrentView("openapi-catalog");
-  };
+    return (
+        <CarbonProvider>
+            <Routes>
+                {/* Landing Page */}
+                <Route path="/" element={<LandingPage/>}/>
 
-  const handleGoToDashboard = () => {
-    setCurrentView("workspace-dashboard");
-  };
+                {/* Authentication Routes */}
+                <Route path="/login" element={<LoginPage/>}/>
+                <Route path="/sign-up" element={<SignUpPage/>}/>
 
-  const handleGetStarted = () => {
-    setCurrentView("auth");
-  };
 
-  const handleSignIn = () => {
-    setCurrentView("auth");
-  };
-
-  const handleRequestDemo = () => {
-    // In a real app, this would open a demo modal or schedule a demo
-    console.log("Demo requested");
-    setCurrentView("carbon-demo");
-  };
-
-  const handleNavigate = (view: AppView) => {
-    setCurrentView(view);
-  };
-
-  return (
-    <CarbonProvider>
-      {/* Landing Page */}
-      {currentView === "landing" && (
-        <LandingPage
-          onGetStarted={handleGetStarted}
-          onSignIn={handleSignIn}
-          onRequestDemo={handleRequestDemo}
-        />
-      )}
-
-      {/* Authentication */}
-      {currentView === "auth" && (
-        <AuthScreen onAuthSuccess={handleAuthSuccess} />
-      )}
-
-      {/* Carbon Design System Demo */}
-      {currentView === "carbon-demo" && (
-        <AppLayout
-          currentUser={currentUser}
-          currentView={currentView}
-          onNavigate={handleNavigate}
-          onLogout={handleLogout}
-          onCreateWorkspace={() => setCreateWorkspaceDialogOpen(true)}
-        >
-          <WorkspaceProvider currentUser={currentUser}>
-            <PageContainer>
-              <Section>
-                <CarbonMigrationDemo />
-              </Section>
-            </PageContainer>
-          </WorkspaceProvider>
-        </AppLayout>
-      )}
-
-      {/* Profile */}
-      {currentView === "profile" && currentUser && (
-        <AppLayout
-          currentUser={currentUser}
-          currentView={currentView}
-          onNavigate={handleNavigate}
-          onLogout={handleLogout}
-          onCreateWorkspace={() => setCreateWorkspaceDialogOpen(true)}
-        >
-          <WorkspaceProvider currentUser={currentUser}>
-            <PageContainer>
-              <Section>
-                <AuthScreen
-                  onAuthSuccess={handleBackFromProfile}
-                  initialView="profile"
-                  user={currentUser}
+                {/* Carbon Design System Demo */}
+                <Route
+                    path="/carbon-demo"
+                    element={
+                        <AppLayout
+                            currentUser={currentUser}
+                            currentView="carbon-demo"
+                            onNavigate={() => {
+                            }}
+                            onLogout={handleLogout}
+                            onCreateWorkspace={() => setCreateWorkspaceDialogOpen(true)}
+                        >
+                            <WorkspaceProvider currentUser={currentUser}>
+                                <PageContainer>
+                                    <Section>
+                                        <CarbonMigrationDemo/>
+                                    </Section>
+                                </PageContainer>
+                                <CreateWorkspaceDialog
+                                    open={createWorkspaceDialogOpen}
+                                    onOpenChange={setCreateWorkspaceDialogOpen}
+                                />
+                            </WorkspaceProvider>
+                        </AppLayout>
+                    }
                 />
-              </Section>
-            </PageContainer>
-          </WorkspaceProvider>
-        </AppLayout>
-      )}
 
-      {/* Authenticated Workspace Views */}
-      {(currentView === "openapi-catalog" ||
-        currentView === "explorer" ||
-        currentView === "workspace-dashboard" ||
-        currentView === "invite-management") &&
-        currentUser && (
-          <WorkspaceProvider currentUser={currentUser}>
-            <AppLayout
-              currentUser={currentUser}
-              currentView={currentView}
-              onNavigate={handleNavigate}
-              onLogout={handleLogout}
-              onCreateWorkspace={() => setCreateWorkspaceDialogOpen(true)}
-            >
-              {/* Workspace Dashboard */}
-              {currentView === "workspace-dashboard" && (
-                <PageContainer>
-                  <Section>
-                    <WorkspaceDashboard
-                      onViewSettings={() => {/* TODO: Open settings */}}
-                      onInviteMembers={() => {/* TODO: Open invite */}}
-                    />
-                  </Section>
-                </PageContainer>
-              )}
+                {/* Profile Route */}
+                <Route
+                    path="/profile"
+                    element={
+                        currentUser ? (
+                            <AppLayout
+                                currentUser={currentUser}
+                                currentView="profile"
+                                onNavigate={() => {
+                                }}
+                                onLogout={handleLogout}
+                                onCreateWorkspace={() => setCreateWorkspaceDialogOpen(true)}
+                            >
+                                <WorkspaceProvider currentUser={currentUser}>
+                                    <PageContainer>
+                                        <Section>
+                                            <AuthScreen initialView="profile"/>
+                                        </Section>
+                                    </PageContainer>
+                                    <CreateWorkspaceDialog
+                                        open={createWorkspaceDialogOpen}
+                                        onOpenChange={setCreateWorkspaceDialogOpen}
+                                    />
+                                </WorkspaceProvider>
+                            </AppLayout>
+                        ) : (
+                            <LoginPage/>
+                        )
+                    }
+                />
 
-              {/* API Catalog */}
-              {currentView === "openapi-catalog" && (
-                <PageContainer>
-                  <Section>
-                    <OpenAPICatalog
-                      onSpecSelect={handleViewOpenAPISpec}
-                      onSpecUpload={(spec) => {
-                        console.log("Uploaded OpenAPI spec:", spec);
-                      }}
-                    />
-                  </Section>
-                </PageContainer>
-              )}
+                {/* API Catalog Route */}
+                <Route
+                    path="/catalog"
+                    element={
+                        currentUser ? (
+                            <WorkspaceProvider currentUser={currentUser}>
+                                <AppLayout
+                                    currentUser={currentUser}
+                                    currentView="openapi-catalog"
+                                    onNavigate={() => {
+                                    }}
+                                    onLogout={handleLogout}
+                                    onCreateWorkspace={() => setCreateWorkspaceDialogOpen(true)}
+                                >
+                                    <PageContainer>
+                                        <Section>
+                                            <OpenAPICatalog
+                                                onSpecSelect={handleViewOpenAPISpec}
+                                                onSpecUpload={(spec) => {
+                                                    console.log("Uploaded OpenAPI spec:", spec);
+                                                }}
+                                            />
+                                        </Section>
+                                    </PageContainer>
+                                </AppLayout>
+                                <CreateWorkspaceDialog
+                                    open={createWorkspaceDialogOpen}
+                                    onOpenChange={setCreateWorkspaceDialogOpen}
+                                />
+                            </WorkspaceProvider>
+                        ) : (
+                            <LoginPage/>
+                        )
+                    }
+                />
 
-              {/* API Explorer */}
-              {currentView === "explorer" && (
-                <PageContainer fullWidth={true} padding="none">
-                  <ApiExplorer
-                    apiSpec={demoApiSpec}
-                    onBackToCatalog={handleBackToCatalog}
-                  />
-                </PageContainer>
-              )}
+                {/* API Explorer Route */}
+                <Route
+                    path="/explorer"
+                    element={
+                        currentUser ? (
+                            <WorkspaceProvider currentUser={currentUser}>
+                                <AppLayout
+                                    currentUser={currentUser}
+                                    currentView="explorer"
+                                    onNavigate={() => {
+                                    }}
+                                    onLogout={handleLogout}
+                                    onCreateWorkspace={() => setCreateWorkspaceDialogOpen(true)}
+                                >
+                                    <div className="h-[calc(100vh-4rem)]">
+                                        <ApiExplorer
+                                            apiSpec={demoApiSpec}
+                                            onBackToCatalog={handleBackToCatalog}
+                                        />
+                                    </div>
+                                </AppLayout>
+                                <CreateWorkspaceDialog
+                                    open={createWorkspaceDialogOpen}
+                                    onOpenChange={setCreateWorkspaceDialogOpen}
+                                />
+                            </WorkspaceProvider>
+                        ) : (
+                            <LoginPage/>
+                        )
+                    }
+                />
 
-              {/* Invite Management */}
-              {currentView === "invite-management" && (
-                <PageContainer>
-                  <Section>
-                    <InviteManagement />
-                  </Section>
-                </PageContainer>
-              )}
-            </AppLayout>
+                {/* Invite Management Page Route */}
+                <Route path="/invites" element={<InviteManagementPage/>}/>
+            </Routes>
 
-            {/* Dialogs */}
-            <CreateWorkspaceDialog
-              open={createWorkspaceDialogOpen}
-              onOpenChange={setCreateWorkspaceDialogOpen}
-            />
-          </WorkspaceProvider>
-        )}
-
-      <Toaster />
-    </CarbonProvider>
-  );
+            <Toaster/>
+        </CarbonProvider>
+    );
 }

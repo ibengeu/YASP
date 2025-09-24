@@ -212,7 +212,7 @@ export function CreateWorkspaceDialog({ open, onOpenChange }: CreateWorkspaceDia
                       className="cursor-pointer border-border/50 hover:border-primary/30 hover:card-shadow-sm transition-all"
                       onClick={() => handleTemplateSelect(index)}
                     >
-                      <CardContent className="p-4">
+                      <CardContent>
                         <div className="flex items-center gap-3">
                           <div 
                             className="h-10 w-10 rounded-lg flex items-center justify-center text-white"

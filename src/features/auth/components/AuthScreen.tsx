@@ -23,7 +23,7 @@ export function AuthScreen({ onAuthSuccess, initialView = 'login' }: AuthScreenP
   // Redirect if already authenticated
   useEffect(() => {
     if (isAuthenticated && user) {
-      const from = location.state?.from || '/specs';
+      const from = location.state?.from || '/catalog';
       onAuthSuccess?.(user);
       navigate(from, { replace: true });
     }

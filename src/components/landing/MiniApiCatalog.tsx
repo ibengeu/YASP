@@ -108,7 +108,7 @@ export function MiniApiCatalog() {
                   <CardContent className="p-3">
                     <div className="flex items-start gap-3">
                       {/* Icon */}
-                      <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                      <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
                         <CategoryIcon className="h-4 w-4 text-primary" />
                       </div>
 

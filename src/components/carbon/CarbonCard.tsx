@@ -1,5 +1,5 @@
 import React from 'react';
-import { cn } from '../ui/utils';
+import { cn } from '@/lib/utils';
 
 /**
  * Carbon Design System inspired Card component (Tile)
@@ -30,8 +30,8 @@ export function CarbonCard({
     // Remove rounded corners for Carbon's sharp aesthetic
     "rounded-none",
     
-    // Carbon spacing using 8px grid
-    "p-4", // 16px padding (spacing-05)
+    // Carbon spacing using consistent padding
+    "p-6", // 24px padding for consistency with other cards
     
     // Carbon elevation - minimal
     "shadow-none",

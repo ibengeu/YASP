@@ -85,7 +85,7 @@ export function SpecCard({
       >
         <div className="h-full flex flex-col">
           {/* Header Section */}
-          <div className="flex-shrink-0 mb-3">
+          <div className="shrink-0 mb-3">
             <div className="flex items-start gap-3">
               <div className="mt-1 bg-primary/10 rounded-lg p-2">
                 <FileJson className="h-5 w-5 text-primary" />
@@ -143,7 +143,7 @@ export function SpecCard({
 
           {/* Footer Section */}
           {tags.length > 0 && (
-            <div className="border-t border-border pt-3 mt-3 flex-shrink-0">
+            <div className="border-t border-border pt-3 mt-3 shrink-0">
               <div className="flex flex-wrap gap-1 w-full">
                 {tags.map((tag, index) => (
                   <span key={index} className="text-caption2 bg-secondary text-secondary-foreground px-2 py-1 rounded-md">

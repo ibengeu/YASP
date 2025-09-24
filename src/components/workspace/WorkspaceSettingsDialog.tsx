@@ -429,7 +429,7 @@ export function WorkspaceSettingsDialog({ open, onOpenChange, workspace }: Works
                   animate={{ opacity: 1, y: 0 }}
                 >
                   <Card>
-                    <CardContent className="p-4">
+                    <CardContent>
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
                           <Avatar className="h-10 w-10">

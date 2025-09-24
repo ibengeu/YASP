@@ -122,19 +122,19 @@ export function NavigationGuide() {
               <h4 className="font-semibold text-green-700">✅ What We Fixed</h4>
               <ul className="space-y-2 text-sm">
                 <li className="flex items-start gap-2">
-                  <CheckCircle2 className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
+                  <CheckCircle2 className="h-4 w-4 text-green-600 mt-0.5 shrink-0" />
                   Removed duplicate "Dashboard" and "API Catalog" from user menu
                 </li>
                 <li className="flex items-start gap-2">
-                  <CheckCircle2 className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
+                  <CheckCircle2 className="h-4 w-4 text-green-600 mt-0.5 shrink-0" />
                   Consolidated "Create Workspace" to single header location
                 </li>
                 <li className="flex items-start gap-2">
-                  <CheckCircle2 className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
+                  <CheckCircle2 className="h-4 w-4 text-green-600 mt-0.5 shrink-0" />
                   Enhanced breadcrumbs with context awareness
                 </li>
                 <li className="flex items-start gap-2">
-                  <CheckCircle2 className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
+                  <CheckCircle2 className="h-4 w-4 text-green-600 mt-0.5 shrink-0" />
                   Consistent navigation patterns across all pages
                 </li>
               </ul>
@@ -144,19 +144,19 @@ export function NavigationGuide() {
               <h4 className="font-semibold text-red-700">❌ What We Removed</h4>
               <ul className="space-y-2 text-sm">
                 <li className="flex items-start gap-2">
-                  <AlertTriangle className="h-4 w-4 text-red-600 mt-0.5 flex-shrink-0" />
+                  <AlertTriangle className="h-4 w-4 text-red-600 mt-0.5 shrink-0" />
                   Navigation duplicates in user dropdown
                 </li>
                 <li className="flex items-start gap-2">
-                  <AlertTriangle className="h-4 w-4 text-red-600 mt-0.5 flex-shrink-0" />
+                  <AlertTriangle className="h-4 w-4 text-red-600 mt-0.5 shrink-0" />
                   Redundant "Create Workspace" buttons
                 </li>
                 <li className="flex items-start gap-2">
-                  <AlertTriangle className="h-4 w-4 text-red-600 mt-0.5 flex-shrink-0" />
+                  <AlertTriangle className="h-4 w-4 text-red-600 mt-0.5 shrink-0" />
                   Shallow breadcrumb implementation
                 </li>
                 <li className="flex items-start gap-2">
-                  <AlertTriangle className="h-4 w-4 text-red-600 mt-0.5 flex-shrink-0" />
+                  <AlertTriangle className="h-4 w-4 text-red-600 mt-0.5 shrink-0" />
                   Inconsistent styling and placement
                 </li>
               </ul>

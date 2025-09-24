@@ -252,7 +252,7 @@ export function EndpointDocumentation({ endpoint, apiSpec }: EndpointDocumentati
 
   return (
     <div className="h-full flex flex-col">
-      <div className="p-4 border-b border-border flex-shrink-0">
+      <div className="px-6 py-4 border-b border-border shrink-0">
         <div className="flex items-center gap-3 mb-3">
           <Badge 
             className={`text-xs font-mono uppercase ${methodColors[endpoint.method as keyof typeof methodColors] || methodColors.get}`}
@@ -274,7 +274,7 @@ export function EndpointDocumentation({ endpoint, apiSpec }: EndpointDocumentati
       </div>
 
       <ScrollArea className="flex-1 h-full">
-        <div className="p-4 space-y-6">
+        <div className="px-6 py-4 space-y-6">
           {/* Parameters grouped by type */}
           {parameters.length > 0 && (
             <Card>

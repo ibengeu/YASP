@@ -91,7 +91,7 @@ export function LoginForm({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
         >
-          <Alert variant="destructive" className="border-destructive/20 bg-destructive/5 rounded-xl">
+          <Alert variant="destructive" className="border-destructive/20 bg-destructive/5">
             <AlertDescription>{error}</AlertDescription>
           </Alert>
         </motion.div>
@@ -120,7 +120,7 @@ export function LoginForm({
               value={formData.email}
               onChange={(e) => handleInputChange('email', e.target.value)}
               onBlur={() => handleBlur('email')}
-              className={`pl-12 h-12 bg-input-background border-border/50 focus:border-primary focus:ring-primary/30 rounded-xl ${
+              className={`pl-12 h-12 bg-input-background border-border/50 focus:border-primary focus:ring-primary/30 ${
                 getFieldError('email') ? 'border-destructive focus:border-destructive focus:ring-destructive/30' : ''
               }`}
               disabled={loading}
@@ -152,7 +152,7 @@ export function LoginForm({
               value={formData.password}
               onChange={(e) => handleInputChange('password', e.target.value)}
               onBlur={() => handleBlur('password')}
-              className={`pl-12 pr-12 h-12 bg-input-background border-border/50 focus:border-primary focus:ring-primary/30 rounded-xl ${
+              className={`pl-12 pr-12 h-12 bg-input-background border-border/50 focus:border-primary focus:ring-primary/30 ${
                 getFieldError('password') ? 'border-destructive focus:border-destructive focus:ring-destructive/30' : ''
               }`}
               disabled={loading}
@@ -164,7 +164,7 @@ export function LoginForm({
               variant="ghost"
               size="sm"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-2 top-1/2 transform -translate-y-1/2 h-8 w-8 p-0 hover:bg-secondary/50 rounded-lg"
+              className="absolute right-2 top-1/2 transform -translate-y-1/2 h-8 w-8 p-0 hover:bg-secondary/50"
               disabled={loading}
               aria-label={showPassword ? 'Hide password' : 'Show password'}
             >
@@ -220,7 +220,7 @@ export function LoginForm({
         <Button
           type="submit"
           disabled={loading}
-          className="w-full h-12 bg-primary hover:bg-primary/90 rounded-xl card-shadow-sm"
+          className="w-full h-12 bg-primary hover:bg-primary/90 card-shadow-sm"
         >
           {loading ? (
             <div className="flex items-center gap-2">

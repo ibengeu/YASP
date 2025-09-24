@@ -50,7 +50,7 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import { OpenAPISpec, ValidationError, AuditLogEntry } from './types';
-import { formatDistanceToNow, format } from 'date-fns@3.6.0';
+import { formatDistanceToNow, format } from 'date-fns';
 import { toast } from 'sonner';
 
 interface OpenAPISpecDetailsProps {

@@ -137,8 +137,8 @@ export const SpecPage: React.FC = () => {
                 <div className="container mx-auto py-6 text-center flex-1">
                     <p className="text-destructive mb-4">{error}</p>
 
-                    <Button onClick={() => navigate("/specs")} variant="outline">
-                        Back to Specs
+                    <Button onClick={() => navigate("/catalog")} variant="outline">
+                        Back to Catalog
                     </Button>
                 </div>
             </div>

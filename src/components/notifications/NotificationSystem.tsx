@@ -23,7 +23,7 @@ import {
   MoreHorizontal
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
 
 export interface Notification {
   id: string;
@@ -268,7 +268,7 @@ export function NotificationSystem({ className = '' }: NotificationSystemProps) 
                   >
                     <div className="flex items-start gap-3">
                       {/* Icon */}
-                      <div className="flex-shrink-0 mt-0.5">
+                      <div className="shrink-0 mt-0.5">
                         {getNotificationIcon(notification.type)}
                       </div>
                       

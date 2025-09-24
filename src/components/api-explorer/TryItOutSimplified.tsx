@@ -82,13 +82,16 @@ export function TryItOutSimplified({ endpoint, serverUrl, apiSpec }: TryItOutSim
   const [authConfig, setAuthConfig] = useState<AuthConfig>({ type: 'none' });
   const [requestBody, setRequestBody] = useState<string>('');
   const [loading, setLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState('auth');
+  const [activeTab, setActiveTab] = useState('body');
   const [curlCommand, setCurlCommand] = useState('');
   const [copied, setCopied] = useState(false);
 
   // Initialize headers and body from endpoint
   useEffect(() => {
     if (endpoint) {
+      // Set active tab based on endpoint method - prefer body for POST/PUT/PATCH, otherwise auth
+      const hasBody = ['POST', 'PUT', 'PATCH'].includes(endpoint.method.toUpperCase());
+      setActiveTab(hasBody ? 'body' : 'auth');
       const requiredHeaders: Header[] = [];
       
       // Add content-type header for requests with body
@@ -231,7 +234,7 @@ export function TryItOutSimplified({ endpoint, serverUrl, apiSpec }: TryItOutSim
   }
 
   return (
-    <div className="h-full flex flex-col bg-background">
+    <div className="h-full flex flex-col">
       {/* Header - Title on its own line */}
       <div className="border-b border-border/50 p-4 space-y-3">
         <div>
@@ -268,29 +271,29 @@ export function TryItOutSimplified({ endpoint, serverUrl, apiSpec }: TryItOutSim
       <div className="flex-1 flex flex-col min-h-0">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
           <div className="border-b border-border/50 px-4">
-            <TabsList className="grid w-full grid-cols-4 bg-transparent h-auto p-0">
-              <TabsTrigger 
-                value="auth" 
-                className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent text-xs py-3"
-              >
-                Auth
-              </TabsTrigger>
-              <TabsTrigger 
-                value="headers" 
-                className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent text-xs py-3"
-              >
-                Headers
-              </TabsTrigger>
+            <TabsList className={`grid w-full ${['POST', 'PUT', 'PATCH'].includes(endpoint.method.toUpperCase()) ? 'grid-cols-4' : 'grid-cols-3'} bg-transparent h-auto p-0`}>
               {['POST', 'PUT', 'PATCH'].includes(endpoint.method.toUpperCase()) && (
-                <TabsTrigger 
-                  value="body" 
+                <TabsTrigger
+                  value="body"
                   className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent text-xs py-3"
                 >
                   Body
                 </TabsTrigger>
               )}
-              <TabsTrigger 
-                value="curl" 
+              <TabsTrigger
+                value="auth"
+                className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent text-xs py-3"
+              >
+                Auth
+              </TabsTrigger>
+              <TabsTrigger
+                value="headers"
+                className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent text-xs py-3"
+              >
+                Headers
+              </TabsTrigger>
+              <TabsTrigger
+                value="curl"
                 className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent text-xs py-3"
               >
                 cURL
@@ -300,10 +303,28 @@ export function TryItOutSimplified({ endpoint, serverUrl, apiSpec }: TryItOutSim
 
           <ScrollArea className="flex-1">
             <div className="p-4">
+              {/* Body Tab - Now first */}
+              {['POST', 'PUT', 'PATCH'].includes(endpoint.method.toUpperCase()) && (
+                <TabsContent value="body" className="space-y-4 mt-0">
+                  <div>
+                    <Label className="font-medium text-sm">Request Body</Label>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      JSON payload for the request
+                    </p>
+                  </div>
+                  <JsonEditor
+                    value={requestBody}
+                    onChange={setRequestBody}
+                    placeholder="Enter JSON request body..."
+                    className="min-h-[200px]"
+                  />
+                </TabsContent>
+              )}
+
               {/* Auth Tab */}
               <TabsContent value="auth" className="space-y-4 mt-0">
                 <AuthManager
-                  apiSpec={apiSpec || { 
+                  apiSpec={apiSpec || {
                     openapi: '3.0.0',
                     info: { title: 'API', version: '1.0.0' },
                     paths: {},
@@ -365,7 +386,7 @@ export function TryItOutSimplified({ endpoint, serverUrl, apiSpec }: TryItOutSim
                       </Button>
                     </div>
                   ))}
-                  
+
                   {headers.length === 0 && (
                     <div className="text-center py-8 text-muted-foreground">
                       <p className="text-xs">No headers added</p>
@@ -374,24 +395,6 @@ export function TryItOutSimplified({ endpoint, serverUrl, apiSpec }: TryItOutSim
                   )}
                 </div>
               </TabsContent>
-
-              {/* Body Tab */}
-              {['POST', 'PUT', 'PATCH'].includes(endpoint.method.toUpperCase()) && (
-                <TabsContent value="body" className="space-y-4 mt-0">
-                  <div>
-                    <Label className="font-medium text-sm">Request Body</Label>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      JSON payload for the request
-                    </p>
-                  </div>
-                  <JsonEditor
-                    value={requestBody}
-                    onChange={setRequestBody}
-                    placeholder="Enter JSON request body..."
-                    className="min-h-[200px]"
-                  />
-                </TabsContent>
-              )}
 
               {/* cURL Tab */}
               <TabsContent value="curl" className="space-y-4 mt-0">

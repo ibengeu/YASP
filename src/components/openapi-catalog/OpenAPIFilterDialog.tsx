@@ -38,7 +38,7 @@ import {
 } from 'lucide-react';
 import { OpenAPISearchFilters } from './types';
 import { useWorkspace } from '../workspace/WorkspaceContext';
-import { format } from 'date-fns@3.6.0';
+import { format } from 'date-fns';
 
 interface OpenAPIFilterDialogProps {
   open: boolean;

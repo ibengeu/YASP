@@ -70,17 +70,26 @@ export function LoginForm({
     return validationErrors.find(error => error.field === field);
   };
 
-  const handleSocialAuth = (provider: string) => {
+  const handleSocialAuth = async (provider: string) => {
     console.log(`Authenticating with ${provider}`);
-    // In a real app, this would trigger OAuth flow
+
+    // Mock social auth - simulate successful login
+    const mockUserData = {
+      email: `user@${provider}.com`,
+      password: 'social-auth', // Not used for social auth
+      rememberMe: true
+    };
+
+    // Call the parent's onSubmit with mock data to trigger login flow
+    onSubmit(mockUserData);
   };
 
   return (
     <div className="space-y-8">
       {/* Header */}
       <div className="text-center space-y-2">
-        <h1 className="font-sans text-2xl font-normal leading-[1.25] tracking-0">Welcome back</h1>
-        <p className="font-sans text-base font-normal leading-[1.5] tracking-0 text-muted-foreground">
+        <h1 className="font-sans text-2xl font-normal leading-tight tracking-0">Welcome back</h1>
+        <p className="font-sans text-base font-normal leading-normal tracking-0 text-muted-foreground">
           Sign in to your account to continue
         </p>
       </div>
@@ -91,7 +100,7 @@ export function LoginForm({
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
         >
-          <Alert variant="destructive" className="border-destructive bg-destructive/10 rounded-none">
+          <Alert variant="destructive" className="border-destructive bg-destructive/10">
             <AlertDescription className="font-sans text-sm font-normal leading-[1.29] tracking-[0.16px]">{error}</AlertDescription>
           </Alert>
         </motion.div>
@@ -159,7 +168,7 @@ export function LoginForm({
               variant="ghost"
               size="sm"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-1 top-1/2 transform -translate-y-1/2 h-8 w-8 p-0 hover:bg-secondary/50 rounded-none"
+              className="absolute right-1 top-1/2 transform -translate-y-1/2 h-8 w-8 p-0 hover:bg-muted/50"
               disabled={loading}
               aria-label={showPassword ? 'Hide password' : 'Show password'}
             >
@@ -215,7 +224,8 @@ export function LoginForm({
         <Button
           type="submit"
           disabled={loading}
-          className="w-full h-12 bg-primary hover:bg-primary/90 rounded-xl card-shadow-sm"
+          size="lg"
+          className="w-full"
         >
           {loading ? (
             <div className="flex items-center gap-2">

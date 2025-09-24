@@ -166,7 +166,7 @@ export function HeaderDesignGuide() {
           <div className="grid gap-4">
             {designPrinciples.map((principle, index) => (
               <div key={index} className="flex items-start gap-4 p-4 border border-border bg-background">
-                <div className="flex-shrink-0">
+                <div className="shrink-0">
                   <principle.icon className="h-5 w-5 text-primary" />
                 </div>
                 <div className="flex-1">
@@ -258,7 +258,7 @@ export function HeaderDesignGuide() {
           <div className="grid gap-4">
             {responsiveBreakpoints.map((breakpoint, index) => (
               <div key={index} className="flex items-start gap-4 p-4 border border-border bg-background">
-                <div className="flex-shrink-0">
+                <div className="shrink-0">
                   <breakpoint.icon className="h-6 w-6 text-primary" />
                 </div>
                 <div className="flex-1">

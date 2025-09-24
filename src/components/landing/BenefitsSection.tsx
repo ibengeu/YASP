@@ -98,7 +98,7 @@ export function BenefitsSection() {
                 <CardContent className="p-8">
                   <div className="flex items-start gap-6">
                     {/* Icon */}
-                    <div className={`h-16 w-16 rounded-xl bg-gradient-to-br ${benefit.color} flex items-center justify-center group-hover:scale-110 transition-transform duration-300`}>
+                    <div className={`h-16 w-16 rounded-xl bg-linear-to-br ${benefit.color} flex items-center justify-center group-hover:scale-110 transition-transform duration-300`}>
                       <benefit.icon className="h-8 w-8 text-white" />
                     </div>
 
@@ -192,7 +192,7 @@ export function BenefitsSection() {
                       transition={{ duration: 0.5, delay: index * 0.1 }}
                       className="flex items-start gap-3"
                     >
-                      <CheckCircle className="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0" />
+                      <CheckCircle className="h-5 w-5 text-green-500 mt-0.5 shrink-0" />
                       <span className="text-muted-foreground leading-relaxed">{point}</span>
                     </motion.div>
                   ))}

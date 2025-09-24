@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { Card, CardContent } from '../ui/card';
@@ -8,12 +9,9 @@ import { motion } from 'motion/react';
 import { MiniApiExplorer } from './MiniApiExplorer';
 import { MiniApiCatalog } from './MiniApiCatalog';
 
-interface HeroSectionProps {
-  onGetStarted: () => void;
-  onRequestDemo: () => void;
-}
+interface HeroSectionProps {}
 
-export function HeroSection({ onGetStarted, onRequestDemo }: HeroSectionProps) {
+export function HeroSection({}: HeroSectionProps) {
   const [activeDemo, setActiveDemo] = useState('explorer');
 
   const currentFeatures = [
@@ -25,7 +23,7 @@ export function HeroSection({ onGetStarted, onRequestDemo }: HeroSectionProps) {
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-background">
       {/* Background Pattern */}
-      <div className="absolute inset-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:20px_20px]" />
+      <div className="absolute inset-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-size-[20px_20px]" />
 
       <div className="relative max-w-7xl mx-auto px-6 py-20">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
@@ -40,16 +38,16 @@ export function HeroSection({ onGetStarted, onRequestDemo }: HeroSectionProps) {
               transition={{ duration: 0.8, delay: 0.1 }}
               className="space-y-6"
             >
-              <h1 className="text-4xl md:text-6xl font-semibold tracking-tight leading-tight">
+              <h1 className="font-sans text-4xl md:text-6xl font-normal leading-tight tracking-tight">
                 Test APIs instantly.
                 <br />
                 <span className="text-primary">
                   No setup required.
                 </span>
               </h1>
-              
-              <p className="text-lg md:text-xl text-muted-foreground leading-relaxed max-w-lg">
-                Our working MVP lets you discover, explore, and test APIs right in your browser. 
+
+              <p className="font-sans text-lg md:text-xl font-normal leading-relaxed text-muted-foreground max-w-lg">
+                Our working MVP lets you discover, explore, and test APIs right in your browser.
                 Start building with real tools, available today.
               </p>
             </motion.div>
@@ -64,12 +62,14 @@ export function HeroSection({ onGetStarted, onRequestDemo }: HeroSectionProps) {
               className="flex flex-col sm:flex-row gap-4"
             >
               <Button
-                onClick={onGetStarted}
+                asChild
                 size="lg"
-                className="px-8 text-lg bg-primary hover:bg-primary/90 rounded-xl card-shadow-sm group"
+                className="px-8 bg-primary hover:bg-primary/90 group"
               >
-                Get Started
-                <ArrowRight className="h-5 w-5 ml-2 group-hover:translate-x-1 transition-transform" />
+                <Link to="/sign-up">
+                  Get Started
+                  <ArrowRight className="h-5 w-5 ml-2 group-hover:translate-x-1 transition-transform duration-75" />
+                </Link>
               </Button>
               
 
@@ -84,23 +84,23 @@ export function HeroSection({ onGetStarted, onRequestDemo }: HeroSectionProps) {
             className="relative"
             id="interactive-demo"
           >
-            <Card className="w-[600px] border-border/50 card-shadow-lg bg-card/80 backdrop-blur-sm overflow-hidden">
+            <Card className="w-[600px] border-border shadow-lg bg-card/80 backdrop-blur-sm overflow-hidden">
               <CardContent className="p-0">
                 {/* Demo Header */}
-                <div className="bg-secondary/50 border-b border-border/50 p-4">
+                <div className="bg-muted/50 border-b border-border p-4">
                   <div className="flex items-center gap-2 mb-3">
                     <div className="flex gap-1.5">
-                      <div className="h-3 w-3 rounded-full bg-red-500" />
-                      <div className="h-3 w-3 rounded-full bg-yellow-500" />
-                      <div className="h-3 w-3 rounded-full bg-green-500" />
+                      <div className="h-3 w-3 bg-red-500" />
+                      <div className="h-3 w-3 bg-yellow-500" />
+                      <div className="h-3 w-3 bg-green-500" />
                     </div>
-                    <span className="text-sm font-medium ml-2">YASP MVP</span>
+                    <span className="font-sans text-sm font-normal ml-2">YASP MVP</span>
                   </div>
-                  
+
                   <Tabs value={activeDemo} onValueChange={setActiveDemo}>
-                    <TabsList className="bg-background/50 border border-border/50">
-                      <TabsTrigger value="explorer" className="text-sm">API Explorer</TabsTrigger>
-                      <TabsTrigger value="catalog" className="text-sm">API Catalog</TabsTrigger>
+                    <TabsList className="bg-background/50 border border-border">
+                      <TabsTrigger value="explorer" className="font-sans text-sm font-normal">API Explorer</TabsTrigger>
+                      <TabsTrigger value="catalog" className="font-sans text-sm font-normal">API Catalog</TabsTrigger>
                     </TabsList>
                   </Tabs>
                 </div>

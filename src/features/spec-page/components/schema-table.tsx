@@ -127,7 +127,7 @@ export const SchemaTable = ({schema, components}: SchemaTableProps) => {
                     </div>
 
                     {/* Required Badge */}
-                    <div className="flex-shrink-0">
+                    <div className="shrink-0">
                         <Badge
                             variant={required?.includes(name) ? "destructive" : "secondary"}
                             className="text-xs font-medium"

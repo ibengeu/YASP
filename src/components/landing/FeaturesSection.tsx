@@ -139,7 +139,7 @@ export function FeaturesSection() {
                 <CardContent className="p-8">
                   {/* Icon and Badge */}
                   <div className="flex items-start justify-between mb-6">
-                    <div className={`h-12 w-12 rounded-xl bg-gradient-to-br ${feature.gradient} flex items-center justify-center group-hover:scale-110 transition-transform duration-300`}>
+                    <div className={`h-12 w-12 rounded-xl bg-linear-to-br ${feature.gradient} flex items-center justify-center group-hover:scale-110 transition-transform duration-300`}>
                       <feature.icon className="h-6 w-6 text-white" />
                     </div>
                     <Badge 
@@ -178,7 +178,7 @@ export function FeaturesSection() {
           transition={{ duration: 0.8, delay: 0.3 }}
           className="mt-20 text-center"
         >
-          <div className="bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-900/10 dark:to-blue-900/10 rounded-2xl p-8 md:p-12 border border-green-200 dark:border-green-800">
+          <div className="bg-linear-to-r from-green-50 to-blue-50 dark:from-green-900/10 dark:to-blue-900/10 rounded-2xl p-8 md:p-12 border border-green-200 dark:border-green-800">
             <Globe className="h-12 w-12 text-green-600 mx-auto mb-6" />
             <h3 className="text-2xl md:text-3xl font-semibold mb-4">
               Start with the MVP, grow with us

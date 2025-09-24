@@ -38,7 +38,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
       // Check if user has required role
       if (user.role !== requiredRole) {
         // Redirect to unauthorized page or dashboard
-        navigate('/specs', { replace: true });
+        navigate('/catalog', { replace: true });
       }
     }
   }, [isAuthenticated, isLoading, user, requiredRole, navigate]);
@@ -113,7 +113,7 @@ export const useAuthGuard = (requiredRole?: string) => {
     }
 
     if (!isLoading && isAuthenticated && requiredRole && user?.role !== requiredRole) {
-      navigate('/specs', { replace: true });
+      navigate('/catalog', { replace: true });
       return false;
     }
 

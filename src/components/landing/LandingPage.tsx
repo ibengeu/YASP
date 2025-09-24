@@ -1,20 +1,36 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { HeroSection } from './HeroSection';
 import { NavigationHeader } from './NavigationHeader';
+import { InteractiveDemo } from './InteractiveDemo';
 
-interface LandingPageProps {
-  onGetStarted: () => void;
-  onSignIn: () => void;
-  onRequestDemo: () => void;
-}
+interface LandingPageProps {}
 
-export function LandingPage({ onGetStarted, onSignIn, onRequestDemo }: LandingPageProps) {
+export function LandingPage({}: LandingPageProps) {
+  const navigate = useNavigate();
+
+  const handleTryDemo = () => {
+    navigate('/specs');
+  };
+
+  const handleGetStarted = () => {
+    navigate('/sign-up');
+  };
+
+  const handleSignIn = () => {
+    navigate('/login');
+  };
+
   return (
     <div className="min-h-screen bg-background">
-      <NavigationHeader onGetStarted={onGetStarted} onSignIn={onSignIn} />
-      
+      <NavigationHeader
+        onGetStarted={handleGetStarted}
+        onSignIn={handleSignIn}
+      />
+
       <main>
-        <HeroSection onGetStarted={onGetStarted} onRequestDemo={onRequestDemo} />
+        <HeroSection />
+        <InteractiveDemo onTryDemo={handleTryDemo} />
       </main>
     </div>
   );

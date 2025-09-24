@@ -97,8 +97,8 @@ export function WorkspaceDashboard({
   );
 
   return (
-    <div className="h-full overflow-y-auto bg-background px-[var(--spacing-07)] pb-[var(--spacing-07)]">
-      <div className="max-w-7xl mx-auto space-y-[var(--spacing-07)]">
+    <div className="h-full overflow-y-auto bg-background px-(--spacing-07) pb-(--spacing-07)">
+      <div className="max-w-7xl mx-auto space-y-(--spacing-07)">
         {/* Header */}
         <div className="flex items-start justify-between">
           <div className="space-y-2">
@@ -345,7 +345,7 @@ export function WorkspaceDashboard({
                         key={api.id}
                         className="flex items-start gap-3 p-3 rounded-lg hover:bg-secondary/30 transition-colors"
                       >
-                        <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                        <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
                           <FileText className="h-4 w-4 text-primary" />
                         </div>
                         <div className="flex-1 min-w-0">

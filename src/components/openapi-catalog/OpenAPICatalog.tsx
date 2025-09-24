@@ -25,7 +25,7 @@ import { AddApiDialog } from '../api-catalog/AddApiDialog';
 import { OpenAPISpec, OpenAPISearchFilters, OpenAPICatalogProps } from './types';
 import { useWorkspace } from '../workspace/WorkspaceContext';
 import { demoOpenAPISpecs } from './demo-data';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
 
 type SortOption = 'title' | 'created';
 
@@ -157,7 +157,7 @@ export function OpenAPICatalog({
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Header */}
-        <div className="border-b bg-background p-6 space-y-6 flex-shrink-0">
+        <div className="border-b bg-background p-6 space-y-6 shrink-0">
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-2xl font-semibold tracking-tight">API Catalog</h1>

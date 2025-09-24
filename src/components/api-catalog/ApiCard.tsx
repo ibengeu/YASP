@@ -73,23 +73,23 @@ export function ApiCard({
   const getLifecycleColor = (lifecycle: string) => {
     switch (lifecycle) {
       case 'production':
-        return 'bg-green-500/10 text-green-700 border-green-200 dark:text-green-400 dark:border-green-800';
+        return 'bg-chart-3/10 text-chart-3 border-chart-3/20';
       case 'staging':
-        return 'bg-yellow-500/10 text-yellow-700 border-yellow-200 dark:text-yellow-400 dark:border-yellow-800';
+        return 'bg-chart-5/10 text-chart-5 border-chart-5/20';
       case 'development':
-        return 'bg-blue-500/10 text-blue-700 border-blue-200 dark:text-blue-400 dark:border-blue-800';
+        return 'bg-chart-1/10 text-chart-1 border-chart-1/20';
       case 'deprecated':
-        return 'bg-red-500/10 text-red-700 border-red-200 dark:text-red-400 dark:border-red-800';
+        return 'bg-destructive/10 text-destructive border-destructive/20';
       default:
-        return 'bg-gray-500/10 text-gray-700 border-gray-200 dark:text-gray-400 dark:border-gray-800';
+        return 'bg-muted/50 text-muted-foreground border-border';
     }
   };
 
   if (viewMode === 'list') {
     return (
-      <Card 
-        className={`cursor-pointer transition-all duration-200 hover:card-shadow-sm border-border/50 group ${
-          isSelected ? 'ring-2 ring-primary/50 bg-primary/5' : 'hover:bg-secondary/30'
+      <Card
+        className={`cursor-pointer transition-all duration-75 ease-in-out hover:shadow-sm border-border group ${
+          isSelected ? 'shadow-[inset_0_0_0_1px_var(--primary)] bg-primary/5' : 'hover:bg-muted/30'
         }`}
         onClick={handleCardClick}
         onKeyDown={handleKeyDown}
@@ -97,10 +97,10 @@ export function ApiCard({
         role="button"
         aria-label={`${api.title} - ${api.description}`}
       >
-        <CardContent className="p-6">
+        <CardContent className="p-4">
           <div className="flex items-center gap-6">
             {showCheckbox && (
-              <div className="flex-shrink-0">
+              <div className="shrink-0">
                 <Checkbox
                   checked={isSelected}
                   onCheckedChange={onSelect}
@@ -114,15 +114,15 @@ export function ApiCard({
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-3 mb-2">
-                    <h3 className="font-semibold text-lg tracking-tight truncate">{api.title}</h3>
-                    <Badge variant="outline" className="text-xs font-medium border-border/50">
+                    <h3 className="font-sans text-lg font-normal leading-tight tracking-normal truncate">{api.title}</h3>
+                    <Badge variant="outline" className="text-xs font-normal border-border">
                       v{api.version}
                     </Badge>
-                    <Badge className={`text-xs font-medium ${getLifecycleColor(api.lifecycle)}`}>
+                    <Badge className={`text-xs font-normal ${getLifecycleColor(api.lifecycle)}`}>
                       {api.lifecycle.charAt(0).toUpperCase() + api.lifecycle.slice(1)}
                     </Badge>
                     {!api.isPublic && (
-                      <Badge variant="secondary" className="text-xs bg-muted/50 text-muted-foreground border-0">
+                      <Badge variant="secondary" className="text-xs font-normal bg-muted/50 text-muted-foreground border-0">
                         Private
                       </Badge>
                     )}
@@ -177,7 +177,7 @@ export function ApiCard({
                     e.stopPropagation();
                     onViewDocumentation();
                   }}
-                  className="flex-shrink-0"
+                  className="shrink-0"
                 >
                   <Eye className="h-4 w-4 mr-2" />
                   View Docs
@@ -196,9 +196,9 @@ export function ApiCard({
       whileHover={{ y: -2 }}
       transition={{ duration: 0.2 }}
     >
-      <Card 
-        className={`cursor-pointer transition-all duration-200 hover:card-shadow border-border/50 bg-card group ${
-          isSelected ? 'ring-2 ring-primary/50 bg-primary/5' : 'hover:bg-secondary/30'
+      <Card
+        className={`cursor-pointer transition-all duration-75 ease-in-out hover:shadow border-border bg-card group ${
+          isSelected ? 'shadow-[inset_0_0_0_1px_var(--primary)] bg-primary/5' : 'hover:bg-muted/30'
         }`}
         onClick={handleCardClick}
         onKeyDown={handleKeyDown}
@@ -206,13 +206,13 @@ export function ApiCard({
         role="button"
         aria-label={`${api.title} - ${api.description}`}
       >
-        <CardContent className="p-6">
+        <CardContent className="p-4">
           <div className="space-y-4">
             {/* Header */}
             <div className="flex items-start justify-between gap-3">
               <div className="flex items-start gap-3 flex-1 min-w-0">
                 {showCheckbox && (
-                  <div className="flex-shrink-0 mt-1">
+                  <div className="shrink-0 mt-1">
                     <Checkbox
                       checked={isSelected}
                       onCheckedChange={onSelect}
@@ -223,23 +223,23 @@ export function ApiCard({
                 )}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-2">
-                    <h3 className="font-semibold text-lg tracking-tight truncate">{api.title}</h3>
-                    <Badge variant="outline" className="text-xs font-medium border-border/50">
+                    <h3 className="font-sans text-lg font-normal leading-tight tracking-normal truncate">{api.title}</h3>
+                    <Badge variant="outline" className="text-xs font-normal border-border">
                       v{api.version}
                     </Badge>
                   </div>
-                  
+
                   <div className="flex items-center gap-2 mb-3">
-                    <Badge className={`text-xs font-medium ${getLifecycleColor(api.lifecycle)}`}>
+                    <Badge className={`text-xs font-normal ${getLifecycleColor(api.lifecycle)}`}>
                       {api.lifecycle === 'production' && <CheckCircle2 className="h-3 w-3 mr-1" />}
                       {api.lifecycle.charAt(0).toUpperCase() + api.lifecycle.slice(1)}
                     </Badge>
                     {!api.isPublic && (
-                      <Badge variant="secondary" className="text-xs bg-muted/50 text-muted-foreground border-0">
+                      <Badge variant="secondary" className="text-xs font-normal bg-muted/50 text-muted-foreground border-0">
                         Private
                       </Badge>
                     )}
-                    <Badge variant="secondary" className="text-xs bg-muted/50 text-muted-foreground border-0">
+                    <Badge variant="secondary" className="text-xs font-normal bg-muted/50 text-muted-foreground border-0">
                       {api.category}
                     </Badge>
                   </div>
@@ -253,7 +253,7 @@ export function ApiCard({
                   e.stopPropagation();
                   onViewDocumentation();
                 }}
-                className="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-secondary/50"
+                className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-secondary/50"
               >
                 <Eye className="h-4 w-4" />
               </Button>

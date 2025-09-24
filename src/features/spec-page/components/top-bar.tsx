@@ -70,11 +70,11 @@ export const TopBar: React.FC<TopBarProps> = ({
                     <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => navigate("/specs")}
+                        onClick={() => navigate("/catalog")}
                         className="gap-2"
                     >
                         <ArrowLeft className="h-4 w-4" />
-                        <span className="hidden sm:inline">Back to Specs</span>
+                        <span className="hidden sm:inline">Back to Catalog</span>
                     </Button>
                     <div className="flex items-center gap-2">
                         <div className="h-6 w-6 rounded-full bg-primary"/>

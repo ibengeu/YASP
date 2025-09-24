@@ -99,17 +99,31 @@ export function SignUpForm({
     return validationErrors.find(error => error.field === field);
   };
 
-  const handleSocialAuth = (provider: string) => {
+  const handleSocialAuth = async (provider: string) => {
     console.log(`Signing up with ${provider}`);
-    // In a real app, this would trigger OAuth flow
+
+    // Mock social auth - simulate successful signup
+    const mockUserData = {
+      firstName: 'Social',
+      lastName: 'User',
+      email: `user@${provider}.com`,
+      password: 'social-auth', // Not used for social auth
+      confirmPassword: 'social-auth',
+      company: '',
+      role: '',
+      acceptTerms: true
+    };
+
+    // Call the parent's onSubmit with mock data to trigger signup flow
+    onSubmit(mockUserData);
   };
 
   return (
     <div className="space-y-8">
       {/* Header */}
       <div className="text-center space-y-2">
-        <h1 className="font-sans text-2xl font-normal leading-[1.25] tracking-0">Create your account</h1>
-        <p className="font-sans text-base font-normal leading-[1.5] tracking-0 text-muted-foreground">
+        <h1 className="font-sans text-2xl font-normal leading-tight tracking-0">Create your account</h1>
+        <p className="font-sans text-base font-normal leading-normal tracking-0 text-muted-foreground">
           Join us to start managing your APIs
         </p>
       </div>
@@ -120,7 +134,7 @@ export function SignUpForm({
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
         >
-          <Alert variant="destructive" className="border-destructive bg-destructive/10 rounded-none">
+          <Alert variant="destructive" className="border-destructive bg-destructive/10">
             <AlertDescription className="font-sans text-sm font-normal leading-[1.29] tracking-[0.16px]">{error}</AlertDescription>
           </Alert>
         </motion.div>
@@ -248,7 +262,7 @@ export function SignUpForm({
                 variant="ghost"
                 size="sm"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-1 top-1/2 transform -translate-y-1/2 h-8 w-8 p-0 hover:bg-secondary/50 rounded-none"
+                className="absolute right-1 top-1/2 transform -translate-y-1/2 h-8 w-8 p-0 hover:bg-muted/50"
                 disabled={loading}
                 aria-label={showPassword ? 'Hide password' : 'Show password'}
               >
@@ -293,7 +307,7 @@ export function SignUpForm({
                 variant="ghost"
                 size="sm"
                 onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                className="absolute right-1 top-1/2 transform -translate-y-1/2 h-8 w-8 p-0 hover:bg-secondary/50 rounded-none"
+                className="absolute right-1 top-1/2 transform -translate-y-1/2 h-8 w-8 p-0 hover:bg-muted/50"
                 disabled={loading}
                 aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
               >
@@ -394,7 +408,8 @@ export function SignUpForm({
         <Button
           type="submit"
           disabled={loading || !passwordStrength.isValid}
-          className="w-full font-sans text-sm font-normal leading-[1.29] tracking-[0.16px]"
+          size="lg"
+          className="w-full"
         >
           {loading ? (
             <div className="flex items-center gap-2">

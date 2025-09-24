@@ -125,7 +125,7 @@ export const EndpointDetail: React.FC<EndpointDetailProps> = ({path, method, ope
                     <div className="flex items-start gap-4 mb-4">
                         <Badge
                             className={cn(
-                                "uppercase text-white flex-shrink-0",
+                                "uppercase text-white shrink-0",
                                 methodColors[method.toLowerCase()] ?? "bg-gray-500"
                             )}
                         >

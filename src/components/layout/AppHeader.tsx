@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { Input } from '../ui/input';
@@ -58,15 +59,14 @@ import { useCarbonTheme } from '../carbon/CarbonProvider';
  * - Clear information hierarchy
  */
 
-export type AppView = 
+export type AppView =
   | "landing"
-  | "auth" 
+  | "auth"
   | "catalog"
   | "openapi-catalog"
   | "explorer"
   | "profile"
   | "carbon-demo"
-  | "workspace-dashboard"
   | "invite-management";
 
 interface AppHeaderProps {
@@ -85,7 +85,7 @@ interface AppHeaderProps {
  */
 function WorkspaceSwitcherWrapper({ currentView }: { currentView: AppView }) {
   // Only render for workspace views
-  if (currentView !== 'workspace-dashboard' && currentView !== 'catalog' && currentView !== 'openapi-catalog' && currentView !== 'explorer') {
+  if (currentView !== 'catalog' && currentView !== 'openapi-catalog' && currentView !== 'explorer') {
     return null;
   }
 
@@ -218,7 +218,7 @@ function WorkspaceDropdown({
                 >
                   <div className="flex items-center gap-3">
                     <div 
-                      className="h-5 w-5 rounded-md flex items-center justify-center text-white text-xs flex-shrink-0"
+                      className="h-5 w-5 rounded-md flex items-center justify-center text-white text-xs shrink-0"
                       style={{ backgroundColor: workspace.color }}
                     >
                       {workspace.icon}
@@ -229,7 +229,7 @@ function WorkspaceDropdown({
                           {workspace.name}
                         </span>
                         {workspace.isSelected && (
-                          <Check className="h-3 w-3 text-primary flex-shrink-0" />
+                          <Check className="h-3 w-3 text-primary shrink-0" />
                         )}
                       </div>
                     </div>
@@ -266,7 +266,7 @@ function WorkspaceDropdown({
                 >
                   <div className="flex items-center gap-3">
                     <div 
-                      className="h-5 w-5 rounded-md flex items-center justify-center text-white text-xs flex-shrink-0"
+                      className="h-5 w-5 rounded-md flex items-center justify-center text-white text-xs shrink-0"
                       style={{ backgroundColor: workspace.color }}
                     >
                       {workspace.icon}
@@ -277,11 +277,11 @@ function WorkspaceDropdown({
                           {workspace.name}
                         </span>
                         {workspace.isSelected && (
-                          <Check className="h-3 w-3 text-primary flex-shrink-0" />
+                          <Check className="h-3 w-3 text-primary shrink-0" />
                         )}
                       </div>
                     </div>
-                    <Users className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                    <Users className="h-3 w-3 text-muted-foreground shrink-0" />
                   </div>
                 </div>
               ))}
@@ -325,6 +325,7 @@ export function AppHeader({
   onCreateWorkspace,
   className = '',
 }: AppHeaderProps) {
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
   const searchInputRef = React.useRef<HTMLInputElement>(null);
@@ -361,10 +362,10 @@ export function AppHeader({
       <div className="flex h-12 items-center gap-4 px-4 w-full max-w-none">
         
         {/* Left Zone: Brand and Navigation */}
-        <div className="flex items-center gap-4 flex-shrink-0">
+        <div className="flex items-center gap-4 shrink-0">
           {/* Brand */}
-          <button 
-            onClick={() => onNavigate('openapi-catalog')}
+          <button
+            onClick={() => navigate('/catalog')}
             className="flex items-center gap-2 hover:opacity-80 transition-opacity cursor-pointer"
           >
             <div className="flex h-6 w-6 items-center justify-center bg-primary rounded-sm">
@@ -383,8 +384,8 @@ export function AppHeader({
             <SheetContent side="left" className="w-72">
               <div className="flex flex-col gap-4 pt-4">
                 {/* Brand in mobile menu */}
-                <button 
-                  onClick={() => onNavigate('openapi-catalog')}
+                <button
+                  onClick={() => navigate('/catalog')}
                   className="flex items-center gap-3 px-2 hover:opacity-80 transition-opacity cursor-pointer"
                 >
                   <div className="flex h-7 w-7 items-center justify-center bg-primary rounded-sm">
@@ -417,7 +418,7 @@ export function AppHeader({
         </div>
 
         {/* Right Zone: Actions */}
-        <div className="flex items-center gap-2 flex-shrink-0 ml-auto">
+        <div className="flex items-center gap-2 shrink-0 ml-auto">
           {/* Invite Button */}
           <Button
             variant="secondary"
@@ -479,27 +480,27 @@ export function AppHeader({
               {/* Profile */}
               <div className="py-1">
                 <DropdownMenuItem
-                  onClick={() => onNavigate('profile')}
+                  onClick={() => navigate('/profile')}
                   className="px-3 py-2 gap-2 cursor-pointer text-xs"
                 >
                   <UserIcon className="h-3.5 w-3.5" />
                   Profile Settings
                 </DropdownMenuItem>
               </div>
-              
+
               <DropdownMenuSeparator />
-              
+
               {/* Settings & Management */}
               <div className="py-1">
                 <DropdownMenuItem
-                  onClick={() => onNavigate('invite-management')}
+                  onClick={() => navigate('/invites')}
                   className="px-3 py-2 gap-2 cursor-pointer text-xs"
                 >
                   <Users className="h-3.5 w-3.5" />
                   Invite Management
                 </DropdownMenuItem>
                 <DropdownMenuItem
-                  onClick={() => onNavigate('carbon-demo')}
+                  onClick={() => navigate('/carbon-demo')}
                   className="px-3 py-2 gap-2 cursor-pointer text-xs"
                 >
                   <Settings className="h-3.5 w-3.5" />

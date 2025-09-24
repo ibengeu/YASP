@@ -25,9 +25,9 @@ export function CTASection({ onGetStarted }: CTASectionProps) {
   ];
 
   return (
-    <section className="py-24 bg-gradient-to-br from-primary/5 via-background to-accent/5 relative overflow-hidden">
+    <section className="py-24 bg-linear-to-br from-primary/5 via-background to-accent/5 relative overflow-hidden">
       {/* Background Pattern */}
-      <div className="absolute inset-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:20px_20px]" />
+      <div className="absolute inset-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-size-[20px_20px]" />
       
       {/* Floating Elements */}
       <div className="absolute inset-0 overflow-hidden">
@@ -79,7 +79,7 @@ export function CTASection({ onGetStarted }: CTASectionProps) {
           <h2 className="text-4xl md:text-6xl font-semibold tracking-tight">
             Try the real MVP.
             <br />
-            <span className="bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent">
+            <span className="bg-linear-to-r from-primary via-accent to-primary bg-clip-text text-transparent">
               No demos, no promises.
             </span>
           </h2>

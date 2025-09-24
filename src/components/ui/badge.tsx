@@ -1,12 +1,12 @@
 import * as React from "react";
-import { Slot } from "@radix-ui/react-slot@1.1.2";
-import { cva, type VariantProps } from "class-variance-authority@0.7.1";
+import { Slot } from "@radix-ui/react-slot";
+import { cva, type VariantProps } from "class-variance-authority";
 
-import { cn } from "./utils";
+import { cn } from "@/lib/utils";
 
 const badgeVariants = cva(
   // Carbon tag/badge base styles - sharp edges, proper typography
-  "inline-flex items-center justify-center rounded-none px-[var(--spacing-02)] py-[var(--spacing-01)] font-sans text-xs font-normal leading-[1.33] tracking-[0.32px] w-fit whitespace-nowrap shrink-0 [&>svg]:size-3 gap-1 [&>svg]:pointer-events-none transition-all duration-75 ease-in-out overflow-hidden border-0",
+  "inline-flex items-center justify-center rounded-none px-2 py-0.5 font-sans text-xs font-normal leading-[1.33] tracking-[0.32px] w-fit whitespace-nowrap shrink-0 [&>svg]:size-3 gap-1 [&>svg]:pointer-events-none transition-all duration-75 ease-in-out overflow-hidden border-0",
   {
     variants: {
       variant: {

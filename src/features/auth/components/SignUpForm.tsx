@@ -120,7 +120,7 @@ export function SignUpForm({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
         >
-          <Alert variant="destructive" className="border-destructive/20 bg-destructive/5 rounded-xl">
+          <Alert variant="destructive" className="border-destructive/20 bg-destructive/5">
             <AlertDescription>{error}</AlertDescription>
           </Alert>
         </motion.div>
@@ -150,7 +150,7 @@ export function SignUpForm({
                 value={formData.firstName}
                 onChange={(e) => handleInputChange('firstName', e.target.value)}
                 onBlur={() => handleBlur('firstName')}
-                className={`pl-12 h-12 bg-input-background border-border/50 focus:border-primary focus:ring-primary/30 rounded-xl ${
+                className={`pl-12 h-12 bg-input-background border-border/50 focus:border-primary focus:ring-primary/30 ${
                   getFieldError('firstName') ? 'border-destructive focus:border-destructive focus:ring-destructive/30' : ''
                 }`}
                 disabled={loading}
@@ -181,7 +181,7 @@ export function SignUpForm({
                 value={formData.lastName}
                 onChange={(e) => handleInputChange('lastName', e.target.value)}
                 onBlur={() => handleBlur('lastName')}
-                className={`pl-12 h-12 bg-input-background border-border/50 focus:border-primary focus:ring-primary/30 rounded-xl ${
+                className={`pl-12 h-12 bg-input-background border-border/50 focus:border-primary focus:ring-primary/30 ${
                   getFieldError('lastName') ? 'border-destructive focus:border-destructive focus:ring-destructive/30' : ''
                 }`}
                 disabled={loading}
@@ -247,7 +247,7 @@ export function SignUpForm({
                 value={formData.password}
                 onChange={(e) => handleInputChange('password', e.target.value)}
                 onBlur={() => handleBlur('password')}
-                className={`pl-12 pr-12 h-12 bg-input-background border-border/50 focus:border-primary focus:ring-primary/30 rounded-xl ${
+                className={`pl-12 pr-12 h-12 bg-input-background border-border/50 focus:border-primary focus:ring-primary/30 ${
                   getFieldError('password') ? 'border-destructive focus:border-destructive focus:ring-destructive/30' : ''
                 }`}
                 disabled={loading}
@@ -259,7 +259,7 @@ export function SignUpForm({
                 variant="ghost"
                 size="sm"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-2 top-1/2 transform -translate-y-1/2 h-8 w-8 p-0 hover:bg-secondary/50 rounded-lg"
+                className="absolute right-2 top-1/2 transform -translate-y-1/2 h-8 w-8 p-0 hover:bg-secondary/50"
                 disabled={loading}
                 aria-label={showPassword ? 'Hide password' : 'Show password'}
               >
@@ -293,7 +293,7 @@ export function SignUpForm({
                 value={formData.confirmPassword}
                 onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
                 onBlur={() => handleBlur('confirmPassword')}
-                className={`pl-12 pr-12 h-12 bg-input-background border-border/50 focus:border-primary focus:ring-primary/30 rounded-xl ${
+                className={`pl-12 pr-12 h-12 bg-input-background border-border/50 focus:border-primary focus:ring-primary/30 ${
                   getFieldError('confirmPassword') ? 'border-destructive focus:border-destructive focus:ring-destructive/30' : ''
                 }`}
                 disabled={loading}
@@ -305,7 +305,7 @@ export function SignUpForm({
                 variant="ghost"
                 size="sm"
                 onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                className="absolute right-2 top-1/2 transform -translate-y-1/2 h-8 w-8 p-0 hover:bg-secondary/50 rounded-lg"
+                className="absolute right-2 top-1/2 transform -translate-y-1/2 h-8 w-8 p-0 hover:bg-secondary/50"
                 disabled={loading}
                 aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
               >
@@ -356,7 +356,7 @@ export function SignUpForm({
                 placeholder="Acme Corp (optional)"
                 value={formData.company}
                 onChange={(e) => handleInputChange('company', e.target.value)}
-                className="pl-12 h-12 bg-input-background border-border/50 focus:border-primary focus:ring-primary/30 rounded-xl"
+                className="pl-12 h-12 bg-input-background border-border/50 focus:border-primary focus:ring-primary/30"
                 disabled={loading}
                 autoComplete="organization"
               />
@@ -385,7 +385,7 @@ export function SignUpForm({
                 placeholder="Developer (optional)"
                 value={formData.role}
                 onChange={(e) => handleInputChange('role', e.target.value)}
-                className="pl-12 h-12 bg-input-background border-border/50 focus:border-primary focus:ring-primary/30 rounded-xl"
+                className="pl-12 h-12 bg-input-background border-border/50 focus:border-primary focus:ring-primary/30"
                 disabled={loading}
                 autoComplete="organization-title"
               />
@@ -436,7 +436,7 @@ export function SignUpForm({
         <Button
           type="submit"
           disabled={loading || !passwordStrength.isValid}
-          className="w-full h-12 bg-primary hover:bg-primary/90 rounded-xl card-shadow-sm"
+          className="w-full h-12 bg-primary hover:bg-primary/90 card-shadow-sm"
         >
           {loading ? (
             <div className="flex items-center gap-2">

@@ -193,7 +193,7 @@ export function WorkspaceActivity({ limit = 10, showHeader = true }: WorkspaceAc
                 className="flex items-start gap-3 p-3 rounded-lg hover:bg-secondary/30 transition-colors"
               >
                 {/* User Avatar */}
-                <Avatar className="h-8 w-8 flex-shrink-0">
+                <Avatar className="h-8 w-8 shrink-0">
                   <AvatarImage src={activity.userAvatar} />
                   <AvatarFallback className="bg-primary/10 text-primary text-sm">
                     {activity.userName.split(' ').map(n => n[0]).join('')}

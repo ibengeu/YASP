@@ -28,7 +28,7 @@ export function SocialAuthButtons({
           variant="outline"
           onClick={onGoogleAuth}
           disabled={loading}
-          className="w-full h-12 border-border/50 hover:bg-secondary/50 hover:border-primary/50 rounded-xl"
+          className="w-full h-12 border-border/50 hover:bg-secondary/50 hover:border-primary/50"
         >
           <div className="flex items-center gap-3">
             <svg className="h-5 w-5" viewBox="0 0 24 24">
@@ -58,7 +58,7 @@ export function SocialAuthButtons({
           variant="outline"
           onClick={onGithubAuth}
           disabled={loading}
-          className="w-full h-12 border-border/50 hover:bg-secondary/50 hover:border-primary/50 rounded-xl"
+          className="w-full h-12 border-border/50 hover:bg-secondary/50 hover:border-primary/50"
         >
           <div className="flex items-center gap-3">
             <Github className="h-5 w-5" />
@@ -71,7 +71,7 @@ export function SocialAuthButtons({
           variant="outline"
           onClick={onMicrosoftAuth}
           disabled={loading}
-          className="w-full h-12 border-border/50 hover:bg-secondary/50 hover:border-primary/50 rounded-xl"
+          className="w-full h-12 border-border/50 hover:bg-secondary/50 hover:border-primary/50"
         >
           <div className="flex items-center gap-3">
             <svg className="h-5 w-5" viewBox="0 0 24 24">

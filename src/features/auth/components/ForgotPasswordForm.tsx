@@ -85,7 +85,7 @@ export function ForgotPasswordForm({
           transition={{ delay: 0.3 }}
           className="space-y-4"
         >
-          <Alert className="border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-900/20 rounded-xl">
+          <Alert className="border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-900/20">
             <AlertDescription className="text-sm">
               <strong>Didn't receive the email?</strong>
               <ul className="mt-2 space-y-1 text-xs">
@@ -100,7 +100,7 @@ export function ForgotPasswordForm({
             onClick={() => onSubmit({ email })}
             variant="outline"
             disabled={loading}
-            className="w-full h-12 border-border/50 hover:bg-secondary/50 rounded-xl"
+            className="w-full h-12 border-border/50 hover:bg-secondary/50"
           >
             {loading ? (
               <div className="flex items-center gap-2">
@@ -115,7 +115,7 @@ export function ForgotPasswordForm({
           <Button
             onClick={onBackToLogin}
             variant="ghost"
-            className="w-full h-12 hover:bg-secondary/50 rounded-xl"
+            className="w-full h-12 hover:bg-secondary/50"
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to sign in
@@ -141,7 +141,7 @@ export function ForgotPasswordForm({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
         >
-          <Alert variant="destructive" className="border-destructive/20 bg-destructive/5 rounded-xl">
+          <Alert variant="destructive" className="border-destructive/20 bg-destructive/5">
             <AlertDescription>{error}</AlertDescription>
           </Alert>
         </motion.div>
@@ -161,7 +161,7 @@ export function ForgotPasswordForm({
               value={email}
               onChange={(e) => handleEmailChange(e.target.value)}
               onBlur={handleBlur}
-              className={`pl-12 h-12 bg-input-background border-border/50 focus:border-primary focus:ring-primary/30 rounded-xl ${
+              className={`pl-12 h-12 bg-input-background border-border/50 focus:border-primary focus:ring-primary/30 ${
                 getFieldError() ? 'border-destructive focus:border-destructive focus:ring-destructive/30' : ''
               }`}
               disabled={loading}
@@ -186,7 +186,7 @@ export function ForgotPasswordForm({
         <Button
           type="submit"
           disabled={loading || !email}
-          className="w-full h-12 bg-primary hover:bg-primary/90 rounded-xl"
+          className="w-full h-12 bg-primary hover:bg-primary/90"
         >
           {loading ? (
             <div className="flex items-center gap-2">
