@@ -1,13 +1,12 @@
 import React from 'react';
-import { ExternalLink, Eye, Calendar, User, Hash, CheckCircle2 } from 'lucide-react';
-import { Button } from '../ui/button';
-import { Card, CardContent } from '../ui/card';
-import { Checkbox } from '../ui/checkbox';
-import { Badge } from '../ui/badge';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
-import { ApiMetadata } from './types';
-import { lifecycleColors } from './demo-data';
-import { motion } from 'motion/react';
+import {Calendar, CheckCircle2, ExternalLink, Eye, Hash, User} from 'lucide-react';
+import {Button} from '../ui/button';
+import {Card, CardContent} from '../ui/card';
+import {Checkbox} from '../ui/checkbox';
+import {Badge} from '../ui/badge';
+import {Tooltip, TooltipContent, TooltipProvider, TooltipTrigger} from '../ui/tooltip';
+import {ApiMetadata} from './types';
+import {motion} from 'motion/react';
 
 interface ApiCardProps {
   api: ApiMetadata;

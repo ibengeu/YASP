@@ -1,15 +1,15 @@
-import React, { useState } from 'react';
-import { Upload, FileText, Link, Plus, X, ChevronRight } from 'lucide-react';
-import { Button } from '../ui/button';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../ui/dialog';
-import { Input } from '../ui/input';
-import { Label } from '../ui/label';
-import { Textarea } from '../ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
-import { Card, CardContent } from '../ui/card';
-import { Badge } from '../ui/badge';
-import { toast } from 'sonner';
-import { motion, AnimatePresence } from 'motion/react';
+import React, {useState} from 'react';
+import {ChevronRight, FileText, Link, Plus, Upload} from 'lucide-react';
+import {Button} from '../ui/button';
+import {Dialog, DialogContent, DialogDescription, DialogTitle} from '../ui/dialog';
+import {Input} from '../ui/input';
+import {Label} from '../ui/label';
+import {Textarea} from '../ui/textarea';
+import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from '../ui/select';
+import {Card, CardContent} from '../ui/card';
+import {Badge} from '../ui/badge';
+import {toast} from 'sonner';
+import {AnimatePresence, motion} from 'motion/react';
 
 interface AddApiDialogProps {
   open: boolean;
@@ -158,7 +158,7 @@ export function AddApiDialog({ open, onOpenChange, onApiAdded }: AddApiDialogPro
                 </Button>
               )}
               <div>
-                <DialogTitle className="text-xl tracking-tight">
+                <DialogTitle className="text-xl tracking-tight text-foreground">
                   {currentStep === 'method' ? 'Add New API' : 'API Details'}
                 </DialogTitle>
                 <DialogDescription className="mt-1 text-muted-foreground">

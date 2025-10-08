@@ -1,14 +1,13 @@
-import React, { useState } from 'react';
-import { ChevronDown, ChevronRight, X, Filter } from 'lucide-react';
-import { Button } from '../ui/button';
-import { Card, CardContent } from '../ui/card';
-import { Checkbox } from '../ui/checkbox';
-import { ScrollArea } from '../ui/scroll-area';
-import { Separator } from '../ui/separator';
-import { Badge } from '../ui/badge';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../ui/collapsible';
-import { FilterState, FilterOption } from './types';
-import { motion, AnimatePresence } from 'motion/react';
+import React, {useState} from 'react';
+import {ChevronRight, Filter, X} from 'lucide-react';
+import {Button} from '../ui/button';
+import {Card, CardContent} from '../ui/card';
+import {Checkbox} from '../ui/checkbox';
+import {ScrollArea} from '../ui/scroll-area';
+import {Badge} from '../ui/badge';
+import {Collapsible, CollapsibleContent, CollapsibleTrigger} from '../ui/collapsible';
+import {FilterOption, FilterState} from './types';
+import {AnimatePresence, motion} from 'motion/react';
 
 interface FilterSidebarProps {
   filters: FilterState;

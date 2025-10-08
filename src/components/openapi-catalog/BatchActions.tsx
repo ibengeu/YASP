@@ -1,27 +1,27 @@
-import React, { useState } from 'react';
-import { Trash2, Archive, Download, MoreHorizontal, Eye, X, CheckCircle2 } from 'lucide-react';
-import { Button } from '../ui/button';
-import { Card, CardContent } from '../ui/card';
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
-  DropdownMenuTrigger,
-  DropdownMenuSeparator 
+import React, {useState} from 'react';
+import {Archive, CheckCircle2, Download, Eye, MoreHorizontal, Trash2, X} from 'lucide-react';
+import {Button} from '../ui/button';
+import {Card, CardContent} from '../ui/card';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger
 } from '../ui/dropdown-menu';
-import { Badge } from '../ui/badge';
-import { 
-  AlertDialog, 
-  AlertDialogAction, 
-  AlertDialogCancel, 
-  AlertDialogContent, 
-  AlertDialogDescription, 
-  AlertDialogFooter, 
-  AlertDialogHeader, 
-  AlertDialogTitle 
+import {Badge} from '../ui/badge';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle
 } from '../ui/alert-dialog';
-import { toast } from 'sonner';
-import { motion } from 'motion/react';
+import {toast} from 'sonner';
+import {motion} from 'motion/react';
 
 interface BatchActionsProps {
   selectedCount: number;
