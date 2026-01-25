@@ -5,6 +5,7 @@ import 'fake-indexeddb/auto'
 
 // Setup DOM environment before all tests
 beforeAll(() => {
+
   // Mock localStorage
   // Mitigation for testing environment - provide localStorage mock for Zustand persist middleware
   const localStorageMock = (() => {
