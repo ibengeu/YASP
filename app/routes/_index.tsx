@@ -6,6 +6,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router';
 import { Search, Plus, Sparkles, Filter, BarChart3, FileCode2, Clock, Star } from 'lucide-react';
+import { AppLayout } from '@/components/layout/AppLayout';
 
 export default function LibraryDashboard() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -84,7 +85,7 @@ export default function LibraryDashboard() {
   });
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <AppLayout padding={false}>
       {/* Hero Section with Gradient */}
       <div className="relative overflow-hidden border-b border-border bg-gradient-to-br from-background via-background to-muted/20">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(99,102,241,0.05),transparent_50%)]" />
@@ -220,7 +221,7 @@ export default function LibraryDashboard() {
           </main>
         </div>
       </div>
-    </div>
+    </AppLayout>
   );
 }
 
