@@ -6,14 +6,17 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router';
 import { Search, Plus, Sparkles, Filter, BarChart3, FileCode2, Clock, Star } from 'lucide-react';
+import { toast } from 'sonner';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { GenerateSpecDialog } from '@/features/ai-catalyst/components/GenerateSpecDialog';
+import { SpecCardSkeleton, StatsCardSkeleton } from '@/components/ui/skeleton';
 
 export default function LibraryDashboard() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFilter, setSelectedFilter] = useState<string>('all');
   const [showCommandPalette, setShowCommandPalette] = useState(false);
   const [showGenerateDialog, setShowGenerateDialog] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [specs, setSpecs] = useState<any[]>([]);
   const [stats, setStats] = useState({
     total: 0,
@@ -21,50 +24,61 @@ export default function LibraryDashboard() {
     recentlyUpdated: 0,
   });
 
-  // Mock data for demonstration
+  // Mock data for demonstration - simulate loading
   useEffect(() => {
-    const mockSpecs = [
-      {
-        id: '1',
-        title: 'Payment Gateway API',
-        description: 'Secure payment processing endpoints for e-commerce',
-        version: '2.1.0',
-        workspaceType: 'team',
-        score: 94,
-        updatedAt: new Date('2024-01-20'),
-        tags: ['payments', 'stripe', 'production'],
-      },
-      {
-        id: '2',
-        title: 'User Management API',
-        description: 'Authentication and user profile management',
-        version: '1.5.2',
-        workspaceType: 'personal',
-        score: 87,
-        updatedAt: new Date('2024-01-18'),
-        tags: ['auth', 'users'],
-      },
-      {
-        id: '3',
-        title: 'Analytics Platform API',
-        description: 'Real-time analytics and reporting endpoints',
-        version: '3.0.0-beta',
-        workspaceType: 'partner',
-        score: 72,
-        updatedAt: new Date('2024-01-15'),
-        tags: ['analytics', 'reporting', 'beta'],
-      },
-    ];
+    const loadSpecs = async () => {
+      setIsLoading(true);
 
-    setSpecs(mockSpecs);
-    setStats({
-      total: mockSpecs.length,
-      avgScore: Math.round(mockSpecs.reduce((acc, s) => acc + s.score, 0) / mockSpecs.length),
-      recentlyUpdated: mockSpecs.filter(s => {
-        const daysSince = (Date.now() - s.updatedAt.getTime()) / (1000 * 60 * 60 * 24);
-        return daysSince < 7;
-      }).length,
-    });
+      // Simulate API delay for loading state
+      await new Promise(resolve => setTimeout(resolve, 800));
+
+      const mockSpecs = [
+        {
+          id: '1',
+          title: 'Payment Gateway API',
+          description: 'Secure payment processing endpoints for e-commerce',
+          version: '2.1.0',
+          workspaceType: 'team',
+          score: 94,
+          updatedAt: new Date('2024-01-20'),
+          tags: ['payments', 'stripe', 'production'],
+        },
+        {
+          id: '2',
+          title: 'User Management API',
+          description: 'Authentication and user profile management',
+          version: '1.5.2',
+          workspaceType: 'personal',
+          score: 87,
+          updatedAt: new Date('2024-01-18'),
+          tags: ['auth', 'users'],
+        },
+        {
+          id: '3',
+          title: 'Analytics Platform API',
+          description: 'Real-time analytics and reporting endpoints',
+          version: '3.0.0-beta',
+          workspaceType: 'partner',
+          score: 72,
+          updatedAt: new Date('2024-01-15'),
+          tags: ['analytics', 'reporting', 'beta'],
+        },
+      ];
+
+      setSpecs(mockSpecs);
+      setStats({
+        total: mockSpecs.length,
+        avgScore: Math.round(mockSpecs.reduce((acc, s) => acc + s.score, 0) / mockSpecs.length),
+        recentlyUpdated: mockSpecs.filter(s => {
+          const daysSince = (Date.now() - s.updatedAt.getTime()) / (1000 * 60 * 60 * 24);
+          return daysSince < 7;
+        }).length,
+      });
+
+      setIsLoading(false);
+    };
+
+    loadSpecs();
   }, []);
 
   // Command palette keyboard shortcut
@@ -121,24 +135,34 @@ export default function LibraryDashboard() {
 
           {/* Stats Grid */}
           <div className="mt-10 grid grid-cols-3 gap-4">
-            <StatCard
-              icon={<FileCode2 className="h-5 w-5" />}
-              label="Total Specs"
-              value={stats.total}
-              delay="0ms"
-            />
-            <StatCard
-              icon={<BarChart3 className="h-5 w-5" />}
-              label="Avg Quality Score"
-              value={`${stats.avgScore}%`}
-              delay="50ms"
-            />
-            <StatCard
-              icon={<Clock className="h-5 w-5" />}
-              label="Updated This Week"
-              value={stats.recentlyUpdated}
-              delay="100ms"
-            />
+            {isLoading ? (
+              <>
+                <StatsCardSkeleton />
+                <StatsCardSkeleton />
+                <StatsCardSkeleton />
+              </>
+            ) : (
+              <>
+                <StatCard
+                  icon={<FileCode2 className="h-5 w-5" />}
+                  label="Total Specs"
+                  value={stats.total}
+                  delay="0ms"
+                />
+                <StatCard
+                  icon={<BarChart3 className="h-5 w-5" />}
+                  label="Avg Quality Score"
+                  value={`${stats.avgScore}%`}
+                  delay="50ms"
+                />
+                <StatCard
+                  icon={<Clock className="h-5 w-5" />}
+                  label="Updated This Week"
+                  value={stats.recentlyUpdated}
+                  delay="100ms"
+                />
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -214,7 +238,14 @@ export default function LibraryDashboard() {
             </div>
 
             {/* Specs Grid or Empty State */}
-            {filteredSpecs.length > 0 ? (
+            {isLoading ? (
+              <div className="grid gap-4 md:grid-cols-2">
+                <SpecCardSkeleton />
+                <SpecCardSkeleton />
+                <SpecCardSkeleton />
+                <SpecCardSkeleton />
+              </div>
+            ) : filteredSpecs.length > 0 ? (
               <div className="grid gap-4 md:grid-cols-2">
                 {filteredSpecs.map((spec, index) => (
                   <SpecCard key={spec.id} spec={spec} index={index} />
@@ -235,12 +266,18 @@ export default function LibraryDashboard() {
           // TODO: Parse and save the generated spec
           console.log('Generated spec:', yamlSpec);
           setShowGenerateDialog(false);
+
+          // Show success toast
+          toast.success('Specification generated successfully', {
+            description: 'Your AI-generated OpenAPI spec is ready. Save it to your library to continue.',
+            duration: 5000,
+          });
+
           // In a real implementation, this would:
           // 1. Parse the YAML to get title, version, etc.
           // 2. Create a new spec object
           // 3. Save to IndexedDB
           // 4. Add to specs state
-          // 5. Show success toast
         }}
         groqApiKey={import.meta.env.VITE_GROQ_API_KEY || ''}
         geminiApiKey={import.meta.env.VITE_GEMINI_API_KEY || ''}
