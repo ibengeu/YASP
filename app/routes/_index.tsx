@@ -4,17 +4,21 @@
  */
 
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router';
-import { Search, Plus, Sparkles, BarChart3, FileCode2, Clock } from 'lucide-react';
+import { Link, useNavigate } from 'react-router';
+import { Search, Plus, Sparkles, BarChart3, FileCode2, Clock, Upload } from 'lucide-react';
 import { toast } from 'sonner';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { GenerateSpecDialog } from '@/features/ai-catalyst/components/GenerateSpecDialog';
+import { ImportSpecDialog } from '@/features/library/components/ImportSpecDialog';
 import { SpecCardSkeleton, StatsCardSkeleton } from '@/components/ui/skeleton';
+import { idbStorage } from '@/core/storage/idb-storage';
 
 export default function LibraryDashboard() {
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFilter, setSelectedFilter] = useState<string>('all');
   const [showGenerateDialog, setShowGenerateDialog] = useState(false);
+  const [showImportDialog, setShowImportDialog] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [specs, setSpecs] = useState<any[]>([]);
   const [stats, setStats] = useState({
@@ -107,13 +111,23 @@ export default function LibraryDashboard() {
 
             <div className="flex gap-2">
               <button
+                onClick={() => setShowImportDialog(true)}
+                className="inline-flex h-9 items-center gap-2 rounded-md border border-border bg-card px-4 text-sm font-medium text-card-foreground shadow-xs transition-all hover:bg-accent hover:shadow-sm"
+              >
+                <Upload className="h-4 w-4" />
+                Import
+              </button>
+              <button
                 onClick={() => setShowGenerateDialog(true)}
                 className="inline-flex h-9 items-center gap-2 rounded-md border border-border bg-card px-4 text-sm font-medium text-card-foreground shadow-xs transition-all hover:bg-accent hover:shadow-sm"
               >
                 <Sparkles className="h-4 w-4" />
                 Generate with AI
               </button>
-              <button className="inline-flex h-9 items-center gap-2 rounded-md bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-sm transition-all hover:bg-primary/90 hover:shadow-md">
+              <button
+                onClick={() => navigate('/editor/new')}
+                className="inline-flex h-9 items-center gap-2 rounded-md bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-sm transition-all hover:bg-primary/90 hover:shadow-md"
+              >
                 <Plus className="h-4 w-4" />
                 New Spec
               </button>
@@ -245,26 +259,46 @@ export default function LibraryDashboard() {
         </div>
       </div>
 
+      {/* Import Spec Dialog */}
+      <ImportSpecDialog
+        open={showImportDialog}
+        onOpenChange={setShowImportDialog}
+      />
+
       {/* AI Spec Generation Dialog */}
       <GenerateSpecDialog
         open={showGenerateDialog}
         onClose={() => setShowGenerateDialog(false)}
-        onGenerated={(yamlSpec) => {
-          // TODO: Parse and save the generated spec
-          console.log('Generated spec:', yamlSpec);
+        onGenerated={async (yamlSpec) => {
           setShowGenerateDialog(false);
 
-          // Show success toast
-          toast.success('Specification generated successfully', {
-            description: 'Your AI-generated OpenAPI spec is ready. Save it to your library to continue.',
-            duration: 5000,
-          });
+          // Parse and save the generated spec
+          try {
+            const yaml = await import('yaml');
+            const parsed = yaml.parse(yamlSpec);
+            const title = parsed.info?.title || 'Generated API';
 
-          // In a real implementation, this would:
-          // 1. Parse the YAML to get title, version, etc.
-          // 2. Create a new spec object
-          // 3. Save to IndexedDB
-          // 4. Add to specs state
+            const newSpec = await idbStorage.createSpec({
+              type: 'openapi',
+              content: yamlSpec,
+              title,
+              version: parsed.info?.version || '1.0.0',
+              description: parsed.info?.description,
+              metadata: {
+                score: 0,
+                tags: ['ai-generated'],
+                workspaceType: 'personal',
+                syncStatus: 'offline',
+                isDiscoverable: false,
+              },
+            });
+
+            toast.success('Specification generated successfully');
+            navigate(`/editor/${newSpec.id}`);
+          } catch (error) {
+            console.error('Failed to save generated spec:', error);
+            toast.error('Failed to save specification');
+          }
         }}
         groqApiKey={import.meta.env.VITE_GROQ_API_KEY || ''}
         geminiApiKey={import.meta.env.VITE_GEMINI_API_KEY || ''}
