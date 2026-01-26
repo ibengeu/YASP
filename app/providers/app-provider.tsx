@@ -5,9 +5,10 @@
  * Architecture: Initializes DI container and core services
  */
 
-import { useEffect, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { ThemeProvider } from 'next-themes';
 import { Toaster } from '@/components/ui/sonner';
+import { CommandPalette, useCommandPalette } from '@/components/command-palette';
 import { container } from '@/core/di/container';
 import { idbStorage } from '@/core/storage/idb-storage';
 import { eventDispatcher } from '@/core/events/event-dispatcher';
@@ -15,6 +16,9 @@ import { createLoggingMiddleware } from '@/core/events/middleware/logging-middle
 import { pluginRegistry } from '@/plugins/core/plugin-registry';
 
 export function AppProvider({ children }: { children: ReactNode }) {
+  const { open, setOpen } = useCommandPalette();
+  const [showGenerateDialog, setShowGenerateDialog] = useState(false);
+
   useEffect(() => {
     // Initialize core services
     const initializeServices = async () => {
@@ -62,6 +66,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
     >
       {children}
       <Toaster />
+      <CommandPalette
+        open={open}
+        onOpenChange={setOpen}
+        onGenerateAI={() => {
+          setShowGenerateDialog(true);
+          // Emit event for dashboard to handle
+          eventDispatcher.emit('command:generate-ai', {});
+        }}
+        onNewSpec={() => {
+          // Emit event for dashboard to handle
+          eventDispatcher.emit('command:new-spec', {});
+        }}
+      />
     </ThemeProvider>
   );
 }
