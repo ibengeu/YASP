@@ -7,11 +7,13 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router';
 import { Search, Plus, Sparkles, Filter, BarChart3, FileCode2, Clock, Star } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
+import { GenerateSpecDialog } from '@/features/ai-catalyst/components/GenerateSpecDialog';
 
 export default function LibraryDashboard() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFilter, setSelectedFilter] = useState<string>('all');
   const [showCommandPalette, setShowCommandPalette] = useState(false);
+  const [showGenerateDialog, setShowGenerateDialog] = useState(false);
   const [specs, setSpecs] = useState<any[]>([]);
   const [stats, setStats] = useState({
     total: 0,
@@ -103,7 +105,10 @@ export default function LibraryDashboard() {
             </div>
 
             <div className="flex gap-2">
-              <button className="inline-flex h-9 items-center gap-2 rounded-md border border-border bg-card px-4 text-sm font-medium text-card-foreground shadow-xs transition-all hover:bg-accent hover:shadow-sm">
+              <button
+                onClick={() => setShowGenerateDialog(true)}
+                className="inline-flex h-9 items-center gap-2 rounded-md border border-border bg-card px-4 text-sm font-medium text-card-foreground shadow-xs transition-all hover:bg-accent hover:shadow-sm"
+              >
                 <Sparkles className="h-4 w-4" />
                 Generate with AI
               </button>
@@ -221,6 +226,25 @@ export default function LibraryDashboard() {
           </main>
         </div>
       </div>
+
+      {/* AI Spec Generation Dialog */}
+      <GenerateSpecDialog
+        open={showGenerateDialog}
+        onClose={() => setShowGenerateDialog(false)}
+        onGenerated={(yamlSpec) => {
+          // TODO: Parse and save the generated spec
+          console.log('Generated spec:', yamlSpec);
+          setShowGenerateDialog(false);
+          // In a real implementation, this would:
+          // 1. Parse the YAML to get title, version, etc.
+          // 2. Create a new spec object
+          // 3. Save to IndexedDB
+          // 4. Add to specs state
+          // 5. Show success toast
+        }}
+        groqApiKey={import.meta.env.VITE_GROQ_API_KEY || ''}
+        geminiApiKey={import.meta.env.VITE_GEMINI_API_KEY || ''}
+      />
     </AppLayout>
   );
 }
