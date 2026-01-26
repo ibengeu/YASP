@@ -50,7 +50,7 @@ describe('DiagnosticsPanel', () => {
   });
 
   it('should display diagnostics grouped by severity', () => {
-    const { container } = render(<DiagnosticsPanel diagnostics={mockDiagnostics} onJumpToIssue={vi.fn()} />);
+    render(<DiagnosticsPanel diagnostics={mockDiagnostics} onJumpToIssue={vi.fn()} />);
 
     // Should show severity group headers
     expect(screen.getByText('Errors')).toBeInTheDocument();

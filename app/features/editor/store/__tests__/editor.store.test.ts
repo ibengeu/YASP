@@ -3,9 +3,8 @@
  * Tests for Visual Designer state management with TDD approach
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { useEditorStore } from '../editor.store';
-import type { EditorSnapshot } from '../editor.store';
 
 describe('EditorStore', () => {
   beforeEach(() => {

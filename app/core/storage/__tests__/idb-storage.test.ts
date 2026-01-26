@@ -7,7 +7,6 @@
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { IDBStorage } from '../idb-storage';
-import type { OpenApiDocument } from '../storage-schema';
 
 describe('IDBStorage', () => {
   let storage: IDBStorage;

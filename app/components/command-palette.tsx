@@ -7,7 +7,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
 import {
-  FileCode2,
   Sparkles,
   Settings,
   Home,

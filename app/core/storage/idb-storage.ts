@@ -8,7 +8,6 @@
 
 import type {
   OpenApiDocument,
-  StorageSchema,
   SecretEntry,
   SettingEntry,
 } from './storage-schema';
@@ -87,12 +86,12 @@ export class IDBStorage {
       created_at: now,
       updated_at: now,
       metadata: {
-        score: 0,
-        tags: [],
-        workspaceType: 'personal',
-        syncStatus: 'offline',
-        isDiscoverable: false,
         ...spec.metadata,
+        score: spec.metadata?.score ?? 0,
+        tags: spec.metadata?.tags ?? [],
+        workspaceType: spec.metadata?.workspaceType ?? 'personal',
+        syncStatus: spec.metadata?.syncStatus ?? 'offline',
+        isDiscoverable: spec.metadata?.isDiscoverable ?? false,
       },
     };
 

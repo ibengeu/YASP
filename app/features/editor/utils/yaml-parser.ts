@@ -7,13 +7,12 @@
  * - Sanitizes paths to prevent prototype pollution
  */
 
-import yaml from 'js-yaml';
 import { parseDocument, stringify } from 'yaml';
 
 export interface YAMLNode {
   type: 'Document' | 'Mapping' | 'Sequence' | 'Scalar';
   value: any;
-  range?: [number, number];
+  range?: [number, number, number];
 }
 
 export interface YAMLPosition {

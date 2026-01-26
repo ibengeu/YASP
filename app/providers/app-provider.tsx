@@ -5,7 +5,7 @@
  * Architecture: Initializes DI container and core services
  */
 
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, type ReactNode } from 'react';
 import { ThemeProvider } from 'next-themes';
 import { Toaster } from '@/components/ui/sonner';
 import { CommandPalette, useCommandPalette } from '@/components/command-palette';
@@ -17,7 +17,6 @@ import { pluginRegistry } from '@/plugins/core/plugin-registry';
 
 export function AppProvider({ children }: { children: ReactNode }) {
   const { open, setOpen } = useCommandPalette();
-  const [showGenerateDialog, setShowGenerateDialog] = useState(false);
 
   useEffect(() => {
     // Initialize core services
@@ -70,7 +69,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
         open={open}
         onOpenChange={setOpen}
         onGenerateAI={() => {
-          setShowGenerateDialog(true);
           // Emit event for dashboard to handle
           eventDispatcher.emit('command:generate-ai', {});
         }}

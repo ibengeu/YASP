@@ -8,11 +8,15 @@
 
 import { Spectral, Document } from '@stoplight/spectral-core';
 import { oas } from '@stoplight/spectral-rulesets';
+import Parsers from '@stoplight/spectral-parsers';
 import type { ISpectralDiagnostic } from '@/core/events/event-types';
 
 // Initialize Spectral instance
 const spectral = new Spectral();
-spectral.setRuleset(oas);
+// Initialize with OAS ruleset asynchronously
+(async () => {
+  await spectral.setRuleset(oas as any);
+})();
 
 /**
  * Message types for worker communication
@@ -76,8 +80,8 @@ async function lintSpec(request: LintRequest): Promise<LintResponse> {
     const abortController = new AbortController();
     activeRequests.set(requestId, abortController);
 
-    // Parse content as Document
-    const document = new Document(content, undefined, 'spec.yaml');
+    // Parse content as Document with YAML parser
+    const document = new Document(content, Parsers.Yaml, 'spec.yaml');
 
     // Run Spectral validation
     const results = await spectral.run(document);

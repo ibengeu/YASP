@@ -11,7 +11,6 @@ import {
   validateProxyUrl,
   isPrivateIP,
   isAllowedPort,
-  ValidationResult,
 } from '../proxy-validator';
 
 describe('ProxyValidator - SSRF Protection', () => {

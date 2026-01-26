@@ -9,7 +9,6 @@ import {
   buildPositionMap,
   findNodeByYAMLPath,
   serializeASTToYAML,
-  type YAMLNode,
 } from '../yaml-parser';
 
 describe('YAMLParser', () => {

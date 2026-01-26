@@ -6,7 +6,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { TryItOut } from '../TryItOut';
-import type { OperationObject, ParameterObject } from '@/types/openapi-spec';
+import type { OperationObject } from '@/types/openapi-spec';
 
 describe('TryItOut', () => {
   const mockOperation: OperationObject = {

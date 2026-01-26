@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { AIProvider, AIProviderOptions, GenerateSpecRequest, GenerateSpecResponse } from '../ai-provider';
+import { AIProvider, GenerateSpecRequest, GenerateSpecResponse } from '../ai-provider';
 import { CircuitBreakerState } from '../circuit-breaker';
 
 describe('AIProvider', () => {

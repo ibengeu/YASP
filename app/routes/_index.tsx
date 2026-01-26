@@ -5,7 +5,7 @@
 
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router';
-import { Search, Plus, Sparkles, Filter, BarChart3, FileCode2, Clock, Star } from 'lucide-react';
+import { Search, Plus, Sparkles, BarChart3, FileCode2, Clock } from 'lucide-react';
 import { toast } from 'sonner';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { GenerateSpecDialog } from '@/features/ai-catalyst/components/GenerateSpecDialog';
@@ -14,7 +14,6 @@ import { SpecCardSkeleton, StatsCardSkeleton } from '@/components/ui/skeleton';
 export default function LibraryDashboard() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFilter, setSelectedFilter] = useState<string>('all');
-  const [showCommandPalette, setShowCommandPalette] = useState(false);
   const [showGenerateDialog, setShowGenerateDialog] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [specs, setSpecs] = useState<any[]>([]);
@@ -79,18 +78,6 @@ export default function LibraryDashboard() {
     };
 
     loadSpecs();
-  }, []);
-
-  // Command palette keyboard shortcut
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-        e.preventDefault();
-        setShowCommandPalette(true);
-      }
-    };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
   }, []);
 
   const filteredSpecs = specs.filter(spec => {

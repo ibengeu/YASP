@@ -5,7 +5,6 @@ import path from 'path';
 import { watch } from 'fs';
 import { fileURLToPath } from 'url';
 import { createHash } from 'crypto';
-import readline from 'readline';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -413,7 +412,7 @@ async function clearPage(pageId: string): Promise<{ deleted: number; archived: n
  * Returns page ID if found, null otherwise
  * Filters out archived pages and matches based on filename keywords
  */
-async function findPageByFilename(fileName: string): Promise<string | null> {
+async function findPageByFilename(fileName: string): Promise<string | undefined> {
   try {
     // Extract meaningful keywords from filename (e.g., "MVP_ARCHITECTURE" -> ["MVP", "ARCHITECTURE"])
     const fileNameNoExt = fileName.replace('.md', '');
@@ -444,10 +443,10 @@ async function findPageByFilename(fileName: string): Promise<string | null> {
       return matchedKeywords.length >= requiredMatches;
     });
 
-    return matchingPage ? matchingPage.id : null;
+    return matchingPage ? matchingPage.id : undefined;
   } catch (error) {
     console.error(`❌ Error searching for page with filename "${fileName}":`, error);
-    return null;
+    return undefined;
   }
 }
 
@@ -455,7 +454,7 @@ async function findPageByFilename(fileName: string): Promise<string | null> {
  * Auto-create a Notion page for a new markdown file
  * Returns the created page ID
  */
-async function createNotionPage(filePath: string, title: string): Promise<string | null> {
+async function createNotionPage(filePath: string, title: string): Promise<string | undefined> {
   const fileName = path.basename(filePath);
 
   try {
@@ -475,7 +474,7 @@ async function createNotionPage(filePath: string, title: string): Promise<string
     return pageId;
   } catch (error) {
     console.error(`❌ Failed to create Notion page for ${fileName}:`, error);
-    return null;
+    return undefined;
   }
 }
 
@@ -617,7 +616,7 @@ function watchDocs(): void {
   console.log(`🔍 Watching ${docsPath} for changes...`);
 
   // Precompile file extension check
-  watch(docsPath, { recursive: true }, (eventType, filename) => {
+  watch(docsPath, { recursive: true }, (_eventType, filename) => {
     if (filename?.endsWith('.md')) {
       const filePath = path.join(docsPath, filename);
 
