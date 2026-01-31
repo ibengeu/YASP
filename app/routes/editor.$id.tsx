@@ -245,52 +245,64 @@ paths:
     <div className={`flex flex-col h-screen overflow-hidden bg-background text-foreground ${isMaximized ? 'fixed inset-0 z-[100]' : ''}`}>
       {/* Header */}
       <div className="border-b border-border bg-card shrink-0">
-        <div className="flex h-14 items-center justify-between px-6">
-          <div className="flex items-center gap-4">
+        {/* Top Row: Breadcrumb and Actions */}
+        <div className="flex h-14 items-center justify-between px-6 border-b border-border/60">
+          {/* Left: Breadcrumb */}
+          <div className="flex items-center gap-3">
             {!isMaximized && (
               <>
                 <button
                   onClick={() => navigate('/catalog')}
                   className="text-sm text-muted-foreground hover:text-foreground transition-colors"
                 >
-                  ← Back to Catalog
+                  ← Catalog
                 </button>
-                <div className="h-4 w-px bg-border" />
+                <div className="h-4 w-px bg-border rotate-12" />
               </>
             )}
-            <input
-              type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              className="border-none bg-transparent text-sm font-medium text-foreground outline-none placeholder:text-muted-foreground"
-              placeholder="Untitled Spec"
-            />
+            <div className="flex items-center gap-3">
+              <input
+                type="text"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                className="border-none bg-transparent text-base font-medium text-foreground outline-none placeholder:text-muted-foreground"
+                placeholder="Untitled Spec"
+              />
+              {parsedSpec?.info?.version && (
+                <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-medium">
+                  v{parsedSpec.info.version}
+                </span>
+              )}
+            </div>
           </div>
 
-          {/* Tab Switcher */}
-          <div className="flex items-center gap-2 px-1 py-1 bg-muted rounded-lg border border-border">
-            <button
-              onClick={() => setActiveTab('docs')}
-              className={`px-5 py-1.5 rounded-md transition-colors text-sm font-medium flex items-center gap-2 ${
-                activeTab === 'docs'
-                  ? 'bg-card text-foreground shadow-sm'
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              <FileText className="w-4 h-4" /> Documentation
-            </button>
-            <button
-              onClick={() => setActiveTab('editor')}
-              className={`px-5 py-1.5 rounded-md transition-colors text-sm font-medium flex items-center gap-2 ${
-                activeTab === 'editor'
-                  ? 'bg-card text-foreground shadow-sm'
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              <Code2 className="w-4 h-4" /> Editor
-            </button>
+          {/* Center: Tab Switcher */}
+          <div className="absolute left-1/2 -translate-x-1/2 hidden lg:flex">
+            <div className="flex p-1 bg-muted border border-border rounded-lg shadow-inner">
+              <button
+                onClick={() => setActiveTab('docs')}
+                className={`px-4 py-1.5 rounded-md transition-all text-sm font-medium ${
+                  activeTab === 'docs'
+                    ? 'bg-card text-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                Documentation
+              </button>
+              <button
+                onClick={() => setActiveTab('editor')}
+                className={`px-4 py-1.5 rounded-md transition-all text-sm font-medium ${
+                  activeTab === 'editor'
+                    ? 'bg-card text-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                Editor
+              </button>
+            </div>
           </div>
 
+          {/* Right: Actions */}
           <div className="flex items-center gap-2">
             {/* Error/Warning Badge */}
             {totalProblems > 0 && (
@@ -303,16 +315,13 @@ paths:
             {/* Maximize Button */}
             <button
               onClick={() => setIsMaximized(!isMaximized)}
-              className="text-muted-foreground hover:text-foreground transition-colors px-3 py-2 text-sm font-medium flex items-center gap-2"
+              className="p-2 text-muted-foreground hover:text-foreground transition-colors rounded-md hover:bg-muted"
+              title={isMaximized ? 'Minimize' : 'Maximize'}
             >
               {isMaximized ? (
-                <>
-                  <Minimize2 className="w-4 h-4" /> Minimize
-                </>
+                <Minimize2 className="w-4 h-4" />
               ) : (
-                <>
-                  <Maximize2 className="w-4 h-4" /> Maximize
-                </>
+                <Maximize2 className="w-4 h-4" />
               )}
             </button>
 
@@ -332,10 +341,10 @@ paths:
               <button
                 onClick={handleSave}
                 disabled={isSaving}
-                className="px-4 py-2 text-sm font-medium text-primary-foreground bg-primary border border-primary rounded-lg hover:opacity-90 transition-opacity flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-sm font-medium rounded-md hover:opacity-90 transition-all shadow-[0_0_15px_rgba(147,51,234,0.1)] disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Save className="w-4 h-4" />
-                {isSaving ? 'Saving...' : 'Save'}
+                {isSaving ? 'Saving...' : 'Save Changes'}
               </button>
             )}
           </div>
@@ -622,7 +631,11 @@ paths:
                     {diagnostics.map((diagnostic, idx) => (
                       <div
                         key={idx}
-                        className="py-3 hover:bg-muted/30 -mx-4 px-4 transition-colors cursor-pointer group"
+                        className={`py-3 -mx-4 px-4 transition-colors cursor-pointer group ${
+                          diagnostic.severity === 0
+                            ? 'hover:bg-destructive/5 bg-destructive/[0.02]'
+                            : 'hover:bg-muted/30'
+                        }`}
                         onClick={() => handleJumpToIssue(diagnostic)}
                       >
                         <div className="flex items-start gap-3">
@@ -633,8 +646,8 @@ paths:
                             <div className="flex items-center gap-2 mb-1">
                               <span className={`px-1.5 py-0.5 rounded text-xs font-medium uppercase ${
                                 diagnostic.severity === 0
-                                  ? 'bg-destructive/10 text-destructive'
-                                  : 'bg-warning/10 text-warning'
+                                  ? 'bg-destructive/10 text-destructive border border-destructive/20'
+                                  : 'bg-warning/10 text-warning border border-warning/20'
                               }`}>
                                 {diagnostic.severity === 0 ? 'Error' : 'Warning'}
                               </span>
