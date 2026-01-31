@@ -21,11 +21,33 @@ export default defineConfig(({ mode }) => ({
                 singleFork: true,
             },
         },
+        exclude: [
+            '**/node_modules/**',
+            '**/dist/**',
+            '**/e2e/**',
+            '**/.{idea,git,cache,output,temp}/**',
+        ],
     },
     resolve: {
         alias: {
             "@": path.resolve(__dirname, "./app"),
         },
-        extensions: ['.js', '.jsx', '.ts', '.tsx']
+        extensions: ['.js', '.jsx', '.ts', '.tsx'],
+        // OWASP A04:2025 - Insecure Design: Ensure consistent module resolution
+        dedupe: ['@codemirror/state', '@codemirror/view'],
+    },
+    optimizeDeps: {
+        // Pre-bundle CodeMirror packages to avoid instanceof issues
+        include: [
+            '@codemirror/state',
+            '@codemirror/view',
+            '@codemirror/lang-yaml',
+            '@codemirror/lang-json',
+            '@codemirror/commands',
+            '@codemirror/search',
+            '@codemirror/autocomplete',
+            '@codemirror/lint',
+            '@codemirror/theme-one-dark',
+        ],
     },
 }));

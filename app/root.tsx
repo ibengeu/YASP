@@ -26,9 +26,19 @@ export const links: LinksFunction = () => [
     },
 ];
 
+import { useEffect, useState } from 'react';
+import { useThemeStore } from '@/stores/theme-store';
+
 export function Layout({ children }: { children: React.ReactNode }) {
+    const [mounted, setMounted] = useState(false);
+    const darkMode = useThemeStore((state) => state.darkMode);
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
+
     return (
-        <html lang="en" suppressHydrationWarning>
+        <html lang="en" className={mounted && darkMode ? 'dark' : ''} suppressHydrationWarning>
             <head>
                 <meta charSet="utf-8" />
                 <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -48,11 +58,15 @@ export function Layout({ children }: { children: React.ReactNode }) {
 }
 
 import { AppProvider } from "@/providers/app-provider";
+import { CommandDeck } from "@/components/navigation/CommandDeck";
 
 export default function App() {
     return (
         <AppProvider>
-            <Outlet />
+            <CommandDeck />
+            <main className="pt-16">
+                <Outlet />
+            </main>
         </AppProvider>
     );
 }

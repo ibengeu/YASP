@@ -1,23 +1,35 @@
 /**
- * Spec Editor Route
- * Integrates Visual Designer, Governance, and API Explorer
- *
- * Architecture: SRS_00 § 4.1 - Integration Layer
+ * Spec Editor Route - Redesigned to match reference platform
+ * Features: Editor/Docs tabs, Endpoint sidebar (both tabs), Diagnostics panel, Maximize mode
  */
 
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router';
-import { Save, Play, Eye, Code, BarChart3 } from 'lucide-react';
+import {
+  Save, Code2, FileText, AlertCircle, Maximize2, Minimize2,
+  TerminalSquare, ChevronDown, ChevronUp, Play
+} from 'lucide-react';
 import { toast } from 'sonner';
-import { AppLayout } from '@/components/layout/AppLayout';
 import { CodeEditor } from '@/features/editor/components/CodeEditor';
 import { useEditorStore } from '@/features/editor/store/editor.store';
-import { DiagnosticsPanel } from '@/features/governance/components/DiagnosticsPanel';
-import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { TryItOutDrawer } from '@/components/api-details/TryItOutDrawer';
 import { idbStorage } from '@/core/storage/idb-storage';
 import { SpectralService } from '@/features/governance/services/spectral.service';
 import type { ISpectralDiagnostic } from '@/core/events/event-types';
+import type { PathItemObject, OperationObject, ServerObject } from '@/types/openapi-spec';
+
+// Parsed OpenAPI spec structure
+interface ParsedOpenAPISpec {
+  openapi: string;
+  info: {
+    title: string;
+    version: string;
+    description?: string;
+  };
+  servers?: ServerObject[];
+  paths?: Record<string, PathItemObject>;
+  components?: any;
+}
 
 const spectralService = new SpectralService();
 
@@ -30,7 +42,16 @@ export default function SpecEditor() {
   const [diagnostics, setDiagnostics] = useState<ISpectralDiagnostic[]>([]);
   const [score, setScore] = useState(100);
   const [isSaving, setIsSaving] = useState(false);
-  const [activeTab, setActiveTab] = useState('editor');
+  const [activeTab, setActiveTab] = useState<'editor' | 'docs'>('docs');
+  const [parsedSpec, setParsedSpec] = useState<ParsedOpenAPISpec | null>(null);
+  const [selectedEndpoint, setSelectedEndpoint] = useState<{
+    path: string;
+    method: string;
+    operation: OperationObject;
+  } | null>(null);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [isMaximized, setIsMaximized] = useState(false);
+  const [isDiagnosticsCollapsed, setIsDiagnosticsCollapsed] = useState(false);
 
   // Load spec from storage
   useEffect(() => {
@@ -42,11 +63,14 @@ info:
   title: My API
   version: 1.0.0
   description: API description
+servers:
+  - url: https://api.example.com/v1
 paths:
   /example:
     get:
       summary: Example endpoint
       operationId: getExample
+      tags: [Examples]
       responses:
         '200':
           description: Success
@@ -69,21 +93,46 @@ paths:
     loadSpec();
   }, [id]);
 
-  // Auto-validate on content change
+  // Auto-validate on content change and parse spec
   useEffect(() => {
     if (!content) return;
 
-    const validate = async () => {
+    const validateAndParse = async () => {
       try {
+        // Validate with Spectral
         const result = await spectralService.lintSpec(content);
         setDiagnostics(result.diagnostics);
         setScore(result.score);
+
+        // Parse YAML to extract endpoints
+        const yaml = await import('yaml');
+        const parsed = yaml.parse(content) as ParsedOpenAPISpec;
+        setParsedSpec(parsed);
+
+        // Auto-select first endpoint if none selected
+        if (!selectedEndpoint && parsed.paths) {
+          const firstPath = Object.keys(parsed.paths)[0];
+          if (firstPath) {
+            const pathItem = parsed.paths[firstPath] as PathItemObject;
+            const firstMethod = ['get', 'post', 'put', 'delete', 'patch'].find(
+              (m) => pathItem[m as keyof PathItemObject]
+            );
+            if (firstMethod) {
+              setSelectedEndpoint({
+                path: firstPath,
+                method: firstMethod,
+                operation: pathItem[firstMethod as keyof PathItemObject] as OperationObject,
+              });
+            }
+          }
+        }
       } catch (error) {
-        console.error('Validation error:', error);
+        console.error('Validation/parse error:', error);
+        setParsedSpec(null);
       }
     };
 
-    validate();
+    validateAndParse();
   }, [content]);
 
   const handleSave = async () => {
@@ -142,133 +191,489 @@ paths:
   };
 
   const handleJumpToIssue = (diagnostic: ISpectralDiagnostic) => {
-    // TODO: Implement jump to line in editor
+    // Jump to line in editor
+    setActiveTab('editor');
+    // TODO: Scroll editor to line
     console.log('Jump to', diagnostic);
+  };
+
+  const scrollToEndpoint = (path: string, method: string) => {
+    const elementId = `endpoint-${method}-${path.replace(/\//g, '-')}`;
+    const element = document.getElementById(elementId);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
+
+  const scrollToYamlLine = (path: string, method: string) => {
+    // Find the line number in YAML content where this endpoint is defined
+    const lines = content.split('\n');
+    const searchPattern = `  ${path}:`;
+    const pathLineIndex = lines.findIndex(line => line.trim() === searchPattern.trim());
+
+    if (pathLineIndex >= 0) {
+      // Find the method line after the path
+      const methodLineIndex = lines.findIndex((line, idx) =>
+        idx > pathLineIndex && line.trim().startsWith(`${method}:`)
+      );
+
+      if (methodLineIndex >= 0) {
+        // Scroll to that line in the editor
+        // TODO: Implement scroll to line in CodeMirror
+        console.log('Scroll to line:', methodLineIndex + 1);
+      }
+    }
   };
 
   const errorCount = diagnostics.filter(d => d.severity === 0).length;
   const warningCount = diagnostics.filter(d => d.severity === 1).length;
+  const totalProblems = errorCount + warningCount;
+
+  // Method color mapping
+  const getMethodColor = (method: string) => {
+    const colors: Record<string, { bg: string; text: string; border: string }> = {
+      get: { bg: 'bg-green-500/10', text: 'text-green-400', border: 'border-green-500/30' },
+      post: { bg: 'bg-emerald-500/10', text: 'text-emerald-400', border: 'border-emerald-500/30' },
+      put: { bg: 'bg-orange-500/10', text: 'text-orange-400', border: 'border-orange-500/30' },
+      patch: { bg: 'bg-purple-500/10', text: 'text-purple-400', border: 'border-purple-500/30' },
+      delete: { bg: 'bg-rose-500/10', text: 'text-rose-400', border: 'border-rose-500/30' },
+    };
+    return colors[method.toLowerCase()] || colors.get;
+  };
 
   return (
-    <AppLayout padding={false}>
+    <div className={`flex flex-col h-screen overflow-hidden bg-background text-foreground ${isMaximized ? 'fixed inset-0 z-[100]' : ''}`}>
       {/* Header */}
-      <div className="border-b border-border bg-card">
+      <div className="border-b border-border bg-card shrink-0">
         <div className="flex h-14 items-center justify-between px-6">
           <div className="flex items-center gap-4">
-            <button
-              onClick={() => navigate('/')}
-              className="text-sm text-muted-foreground hover:text-foreground"
-            >
-              ← Library
-            </button>
-            <div className="h-4 w-px bg-border" />
+            {!isMaximized && (
+              <>
+                <button
+                  onClick={() => navigate('/catalog')}
+                  className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  ← Back to Catalog
+                </button>
+                <div className="h-4 w-px bg-border" />
+              </>
+            )}
             <input
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              className="border-none bg-transparent text-sm font-medium text-foreground outline-none"
+              className="border-none bg-transparent text-sm font-medium text-foreground outline-none placeholder:text-muted-foreground"
               placeholder="Untitled Spec"
             />
           </div>
 
-          <div className="flex items-center gap-2">
-            {/* Quality Score Badge */}
-            <div className="flex items-center gap-2 rounded-md border border-border bg-background px-3 py-1.5">
-              <BarChart3 className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm font-medium">{score}%</span>
-            </div>
+          {/* Tab Switcher */}
+          <div className="flex items-center gap-2 px-1 py-1 bg-muted rounded-lg border border-border">
+            <button
+              onClick={() => setActiveTab('docs')}
+              className={`px-5 py-1.5 rounded-md transition-colors text-sm font-medium flex items-center gap-2 ${
+                activeTab === 'docs'
+                  ? 'bg-card text-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <FileText className="w-4 h-4" /> Documentation
+            </button>
+            <button
+              onClick={() => setActiveTab('editor')}
+              className={`px-5 py-1.5 rounded-md transition-colors text-sm font-medium flex items-center gap-2 ${
+                activeTab === 'editor'
+                  ? 'bg-card text-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <Code2 className="w-4 h-4" /> Editor
+            </button>
+          </div>
 
-            {/* Diagnostic Counts */}
-            {(errorCount > 0 || warningCount > 0) && (
-              <div className="flex items-center gap-2 rounded-md border border-border bg-background px-3 py-1.5">
-                {errorCount > 0 && (
-                  <span className="text-sm font-medium text-destructive">
-                    {errorCount} {errorCount === 1 ? 'error' : 'errors'}
-                  </span>
-                )}
-                {warningCount > 0 && (
-                  <span className="text-sm font-medium text-warning">
-                    {warningCount} {warningCount === 1 ? 'warning' : 'warnings'}
-                  </span>
-                )}
+          <div className="flex items-center gap-2">
+            {/* Error/Warning Badge */}
+            {totalProblems > 0 && (
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-destructive/10 border border-destructive/20 rounded-full text-destructive text-xs font-medium">
+                <AlertCircle className="w-3.5 h-3.5" />
+                {errorCount > 0 ? `${errorCount} Error${errorCount > 1 ? 's' : ''}` : `${warningCount} Warning${warningCount > 1 ? 's' : ''}`}
               </div>
             )}
 
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setActiveTab('explorer')}
+            {/* Maximize Button */}
+            <button
+              onClick={() => setIsMaximized(!isMaximized)}
+              className="text-muted-foreground hover:text-foreground transition-colors px-3 py-2 text-sm font-medium flex items-center gap-2"
             >
-              <Play className="h-4 w-4" />
-              Test API
-            </Button>
+              {isMaximized ? (
+                <>
+                  <Minimize2 className="w-4 h-4" /> Minimize
+                </>
+              ) : (
+                <>
+                  <Maximize2 className="w-4 h-4" /> Maximize
+                </>
+              )}
+            </button>
 
-            <Button
-              size="sm"
-              onClick={handleSave}
-              disabled={isSaving}
-            >
-              <Save className="h-4 w-4" />
-              {isSaving ? 'Saving...' : 'Save'}
-            </Button>
+            {/* Try It Out Button (Documentation tab only) */}
+            {activeTab === 'docs' && selectedEndpoint && (
+              <button
+                onClick={() => setIsDrawerOpen(true)}
+                className="px-3 py-2 text-sm font-medium text-white bg-purple-500/10 border border-purple-500/30 rounded-lg hover:bg-purple-500/20 transition-colors flex items-center gap-2"
+              >
+                <Play className="w-4 h-4" />
+                Try It Out
+              </button>
+            )}
+
+            {/* Save Button (Editor tab only) */}
+            {activeTab === 'editor' && (
+              <button
+                onClick={handleSave}
+                disabled={isSaving}
+                className="px-4 py-2 text-sm font-medium text-primary-foreground bg-primary border border-primary rounded-lg hover:opacity-90 transition-opacity flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Save className="w-4 h-4" />
+                {isSaving ? 'Saving...' : 'Save'}
+              </button>
+            )}
           </div>
         </div>
       </div>
 
-      {/* Main Editor Area */}
-      <div className="flex h-[calc(100vh-56px)] overflow-hidden">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex h-full w-full flex-col">
-          <TabsList className="h-10 w-full justify-start rounded-none border-b border-border bg-background px-6">
-            <TabsTrigger value="editor" className="gap-2">
-              <Code className="h-4 w-4" />
-              Editor
-            </TabsTrigger>
-            <TabsTrigger value="preview" className="gap-2">
-              <Eye className="h-4 w-4" />
-              Preview
-            </TabsTrigger>
-            <TabsTrigger value="explorer" className="gap-2">
-              <Play className="h-4 w-4" />
-              API Explorer
-            </TabsTrigger>
-          </TabsList>
+      {/* Main Content Area with Sidebar */}
+      <div className="flex-1 flex overflow-hidden">
+        {/* Endpoint List Sidebar (Always visible when there are endpoints) */}
+        {parsedSpec?.paths && Object.keys(parsedSpec.paths).length > 0 && (
+          <div className="w-72 border-r border-border bg-card flex flex-col shrink-0">
+            <div className="p-4 border-b border-border">
+              <h3 className="text-sm font-semibold text-card-foreground mb-1">Endpoints</h3>
+              <p className="text-xs text-muted-foreground">
+                {Object.values(parsedSpec.paths).reduce((count, pathItem) => {
+                  return count + Object.keys(pathItem as PathItemObject).filter(k =>
+                    ['get', 'post', 'put', 'patch', 'delete'].includes(k)
+                  ).length;
+                }, 0)} operations
+              </p>
+            </div>
+            <div className="flex-1 overflow-auto">
+              {Object.entries(parsedSpec.paths).map(([path, pathItem]) => {
+                return Object.entries(pathItem as PathItemObject)
+                  .filter(([method]) => ['get', 'post', 'put', 'patch', 'delete'].includes(method))
+                  .map(([method, operation]: [string, any]) => {
+                    const op = operation as OperationObject;
+                    const colors = getMethodColor(method);
 
-          <TabsContent value="editor" className="m-0 flex-1 overflow-hidden">
-            <div className="grid h-full grid-rows-[1fr,auto]">
+                    return (
+                      <button
+                        key={`${method}-${path}`}
+                        onClick={() => {
+                          // Update selected endpoint
+                          setSelectedEndpoint({ path, method, operation: op });
+
+                          if (activeTab === 'docs') {
+                            // In docs tab: scroll to endpoint documentation
+                            scrollToEndpoint(path, method);
+                          } else {
+                            // In editor tab: scroll YAML to this endpoint
+                            scrollToYamlLine(path, method);
+                          }
+                        }}
+                        className="w-full text-left px-4 py-3 hover:bg-muted border-b border-border transition-colors group"
+                      >
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className={`px-2 py-0.5 rounded text-xs font-bold uppercase ${colors.bg} ${colors.text} border ${colors.border}`}>
+                            {method}
+                          </span>
+                        </div>
+                        <div className="text-xs font-mono text-muted-foreground mb-1 group-hover:text-foreground transition-colors">
+                          {path}
+                        </div>
+                        <div className="text-xs text-muted-foreground group-hover:text-foreground transition-colors line-clamp-1">
+                          {op.summary || 'No summary'}
+                        </div>
+                      </button>
+                    );
+                  });
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Content Area */}
+        <div className="flex-1 flex flex-col overflow-hidden">
+          {/* Editor Tab */}
+          {activeTab === 'editor' && (
+            <div className="flex-1 flex flex-col overflow-hidden">
               <CodeEditor language="yaml" />
-              <DiagnosticsPanel
-                diagnostics={diagnostics}
-                onJumpToIssue={handleJumpToIssue}
-              />
             </div>
-          </TabsContent>
+          )}
 
-          <TabsContent value="preview" className="m-0 flex-1 overflow-auto p-6">
-            <div className="mx-auto max-w-4xl">
-              <div className="rounded-lg border border-border bg-card p-6">
-                <h3 className="text-lg font-semibold">API Documentation Preview</h3>
-                <p className="mt-2 text-sm text-muted-foreground">
-                  SwaggerUI preview coming soon...
-                </p>
-                <pre className="mt-4 overflow-auto rounded-md bg-muted p-4 text-xs">
-                  {content}
-                </pre>
+          {/* Documentation Tab */}
+          {activeTab === 'docs' && (
+            <div className="flex-1 overflow-auto bg-background p-8 md:p-12">
+              <div className="max-w-4xl mx-auto">
+                {parsedSpec && parsedSpec.paths ? (
+                  <>
+                    {/* API Info Header */}
+                    <div className="mb-12">
+                      <h1 className="text-3xl md:text-4xl font-bold tracking-tight mb-3 text-foreground">
+                        {parsedSpec.info.title}
+                      </h1>
+                      <p className="text-base leading-relaxed text-muted-foreground">
+                        {parsedSpec.info.description || 'No description provided'}
+                      </p>
+                      <div className="mt-3 flex items-center gap-3 text-sm text-muted-foreground">
+                        <span>Version {parsedSpec.info.version}</span>
+                        {parsedSpec.servers?.[0] && (
+                          <>
+                            <span>•</span>
+                            <code className="px-2 py-1 rounded bg-muted border border-border text-foreground font-mono text-xs">
+                              {parsedSpec.servers[0].url}
+                            </code>
+                          </>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Endpoints */}
+                    {Object.entries(parsedSpec.paths).map(([path, pathItem]) => {
+                      return Object.entries(pathItem as PathItemObject)
+                        .filter(([method]) => ['get', 'post', 'put', 'patch', 'delete'].includes(method))
+                        .map(([method, operation]: [string, any]) => {
+                          const op = operation as OperationObject;
+                          const colors = getMethodColor(method);
+
+                          return (
+                            <div
+                              key={`${method}-${path}`}
+                              id={`endpoint-${method}-${path.replace(/\//g, '-')}`}
+                              className="mb-16 scroll-mt-16"
+                            >
+                              {/* Accent Strip */}
+                              <div className="h-1 w-16 bg-gradient-to-r from-purple-500 to-pink-500 mb-4 rounded-full" />
+
+                              {/* Operation Summary */}
+                              <h2 className="text-2xl md:text-3xl uppercase font-bold tracking-tight mb-3 text-foreground">
+                                {op.summary || 'Unnamed Operation'}
+                              </h2>
+                              <p className="text-sm md:text-base leading-relaxed mb-6 text-muted-foreground">
+                                {op.description || 'No detailed description provided in the specification.'}
+                              </p>
+
+                              {/* Endpoint Badge */}
+                              <div className="flex items-center gap-3 mb-6 p-3 bg-card border border-border rounded-lg">
+                                <span className={`px-3 py-1.5 rounded-md font-bold text-xs uppercase ${colors.bg} ${colors.text} border ${colors.border}`}>
+                                  {method.toUpperCase()}
+                                </span>
+                                <code className="text-sm font-mono text-foreground">{path}</code>
+                                <button
+                                  onClick={() => {
+                                    setSelectedEndpoint({ path, method, operation: op });
+                                    setIsDrawerOpen(true);
+                                  }}
+                                  className="ml-auto px-3 py-1.5 text-xs font-medium text-white bg-purple-500/10 border border-purple-500/30 rounded hover:bg-purple-500/20 transition-colors flex items-center gap-2"
+                                >
+                                  <Play className="w-3 h-3" />
+                                  Try It Out
+                                </button>
+                              </div>
+
+                              {/* Parameters */}
+                              {op.parameters && op.parameters.length > 0 && (
+                                <div className="mb-6">
+                                  <h3 className="text-base font-semibold text-foreground mb-3 flex items-center gap-2">
+                                    <div className="h-px flex-1 bg-border" />
+                                    <span>Parameters</span>
+                                    <div className="h-px flex-1 bg-border" />
+                                  </h3>
+                                  <div className="overflow-x-auto">
+                                    <table className="w-full border border-border rounded-lg overflow-hidden">
+                                      <thead className="bg-muted">
+                                        <tr>
+                                          <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Name</th>
+                                          <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">In</th>
+                                          <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Type</th>
+                                          <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Required</th>
+                                          <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Description</th>
+                                        </tr>
+                                      </thead>
+                                      <tbody className="divide-y divide-border">
+                                        {op.parameters.map((param: any, idx: number) => (
+                                          <tr key={idx} className="hover:bg-muted transition-colors">
+                                            <td className="px-4 py-3 text-sm font-mono text-foreground">{param.name}</td>
+                                            <td className="px-4 py-3 text-sm">
+                                              <span className="px-2 py-1 rounded bg-blue-500/10 text-blue-400 text-xs border border-blue-500/30">
+                                                {param.in}
+                                              </span>
+                                            </td>
+                                            <td className="px-4 py-3 text-sm text-muted-foreground">{param.schema?.type || 'any'}</td>
+                                            <td className="px-4 py-3 text-sm">
+                                              {param.required ? (
+                                                <span className="text-destructive">✓</span>
+                                              ) : (
+                                                <span className="text-muted-foreground">—</span>
+                                              )}
+                                            </td>
+                                            <td className="px-4 py-3 text-sm text-muted-foreground">{param.description || '—'}</td>
+                                          </tr>
+                                        ))}
+                                      </tbody>
+                                    </table>
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Request Body */}
+                              {op.requestBody && (
+                                <div className="mb-6">
+                                  <h3 className="text-base font-semibold text-foreground mb-3 flex items-center gap-2">
+                                    <div className="h-px flex-1 bg-border" />
+                                    <span>Request Body</span>
+                                    <div className="h-px flex-1 bg-border" />
+                                  </h3>
+                                  <div className="p-4 bg-card border border-border rounded-lg">
+                                    <p className="text-sm text-muted-foreground mb-2">
+                                      {(op.requestBody as any).description || 'Request body'}
+                                    </p>
+                                    {(op.requestBody as any).required && (
+                                      <span className="text-xs text-destructive">Required</span>
+                                    )}
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Responses */}
+                              <div className="mb-6">
+                                <h3 className="text-base font-semibold text-foreground mb-3 flex items-center gap-2">
+                                  <div className="h-px flex-1 bg-border" />
+                                  <span>Responses</span>
+                                  <div className="h-px flex-1 bg-border" />
+                                </h3>
+                                <div className="overflow-x-auto">
+                                  <table className="w-full border border-border rounded-lg overflow-hidden">
+                                    <thead className="bg-muted">
+                                      <tr>
+                                        <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Status</th>
+                                        <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Description</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-border">
+                                      {op.responses && Object.entries(op.responses).map(([code, response]: [string, any]) => (
+                                        <tr key={code} className="hover:bg-muted transition-colors">
+                                          <td className="px-4 py-3">
+                                            <span className={`px-3 py-1 rounded font-mono text-xs ${
+                                              code.startsWith('2') ? 'bg-success/10 text-success border border-success/30' :
+                                              code.startsWith('4') ? 'bg-warning/10 text-warning border border-warning/30' :
+                                              code.startsWith('5') ? 'bg-destructive/10 text-destructive border border-destructive/30' :
+                                              'bg-info/10 text-info border border-info/30'
+                                            }`}>
+                                              {code}
+                                            </span>
+                                          </td>
+                                          <td className="px-4 py-3 text-sm text-muted-foreground">{response.description || 'No description'}</td>
+                                        </tr>
+                                      ))}
+                                    </tbody>
+                                  </table>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        });
+                    })}
+                  </>
+                ) : (
+                  <div className="text-center py-12">
+                    <p className="text-muted-foreground">No API documentation available. Add paths to your OpenAPI specification.</p>
+                  </div>
+                )}
               </div>
             </div>
-          </TabsContent>
+          )}
 
-          <TabsContent value="explorer" className="m-0 flex-1 overflow-auto p-6">
-            <div className="mx-auto max-w-4xl">
-              <div className="rounded-lg border border-border bg-card p-6">
-                <h3 className="text-lg font-semibold">API Explorer</h3>
-                <p className="mt-2 text-sm text-muted-foreground">
-                  Try It Out functionality coming soon...
-                </p>
+          {/* Diagnostics Panel (collapsible) */}
+          {diagnostics.length > 0 && (
+            <div className={`border-t border-border bg-muted/30 backdrop-blur-sm flex flex-col shrink-0 ${isDiagnosticsCollapsed ? 'h-auto' : 'h-64'}`}>
+              {/* Header */}
+              <div
+                className="flex items-center justify-between px-4 py-2.5 bg-card border-b border-border cursor-pointer hover:bg-muted/50 transition-colors"
+                onClick={() => setIsDiagnosticsCollapsed(!isDiagnosticsCollapsed)}
+              >
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2 text-foreground text-sm font-medium">
+                    <TerminalSquare className="w-4 h-4 text-muted-foreground" />
+                    Diagnostics
+                  </div>
+                  <span className="px-2 py-0.5 rounded bg-destructive/10 text-destructive text-xs font-medium border border-destructive/20">
+                    {totalProblems} Problem{totalProblems > 1 ? 's' : ''}
+                  </span>
+                </div>
+                <button className="text-muted-foreground hover:text-foreground transition-colors">
+                  {isDiagnosticsCollapsed ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                </button>
               </div>
+
+              {/* Content */}
+              {!isDiagnosticsCollapsed && (
+                <div className="flex-1 overflow-auto px-4 py-3">
+                  <div className="space-y-0 divide-y divide-border">
+                    {diagnostics.map((diagnostic, idx) => (
+                      <div
+                        key={idx}
+                        className="py-3 hover:bg-muted/30 -mx-4 px-4 transition-colors cursor-pointer group"
+                        onClick={() => handleJumpToIssue(diagnostic)}
+                      >
+                        <div className="flex items-start gap-3">
+                          <AlertCircle className={`w-4 h-4 mt-0.5 shrink-0 ${
+                            diagnostic.severity === 0 ? 'text-destructive' : 'text-warning'
+                          }`} />
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className={`px-1.5 py-0.5 rounded text-xs font-medium uppercase ${
+                                diagnostic.severity === 0
+                                  ? 'bg-destructive/10 text-destructive'
+                                  : 'bg-warning/10 text-warning'
+                              }`}>
+                                {diagnostic.severity === 0 ? 'Error' : 'Warning'}
+                              </span>
+                              <span className="text-xs text-muted-foreground">{diagnostic.code}</span>
+                            </div>
+                            <p className="text-sm text-foreground mb-1.5">{diagnostic.message}</p>
+                            <p className="text-xs text-muted-foreground mb-2">{diagnostic.path?.join('.') || 'Root'}</p>
+                            <div className="flex items-center gap-3">
+                              <span className="px-2 py-0.5 rounded bg-card border border-border text-xs font-mono text-muted-foreground">
+                                Line {diagnostic.range?.start.line ?? '?'}, Col {diagnostic.range?.start.character ?? '?'}
+                              </span>
+                              <button className="text-xs text-primary hover:underline opacity-0 group-hover:opacity-100 transition-opacity">
+                                Quick Fix
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
-          </TabsContent>
-        </Tabs>
+          )}
+        </div>
       </div>
-    </AppLayout>
+
+      {/* Try It Out Drawer */}
+      {selectedEndpoint && (
+        <TryItOutDrawer
+          open={isDrawerOpen}
+          onClose={() => setIsDrawerOpen(false)}
+          operation={selectedEndpoint.operation}
+          path={selectedEndpoint.path}
+          method={selectedEndpoint.method}
+          baseUrl={parsedSpec?.servers?.[0]?.url || 'https://api.example.com'}
+          spec={parsedSpec}
+        />
+      )}
+    </div>
   );
 }

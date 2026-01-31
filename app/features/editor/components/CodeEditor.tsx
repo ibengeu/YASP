@@ -1,18 +1,27 @@
 /**
  * Code Editor Component
- * Monaco-based YAML/JSON editor for OpenAPI specs
+ * CodeMirror 6-based YAML/JSON editor for OpenAPI specs
  *
  * Features:
  * - Syntax highlighting for YAML/JSON
  * - Auto-completion for OpenAPI keywords
  * - Real-time validation
  * - Keyboard shortcuts (Cmd+S, Cmd+Z, etc.)
+ *
+ * Switched from Monaco to CodeMirror for better Vite compatibility
  */
 
 import { useEffect, useRef } from 'react';
-import Editor, { OnMount } from '@monaco-editor/react';
+import { EditorView, keymap, lineNumbers } from '@codemirror/view';
+import { EditorState } from '@codemirror/state';
+import { yaml } from '@codemirror/lang-yaml';
+import { json } from '@codemirror/lang-json';
+import { defaultKeymap, history, historyKeymap } from '@codemirror/commands';
+import { searchKeymap } from '@codemirror/search';
+import { autocompletion, completionKeymap } from '@codemirror/autocomplete';
+import { lintKeymap } from '@codemirror/lint';
+import { oneDark } from '@codemirror/theme-one-dark';
 import { useEditorStore } from '../store/editor.store';
-import type { editor } from 'monaco-editor';
 
 export interface CodeEditorProps {
   language?: 'yaml' | 'json';
@@ -27,92 +36,133 @@ export function CodeEditor({
   readOnly = false,
   onSave,
 }: CodeEditorProps) {
-  const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
+  const editorRef = useRef<HTMLDivElement>(null);
+  const viewRef = useRef<EditorView | null>(null);
   const content = useEditorStore((state) => state.content);
   const setContent = useEditorStore((state) => state.setContent);
-  const isSyncing = useEditorStore((state) => state.isSyncing);
+  const isUserEditRef = useRef(false);
 
-  const handleEditorDidMount: OnMount = (editor, monaco) => {
-    editorRef.current = editor;
+  // Initialize editor once
+  useEffect(() => {
+    if (!editorRef.current) return;
 
-    // Register keyboard shortcuts
-    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => {
-      onSave?.();
-    });
+    // Custom save keymap
+    const saveKeymap = keymap.of([
+      {
+        key: 'Mod-s',
+        run: () => {
+          onSave?.();
+          return true;
+        },
+      },
+    ]);
 
-    // Disable default Cmd+Z/Cmd+Shift+Z (we use store's undo/redo)
-    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyZ, () => {
-      useEditorStore.getState().undo();
-    });
+    // Create editor state
+    const state = EditorState.create({
+      doc: content,
+      extensions: [
+        // Language support
+        language === 'yaml' ? yaml() : json(),
 
-    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KeyZ, () => {
-      useEditorStore.getState().redo();
-    });
+        // Theme
+        oneDark,
 
-    // Configure YAML/JSON validation
-    if (language === 'yaml') {
-      monaco.languages.yaml?.yamlDefaults.setDiagnosticsOptions({
-        validate: true,
-        schemas: [
-          {
-            uri: 'https://raw.githubusercontent.com/OAI/OpenAPI-Specification/main/schemas/v3.1/schema.json',
-            fileMatch: ['*'],
+        // Line numbers
+        lineNumbers(),
+
+        // History (undo/redo)
+        history(),
+
+        // Autocompletion
+        autocompletion(),
+
+        // Keymaps (type assertions to work around module deduplication)
+        keymap.of(defaultKeymap as any),
+        keymap.of(historyKeymap as any),
+        keymap.of(searchKeymap as any),
+        keymap.of(completionKeymap as any),
+        keymap.of(lintKeymap as any),
+        saveKeymap,
+
+        // Read-only mode
+        EditorView.editable.of(!readOnly),
+
+        // Update callback
+        EditorView.updateListener.of((update) => {
+          if (update.docChanged) {
+            // Mark as user edit
+            isUserEditRef.current = true;
+            const newContent = update.state.doc.toString();
+            setContent(newContent, 'code');
+          }
+        }),
+
+        // Styling
+        EditorView.theme({
+          '&': {
+            height: '100%',
+            fontSize: '14px',
           },
-        ],
+          '.cm-scroller': {
+            fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+          },
+          '.cm-content': {
+            padding: '16px 0',
+          },
+          '.cm-gutters': {
+            backgroundColor: '#21252b',
+            color: '#636d83',
+            border: 'none',
+          },
+          '.cm-lineNumbers .cm-gutterElement': {
+            padding: '0 16px 0 8px',
+          },
+        }),
+      ],
+    });
+
+    // Create editor view
+    const view = new EditorView({
+      state,
+      parent: editorRef.current,
+    });
+
+    viewRef.current = view;
+
+    // Cleanup
+    return () => {
+      view.destroy();
+      viewRef.current = null;
+    };
+  }, []);
+
+  // Update content when changed externally (not from user typing)
+  useEffect(() => {
+    if (!viewRef.current) return;
+
+    // If this change came from user typing, skip
+    if (isUserEditRef.current) {
+      isUserEditRef.current = false;
+      return;
+    }
+
+    const currentContent = viewRef.current.state.doc.toString();
+    if (currentContent !== content) {
+      viewRef.current.dispatch({
+        changes: {
+          from: 0,
+          to: currentContent.length,
+          insert: content,
+        },
       });
     }
-  };
-
-  const handleChange = (value: string | undefined) => {
-    if (value !== undefined && !isSyncing) {
-      setContent(value, 'code');
-    }
-  };
-
-  useEffect(() => {
-    // Update editor when content changes externally (e.g., from visual mode)
-    if (editorRef.current && isSyncing) {
-      const model = editorRef.current.getModel();
-      if (model && model.getValue() !== content) {
-        editorRef.current.setValue(content);
-      }
-    }
-  }, [content, isSyncing]);
+  }, [content]);
 
   return (
-    <div className="h-full w-full">
-      <Editor
-        height={height}
-        language={language}
-        theme="vs-dark"
-        value={content}
-        onChange={handleChange}
-        onMount={handleEditorDidMount}
-        options={{
-          readOnly,
-          minimap: { enabled: false },
-          fontSize: 14,
-          lineNumbers: 'on',
-          renderLineHighlight: 'all',
-          scrollBeyondLastLine: false,
-          wordWrap: 'on',
-          tabSize: 2,
-          insertSpaces: true,
-          automaticLayout: true,
-          folding: true,
-          foldingStrategy: 'indentation',
-          showFoldingControls: 'always',
-          formatOnPaste: true,
-          formatOnType: true,
-          // Linear design system colors
-          padding: { top: 16, bottom: 16 },
-        }}
-        loading={
-          <div className="flex h-full items-center justify-center bg-background text-muted-foreground">
-            <div className="text-sm">Loading editor...</div>
-          </div>
-        }
-      />
-    </div>
+    <div
+      ref={editorRef}
+      className="h-full w-full overflow-auto bg-[#282c34]"
+      style={{ height }}
+    />
   );
 }

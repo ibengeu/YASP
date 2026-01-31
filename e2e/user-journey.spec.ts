@@ -26,28 +26,20 @@ paths:
 `;
 
 test.describe('User Journeys', () => {
-  test('Complete new spec creation journey', async ({ page }) => {
+  test('Complete spec import journey', async ({ page }) => {
     // 1. Start at dashboard
     await page.goto('/');
-    await expect(page.getByRole('heading', { name: 'API Specifications' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'API Governance Dashboard' })).toBeVisible();
 
-    // 2. Click New Spec
-    await page.getByRole('button', { name: /New Spec/i }).click();
+    // 2. Navigate to catalog
+    await page.getByRole('button', { name: 'API Catalog' }).click();
+    await expect(page).toHaveURL('/catalog');
 
-    // 3. Should navigate to editor
-    await expect(page).toHaveURL('/editor/new');
-    await expect(page.locator('.monaco-editor')).toBeVisible({ timeout: 10000 });
+    // 3. Should see catalog page
+    await expect(page.getByRole('heading', { name: 'API Catalog' })).toBeVisible();
 
-    // 4. Update title
-    const titleInput = page.locator('input[placeholder="Untitled Spec"]');
-    await titleInput.fill('My Test API');
-    await expect(titleInput).toHaveValue('My Test API');
-
-    // 5. Editor should show default template
-    await expect(page.locator('.view-lines')).toContainText('openapi');
-
-    // 6. Navigate back to dashboard
-    await page.getByRole('button', { name: /Library/i }).click();
+    // 4. Navigate back to dashboard
+    await page.getByRole('button', { name: 'Dashboard' }).click();
     await expect(page).toHaveURL('/');
   });
 
@@ -56,7 +48,7 @@ test.describe('User Journeys', () => {
     await page.goto('/');
 
     // 2. Open import dialog
-    await page.getByRole('button', { name: /Import/i }).click();
+    await page.getByRole('button', { name: /Import Spec/i }).click();
     await expect(page.getByRole('dialog')).toBeVisible();
 
     // 3. Switch to paste tab
@@ -70,7 +62,7 @@ test.describe('User Journeys', () => {
 
     // 6. Should navigate to editor
     await expect(page).toHaveURL(/\/editor\/[a-f0-9-]+/);
-    await expect(page.locator('.monaco-editor')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('.cm-editor')).toBeVisible({ timeout: 10000 });
 
     // 7. Title should be extracted
     const titleInput = page.locator('input[value="User Journey Test API"]');
@@ -83,36 +75,41 @@ test.describe('User Journeys', () => {
   test('Navigation between tabs workflow', async ({ page }) => {
     // 1. Go to editor
     await page.goto('/editor/new');
-    await expect(page.locator('.monaco-editor')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('.cm-editor')).toBeVisible({ timeout: 10000 });
 
     // 2. Switch to Preview tab
     await page.getByRole('tab', { name: /Preview/i }).click();
-    await expect(page.getByRole('tabpanel')).toContainText(/preview/i);
+    await expect(page.getByRole('tabpanel')).toContainText(/API Documentation Preview/i);
 
-    // 3. Switch to API Explorer
+    // 3. Switch to API Explorer - now shows actual Try It Out component
     await page.getByRole('tab', { name: /API Explorer/i }).click();
-    await expect(page.getByRole('tabpanel')).toContainText(/explorer/i);
+    await expect(page.getByRole('tabpanel')).toContainText(/Try It Out/i);
 
     // 4. Back to Editor
     await page.getByRole('tab', { name: /Editor/i }).click();
-    await expect(page.locator('.monaco-editor')).toBeVisible();
+    await expect(page.locator('.cm-editor')).toBeVisible();
   });
 
-  test('Dashboard to Editor and back', async ({ page }) => {
-    // 1. Dashboard
+  test('CommandDeck navigation', async ({ page }) => {
+    // 1. Start at Dashboard
     await page.goto('/');
     await expect(page).toHaveURL('/');
+    await expect(page.getByRole('heading', { name: 'API Governance Dashboard' })).toBeVisible();
 
-    // 2. New Spec
-    await page.getByRole('button', { name: /New Spec/i }).click();
-    await expect(page).toHaveURL('/editor/new');
+    // 2. Navigate to API Catalog
+    await page.getByRole('button', { name: 'API Catalog' }).click();
+    await expect(page).toHaveURL('/catalog');
+    await expect(page.getByRole('heading', { name: 'API Catalog' })).toBeVisible();
 
-    // 3. Back to Library
-    await page.getByRole('button', { name: /Library/i }).click();
+    // 3. Navigate to Policy Management
+    await page.getByRole('button', { name: 'Policy Management' }).click();
+    await expect(page).toHaveURL('/quality-rules');
+    await expect(page.getByRole('heading', { name: 'Policy Management' })).toBeVisible();
+
+    // 4. Back to Dashboard
+    await page.getByRole('button', { name: 'Dashboard' }).click();
     await expect(page).toHaveURL('/');
-
-    // 4. Should see dashboard content
-    await expect(page.getByRole('heading', { name: 'API Specifications' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'API Governance Dashboard' })).toBeVisible();
   });
 
   test('Multiple dialog interactions', async ({ page }) => {
@@ -126,15 +123,15 @@ test.describe('User Journeys', () => {
     await page.keyboard.press('Escape');
     await expect(page.getByRole('dialog')).not.toBeVisible();
 
-    // 3. Open AI dialog
-    await page.getByRole('button', { name: /Generate with AI/i }).click();
+    // 3. Open import again (test dialog can reopen)
+    await page.getByRole('button', { name: /Import/i }).click();
     await expect(page.getByRole('dialog')).toBeVisible();
 
-    // 4. Close it
-    await page.keyboard.press('Escape');
+    // 4. Close with close button
+    await page.locator('[data-slot="dialog-close"]').click();
     await expect(page.getByRole('dialog')).not.toBeVisible();
 
-    // 5. Open import again
+    // 5. Open one more time to verify state is clean
     await page.getByRole('button', { name: /Import/i }).click();
     await expect(page.getByRole('dialog')).toBeVisible();
   });
@@ -145,7 +142,10 @@ test.describe('Error Handling Journeys', () => {
     await page.goto('/');
 
     // Open import dialog
-    await page.getByRole('button', { name: /Import/i }).click();
+    const button = page.getByRole('button', { name: /Import Spec/i });
+    await expect(button).toBeVisible({ timeout: 3000 });
+    await button.click();
+    await expect(page.getByRole('dialog')).toBeVisible({ timeout: 3000 });
 
     // Paste invalid content
     await page.getByRole('tab', { name: /Paste/i }).click();
@@ -165,13 +165,13 @@ test.describe('Error Handling Journeys', () => {
 
   test('Should handle navigation with unsaved changes', async ({ page }) => {
     await page.goto('/editor/new');
-    await expect(page.locator('.monaco-editor')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('.cm-editor')).toBeVisible({ timeout: 10000 });
 
-    // Navigate away
-    await page.getByRole('button', { name: /Library/i }).click();
+    // Navigate away via back button
+    await page.getByRole('button', { name: /Back to Catalog/i }).click();
 
-    // Should navigate (no save prompt in current implementation)
-    await expect(page).toHaveURL('/');
+    // Should navigate to catalog (no save prompt in current implementation)
+    await expect(page).toHaveURL('/catalog');
   });
 });
 
@@ -190,7 +190,7 @@ test.describe('Accessibility Journeys', () => {
 
     // Go to editor
     await page.goto('/editor/new');
-    await expect(page.locator('.monaco-editor')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('.cm-editor')).toBeVisible({ timeout: 10000 });
 
     // Tab through editor UI
     await page.keyboard.press('Tab');

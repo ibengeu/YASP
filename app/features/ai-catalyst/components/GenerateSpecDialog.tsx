@@ -109,11 +109,11 @@ export function GenerateSpecDialog({
       />
 
       {/* Dialog */}
-      <div className="fixed left-1/2 top-1/2 z-50 w-full max-w-2xl -translate-x-1/2 -translate-y-1/2 rounded-lg border border-border bg-card shadow-lg">
+      <div role="dialog" aria-modal="true" aria-labelledby="generate-dialog-title" className="fixed left-1/2 top-1/2 z-50 w-full max-w-2xl -translate-x-1/2 -translate-y-1/2 rounded-lg border border-border bg-card shadow-lg">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-border px-6 py-4">
           <div>
-            <h2 className="text-lg font-semibold text-card-foreground">
+            <h2 id="generate-dialog-title" className="text-lg font-semibold text-card-foreground">
               Generate API Specification
             </h2>
             <p className="mt-1 text-sm text-muted-foreground">

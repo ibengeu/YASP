@@ -105,17 +105,16 @@ describe('DiagnosticsPanel', () => {
     expect(screen.getByText('Operation must have operationId')).toBeInTheDocument();
   });
 
-  it('should support keyboard navigation with arrow keys', () => {
+  it('should support keyboard navigation with arrow keys', async () => {
     const { container } = render(<DiagnosticsPanel diagnostics={mockDiagnostics} onJumpToIssue={vi.fn()} />);
 
     // Press ArrowDown to select first item
     fireEvent.keyDown(window, { key: 'ArrowDown' });
 
     // Wait a tick for focus to be applied
-    setTimeout(() => {
-      const firstButton = container.querySelector('[data-diagnostic-index="0"]') as HTMLButtonElement;
-      expect(document.activeElement).toBe(firstButton);
-    }, 100);
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    const firstButton = container.querySelector('[data-diagnostic-index="0"]') as HTMLButtonElement;
+    expect(document.activeElement).toBe(firstButton);
   });
 
   it('should jump to issue on Enter key', () => {

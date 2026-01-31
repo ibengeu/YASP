@@ -16,85 +16,76 @@ test.describe('Dashboard', () => {
     await page.goto('/');
   });
 
-  test('should display dashboard with header and stats', async ({ page }) => {
-    // Check page title
-    await expect(page.getByRole('heading', { name: 'API Specifications' })).toBeVisible();
+  test('should display dashboard with header and KPI cards', async ({ page }) => {
+    // Check page header
+    await expect(page.getByRole('heading', { name: 'API Governance Dashboard' })).toBeVisible();
 
     // Check description
-    await expect(page.getByText('Design, validate, and manage your OpenAPI specifications')).toBeVisible();
+    await expect(page.getByText('Leading indicators of API quality and compliance')).toBeVisible();
 
-    // Check action buttons
-    await expect(page.getByRole('button', { name: /Import/i })).toBeVisible();
-    await expect(page.getByRole('button', { name: /Generate with AI/i })).toBeVisible();
-    await expect(page.getByRole('button', { name: /New Spec/i })).toBeVisible();
+    // Check KPI cards are visible
+    await expect(page.getByText('Spec / Lint Pass Rate')).toBeVisible({ timeout: 2000 });
+    await expect(page.getByText('Policy Coverage')).toBeVisible();
+    await expect(page.getByText('Breaking Changes Prevented')).toBeVisible();
+    await expect(page.getByText('Auth Coverage')).toBeVisible();
 
-    // Check stats cards are visible (they should show after loading state)
-    await expect(page.getByText('Total Specs')).toBeVisible({ timeout: 2000 });
-    await expect(page.getByText('Avg Quality Score')).toBeVisible();
-    await expect(page.getByText('Updated This Week')).toBeVisible();
+    // Check secondary KPIs
+    await expect(page.getByText('Mean Time to Remediate')).toBeVisible();
+    await expect(page.getByText('Deprecated API Usage')).toBeVisible();
+    await expect(page.getByText('API Reuse Ratio')).toBeVisible();
   });
 
-  test('should show loading skeletons initially', async ({ page }) => {
-    // Reload to catch loading state
-    await page.goto('/', { waitUntil: 'domcontentloaded' });
+  test('should display KPI cards with sparklines and trends', async ({ page }) => {
+    // Wait for KPI cards to load
+    await page.waitForSelector('text=Spec / Lint Pass Rate', { timeout: 2000 });
 
-    // Check for skeleton elements with aria-busy
-    const skeletons = page.locator('[aria-busy="true"]');
-    const count = await skeletons.count();
+    // Check for sparkline SVG elements
+    const sparklines = page.locator('svg polyline');
+    const count = await sparklines.count();
+    expect(count).toBeGreaterThan(0);
 
-    // Should have skeleton loaders initially
+    // Check for trend indicators (TrendingUp or TrendingDown icons)
+    const trendIcons = page.locator('svg.lucide-trending-up, svg.lucide-trending-down');
+    const trendCount = await trendIcons.count();
+    expect(trendCount).toBeGreaterThan(0);
+  });
+
+  test('should display charts', async ({ page }) => {
+    // Check for chart cards
+    await expect(page.getByText('Quality Metrics Trend')).toBeVisible({ timeout: 2000 });
+    await expect(page.getByText('Remediation Performance')).toBeVisible();
+
+    // Check for Recharts SVG elements
+    const charts = page.locator('svg.recharts-surface');
+    const count = await charts.count();
     expect(count).toBeGreaterThan(0);
   });
 
-  test('should display spec cards after loading', async ({ page }) => {
-    // Wait for loading to complete
-    await page.waitForSelector('[aria-busy="true"]', { state: 'detached', timeout: 2000 });
+  test('should display violations table', async ({ page }) => {
+    // Wait for page to load
+    await page.waitForSelector('text=Spec / Lint Pass Rate', { timeout: 2000 });
 
-    // Check for spec cards
-    const specCards = page.locator('.rounded-lg.border');
-    const count = await specCards.count();
+    // Check for violations table
+    await expect(page.getByText('Recent Violations')).toBeVisible();
 
-    // Should have at least the mock specs
-    expect(count).toBeGreaterThan(0);
+    // Table should have headers
+    const table = page.locator('table');
+    const hasTable = await table.isVisible();
+    expect(hasTable).toBe(true);
   });
 
-  test('New Spec button should navigate to editor', async ({ page }) => {
-    await page.getByRole('button', { name: /New Spec/i }).click();
+  test('should have CommandDeck navigation', async ({ page }) => {
+    // Check for CommandDeck fixed header
+    const nav = page.locator('nav');
+    await expect(nav).toBeVisible();
 
-    // Should navigate to editor with 'new' id
-    await expect(page).toHaveURL('/editor/new');
-  });
+    // Check for navigation modules
+    await expect(page.getByText('Dashboard')).toBeVisible();
+    await expect(page.getByText('API Catalog')).toBeVisible();
+    await expect(page.getByText('Policy Management')).toBeVisible();
 
-  test('Import button should open import dialog', async ({ page }) => {
-    await page.getByRole('button', { name: /Import/i }).click();
-
-    // Dialog should be visible
-    await expect(page.getByRole('dialog')).toBeVisible();
-    await expect(page.getByText('Import OpenAPI Specification')).toBeVisible();
-
-    // Check for upload methods tabs
-    await expect(page.getByRole('tab', { name: /File/i })).toBeVisible();
-    await expect(page.getByRole('tab', { name: /Paste/i })).toBeVisible();
-    await expect(page.getByRole('tab', { name: /URL/i })).toBeVisible();
-  });
-
-  test('Generate with AI button should open AI dialog', async ({ page }) => {
-    await page.getByRole('button', { name: /Generate with AI/i }).click();
-
-    // Dialog should be visible
-    await expect(page.getByRole('dialog')).toBeVisible();
-    // The dialog title might vary, so check for key elements
-    await expect(page.locator('[role="dialog"]')).toBeVisible();
-  });
-
-  test('should have accessible navigation', async ({ page }) => {
-    // Check for proper ARIA labels and roles
-    const header = page.locator('header, [role="banner"]');
-    await expect(header).toBeVisible();
-
-    // All interactive elements should be keyboard accessible
-    const buttons = page.getByRole('button');
-    const count = await buttons.count();
-    expect(count).toBeGreaterThan(0);
+    // Check for dark mode toggle
+    const darkModeButton = page.locator('button[aria-label*="dark mode"], button[aria-label*="theme"]');
+    await expect(darkModeButton.first()).toBeVisible();
   });
 });

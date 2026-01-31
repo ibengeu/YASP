@@ -3,37 +3,45 @@ export default {
     darkMode: ["class"],
     content: [
         "./index.html",
-        "./src/**/*.{js,ts,jsx,tsx}",
+        "./app/**/*.{js,ts,jsx,tsx}",
     ],
     theme: {
         extend: {
-
-            backgroundColor: {
-                background: 'rgb(var(--background) / <alpha-value>)',
-            },
-            textColor: {
-                foreground: 'rgb(var(--foreground) / <alpha-value>)',
-            },
             colors: {
-                border: "rgb(var(--border) / <alpha-value>)",
-                input: "rgb(var(--input) / <alpha-value>)",
-                ring: "rgb(var(--ring) / <alpha-value>)",
+                background: "var(--background)",
+                foreground: "var(--foreground)",
+                card: {
+                    DEFAULT: "var(--card)",
+                    foreground: "var(--card-foreground)",
+                },
+                popover: {
+                    DEFAULT: "var(--popover)",
+                    foreground: "var(--popover-foreground)",
+                },
                 primary: {
-                    DEFAULT: "rgb(var(--primary) / <alpha-value>)",
-                    foreground: "rgb(var(--primary-foreground) / <alpha-value>)"
+                    DEFAULT: "var(--primary)",
+                    foreground: "var(--primary-foreground)",
                 },
                 secondary: {
-                    DEFAULT: "rgb(var(--secondary) / <alpha-value>)",
-                    foreground: "rgb(var(--secondary-foreground) / <alpha-value>)"
+                    DEFAULT: "var(--secondary)",
+                    foreground: "var(--secondary-foreground)",
                 },
                 muted: {
-                    DEFAULT: "rgb(var(--muted) / <alpha-value>)",
-                    foreground: "rgb(var(--muted-foreground) / <alpha-value>)"
+                    DEFAULT: "var(--muted)",
+                    foreground: "var(--muted-foreground)",
                 },
                 accent: {
-                    DEFAULT: "rgb(var(--accent) / <alpha-value>)",
-                    foreground: "rgb(var(--accent-foreground) / <alpha-value>)"
+                    DEFAULT: "var(--accent)",
+                    foreground: "var(--accent-foreground)",
                 },
+                border: "var(--border)",
+                input: "var(--input)",
+                ring: "var(--ring)",
+            },
+            borderRadius: {
+                lg: "var(--radius)",
+                md: "calc(var(--radius) - 2px)",
+                sm: "calc(var(--radius) - 4px)",
             },
         },
     },

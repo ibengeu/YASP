@@ -15,19 +15,26 @@ import { test, expect } from '@playwright/test';
 
 test.describe('AI Spec Generation', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/');
+    // Go to catalog where spec creation lives
+    await page.goto('/catalog');
   });
 
   test('should open AI generation dialog', async ({ page }) => {
-    await page.getByRole('button', { name: /Generate with AI/i }).click();
+    const button = page.getByRole('button', { name: /New Specification/i });
+    await expect(button).toBeVisible({ timeout: 3000 });
+    await button.click();
 
     // Dialog should be visible
-    await expect(page.getByRole('dialog')).toBeVisible();
+    await expect(page.getByRole('dialog')).toBeVisible({ timeout: 3000 });
   });
 
   test('should close AI dialog with escape key', async ({ page }) => {
-    await page.getByRole('button', { name: /Generate with AI/i }).click();
-    await expect(page.getByRole('dialog')).toBeVisible();
+    const button = page.getByRole('button', { name: /New Specification/i });
+    await expect(button).toBeVisible({ timeout: 3000 });
+    await button.click();
+
+    // Wait for dialog to appear with increased timeout
+    await expect(page.getByRole('dialog')).toBeVisible({ timeout: 3000 });
 
     await page.keyboard.press('Escape');
 
@@ -36,11 +43,13 @@ test.describe('AI Spec Generation', () => {
   });
 
   test('should have form fields in AI dialog', async ({ page }) => {
-    await page.getByRole('button', { name: /Generate with AI/i }).click();
+    const button = page.getByRole('button', { name: /New Specification/i });
+    await expect(button).toBeVisible({ timeout: 3000 });
+    await button.click();
 
     // Check for dialog content
     const dialog = page.getByRole('dialog');
-    await expect(dialog).toBeVisible();
+    await expect(dialog).toBeVisible({ timeout: 3000 });
 
     // Dialog should have some interactive elements
     const inputs = dialog.locator('input, textarea, button');
@@ -49,7 +58,10 @@ test.describe('AI Spec Generation', () => {
   });
 
   test('should be keyboard accessible', async ({ page }) => {
-    await page.getByRole('button', { name: /Generate with AI/i }).click();
+    const button = page.getByRole('button', { name: /New Specification/i });
+    await expect(button).toBeVisible({ timeout: 3000 });
+    await button.click();
+    await expect(page.getByRole('dialog')).toBeVisible({ timeout: 3000 });
 
     // Tab through elements
     await page.keyboard.press('Tab');
@@ -67,26 +79,30 @@ test.describe('AI Generation Flow (Integration)', () => {
       route.abort('failed');
     });
 
-    await page.goto('/');
-    await page.getByRole('button', { name: /Generate with AI/i }).click();
+    await page.goto('/catalog');
+    const button = page.getByRole('button', { name: /New Specification|Generate/i });
+    await expect(button).toBeVisible({ timeout: 3000 });
+    await button.click();
 
     // Dialog should still be usable
-    await expect(page.getByRole('dialog')).toBeVisible();
+    await expect(page.getByRole('dialog')).toBeVisible({ timeout: 3000 });
   });
 
   test('should maintain dialog state', async ({ page }) => {
-    await page.goto('/');
-    await page.getByRole('button', { name: /Generate with AI/i }).click();
+    await page.goto('/catalog');
+    const button = page.getByRole('button', { name: /New Specification|Generate/i });
+    await expect(button).toBeVisible({ timeout: 3000 });
+    await button.click();
 
     const dialog = page.getByRole('dialog');
-    await expect(dialog).toBeVisible();
+    await expect(dialog).toBeVisible({ timeout: 3000 });
 
     // Close dialog
     await page.keyboard.press('Escape');
     await expect(dialog).not.toBeVisible();
 
     // Reopen dialog
-    await page.getByRole('button', { name: /Generate with AI/i }).click();
+    await page.getByRole('button', { name: /New Specification|Generate/i }).click();
     await expect(dialog).toBeVisible();
   });
 });

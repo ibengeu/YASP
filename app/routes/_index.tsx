@@ -1,502 +1,348 @@
 /**
- * Library Dashboard - Linear-Inspired Design
- * Main landing page showing all API specifications
+ * Dashboard - API Governance Overview
+ * Transformed with modern KPI cards and metrics
  */
 
 import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router';
-import { Search, Plus, Sparkles, BarChart3, FileCode2, Clock, Upload } from 'lucide-react';
+import { useNavigate } from 'react-router';
 import { toast } from 'sonner';
-import { AppLayout } from '@/components/layout/AppLayout';
+import { Plus, Upload, MoreVertical, Calendar, Download, Settings } from 'lucide-react';
+import { PageHeader } from '@/components/navigation/PageHeader';
+import { KPICard } from '@/components/dashboard/KPICard';
+import { ChartCard } from '@/components/dashboard/ChartCard';
 import { GenerateSpecDialog } from '@/features/ai-catalyst/components/GenerateSpecDialog';
 import { ImportSpecDialog } from '@/features/library/components/ImportSpecDialog';
-import { SpecCardSkeleton, StatsCardSkeleton } from '@/components/ui/skeleton';
 import { idbStorage } from '@/core/storage/idb-storage';
+import type { OpenApiDocument } from '@/core/storage/storage-schema';
+import { SpecTable } from '@/components/dashboard/SpecTable';
+import { LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
-export default function LibraryDashboard() {
+type TimeRange = '7' | '30' | '90';
+
+export default function DashboardPage() {
   const navigate = useNavigate();
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedFilter, setSelectedFilter] = useState<string>('all');
   const [showGenerateDialog, setShowGenerateDialog] = useState(false);
   const [showImportDialog, setShowImportDialog] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [specs, setSpecs] = useState<any[]>([]);
-  const [stats, setStats] = useState({
-    total: 0,
-    avgScore: 0,
-    recentlyUpdated: 0,
-  });
+  const [specs, setSpecs] = useState<OpenApiDocument[]>([]);
+  const [timeRange, setTimeRange] = useState<TimeRange>('30');
+  const [showOptionsMenu, setShowOptionsMenu] = useState(false);
 
-  // Mock data for demonstration - simulate loading
   useEffect(() => {
-    const loadSpecs = async () => {
-      setIsLoading(true);
-
-      // Simulate API delay for loading state
-      await new Promise(resolve => setTimeout(resolve, 800));
-
-      const mockSpecs = [
-        {
-          id: '1',
-          title: 'Payment Gateway API',
-          description: 'Secure payment processing endpoints for e-commerce',
-          version: '2.1.0',
-          workspaceType: 'team',
-          score: 94,
-          updatedAt: new Date('2024-01-20'),
-          tags: ['payments', 'stripe', 'production'],
-        },
-        {
-          id: '2',
-          title: 'User Management API',
-          description: 'Authentication and user profile management',
-          version: '1.5.2',
-          workspaceType: 'personal',
-          score: 87,
-          updatedAt: new Date('2024-01-18'),
-          tags: ['auth', 'users'],
-        },
-        {
-          id: '3',
-          title: 'Analytics Platform API',
-          description: 'Real-time analytics and reporting endpoints',
-          version: '3.0.0-beta',
-          workspaceType: 'partner',
-          score: 72,
-          updatedAt: new Date('2024-01-15'),
-          tags: ['analytics', 'reporting', 'beta'],
-        },
-      ];
-
-      setSpecs(mockSpecs);
-      setStats({
-        total: mockSpecs.length,
-        avgScore: Math.round(mockSpecs.reduce((acc, s) => acc + s.score, 0) / mockSpecs.length),
-        recentlyUpdated: mockSpecs.filter(s => {
-          const daysSince = (Date.now() - s.updatedAt.getTime()) / (1000 * 60 * 60 * 24);
-          return daysSince < 7;
-        }).length,
-      });
-
-      setIsLoading(false);
-    };
-
     loadSpecs();
   }, []);
 
-  const filteredSpecs = specs.filter(spec => {
-    const matchesSearch = spec.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         spec.description?.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesFilter = selectedFilter === 'all' || spec.workspaceType === selectedFilter;
-    return matchesSearch && matchesFilter;
-  });
+  const loadSpecs = async () => {
+    setIsLoading(true);
+    try {
+      const allSpecs = await idbStorage.getAllSpecs();
+      setSpecs(allSpecs);
+    } catch (error) {
+      console.error('Failed to load specs:', error);
+      // Mitigation for OWASP A09:2025 – Security Logging and Monitoring Failures:
+      // Log errors without exposing sensitive implementation details to users
+      toast.error('Failed to load specifications');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    try {
+      await idbStorage.deleteSpec(id);
+      toast.success('Specification deleted');
+      loadSpecs();
+    } catch (error) {
+      console.error('Failed to delete spec:', error);
+      toast.error('Failed to delete specification');
+    }
+  };
+
+  // Calculate primary KPIs
+  const totalSpecs = specs.length;
+  const avgScore = specs.length > 0
+    ? Math.round(specs.reduce((sum, spec) => sum + (spec.metadata.score || 0), 0) / specs.length)
+    : 0;
+  const passRate = avgScore;
+  const policyCoverage = specs.length > 0 ? Math.round((specs.filter(s => (s.metadata.score || 0) >= 70).length / specs.length) * 100) : 0;
+  const breakingChangesPrevented = specs.filter(s => s.metadata.tags?.includes('validated')).length;
+  const authCoverage = specs.length > 0 ? Math.round((specs.filter(s => s.content.includes('securitySchemes')).length / specs.length) * 100) : 0;
+
+  // Secondary KPIs
+  const criticalIssues = specs.filter((spec) => (spec.metadata.score || 0) < 60).length;
+  const deprecatedUsage = specs.length > 0 ? Math.round((specs.filter(s => s.content.includes('deprecated: true')).length / specs.length) * 100) : 0;
+  const reuseRatio = 68; // Placeholder - would calculate from shared components
+
+  // Mock chart data (would come from historical metrics)
+  const qualityTrendData = [
+    { month: 'Jan', quality: 85, compliance: 78 },
+    { month: 'Feb', quality: 87, compliance: 82 },
+    { month: 'Mar', quality: 89, compliance: 85 },
+    { month: 'Apr', quality: 91, compliance: 88 },
+    { month: 'May', quality: 92, compliance: 87 },
+  ];
+
+  const remediationData = [
+    { week: 'W1', avgDays: 4.2 },
+    { week: 'W2', avgDays: 3.8 },
+    { week: 'W3', avgDays: 3.5 },
+    { week: 'W4', avgDays: 3.2 },
+  ];
 
   return (
-    <AppLayout padding={false}>
-      {/* Hero Section with Gradient */}
-      <div className="relative overflow-hidden border-b border-border bg-gradient-to-br from-background via-background to-muted/20">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(99,102,241,0.05),transparent_50%)]" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_60%,rgba(168,85,247,0.04),transparent_50%)]" />
-
-        <div className="relative mx-auto max-w-7xl px-6 py-16">
-          <div className="flex items-start justify-between">
-            <div className="space-y-1">
-              <h1 className="text-4xl font-semibold tracking-tight text-foreground">
-                API Specifications
-              </h1>
-              <p className="text-base text-muted-foreground">
-                Design, validate, and manage your OpenAPI specifications
-              </p>
+    <div className="bg-[#FAFBFC] dark:bg-[#0E1420] min-h-screen">
+      <PageHeader
+        title="API Governance Dashboard"
+        description="Leading indicators of API quality and compliance"
+        actions={
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Time Range Selector */}
+            <div className="flex items-center gap-1 bg-card border border-border rounded p-1">
+              {(['7', '30', '90'] as TimeRange[]).map((range) => (
+                <button
+                  key={range}
+                  onClick={() => setTimeRange(range)}
+                  className={`px-3 py-1.5 rounded text-xs font-medium transition-colors ${
+                    timeRange === range
+                      ? 'bg-primary text-primary-foreground'
+                      : 'text-muted-foreground hover:bg-muted'
+                  }`}
+                >
+                  {range}d
+                </button>
+              ))}
             </div>
 
-            <div className="flex gap-2">
+            {/* Options Menu */}
+            <div className="relative">
               <button
-                onClick={() => setShowImportDialog(true)}
-                className="inline-flex h-9 items-center gap-2 rounded-md border border-border bg-card px-4 text-sm font-medium text-card-foreground shadow-xs transition-all hover:bg-accent hover:shadow-sm"
+                onClick={() => setShowOptionsMenu(!showOptionsMenu)}
+                className="flex items-center gap-2 px-4 py-2 bg-card border border-border text-foreground rounded text-sm font-medium hover:bg-muted transition-colors"
               >
-                <Upload className="h-4 w-4" />
-                Import
+                <MoreVertical className="w-4 h-4" />
+                <span className="hidden sm:inline">Options</span>
               </button>
-              <button
-                onClick={() => setShowGenerateDialog(true)}
-                className="inline-flex h-9 items-center gap-2 rounded-md border border-border bg-card px-4 text-sm font-medium text-card-foreground shadow-xs transition-all hover:bg-accent hover:shadow-sm"
-              >
-                <Sparkles className="h-4 w-4" />
-                Generate with AI
-              </button>
-              <button
-                onClick={() => navigate('/editor/new')}
-                className="inline-flex h-9 items-center gap-2 rounded-md bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-sm transition-all hover:bg-primary/90 hover:shadow-md"
-              >
-                <Plus className="h-4 w-4" />
-                New Spec
-              </button>
+
+              {showOptionsMenu && (
+                <>
+                  <div
+                    className="fixed inset-0 z-10"
+                    onClick={() => setShowOptionsMenu(false)}
+                  />
+                  <div className="absolute right-0 mt-2 w-56 bg-card border border-border rounded-lg shadow-lg z-20 py-1">
+                    <button
+                      className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-foreground hover:bg-muted transition-colors text-left"
+                      onClick={() => {
+                        setShowOptionsMenu(false);
+                        toast.info('Custom date range coming soon');
+                      }}
+                    >
+                      <Calendar className="w-4 h-4" />
+                      Custom Date Range
+                    </button>
+                    <button
+                      className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-foreground hover:bg-muted transition-colors text-left"
+                      onClick={() => {
+                        setShowOptionsMenu(false);
+                        toast.info('Export report coming soon');
+                      }}
+                    >
+                      <Download className="w-4 h-4" />
+                      Export Report
+                    </button>
+                    <div className="my-1 border-t border-border" />
+                    <button
+                      className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-foreground hover:bg-muted transition-colors text-left"
+                      onClick={() => {
+                        setShowOptionsMenu(false);
+                        toast.info('Alert settings coming soon');
+                      }}
+                    >
+                      <Settings className="w-4 h-4" />
+                      Alert Settings
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           </div>
-
-          {/* Stats Grid */}
-          <div className="mt-10 grid grid-cols-3 gap-4">
-            {isLoading ? (
-              <>
-                <StatsCardSkeleton />
-                <StatsCardSkeleton />
-                <StatsCardSkeleton />
-              </>
-            ) : (
-              <>
-                <StatCard
-                  icon={<FileCode2 className="h-5 w-5" />}
-                  label="Total Specs"
-                  value={stats.total}
-                  delay="0ms"
-                />
-                <StatCard
-                  icon={<BarChart3 className="h-5 w-5" />}
-                  label="Avg Quality Score"
-                  value={`${stats.avgScore}%`}
-                  delay="50ms"
-                />
-                <StatCard
-                  icon={<Clock className="h-5 w-5" />}
-                  label="Updated This Week"
-                  value={stats.recentlyUpdated}
-                  delay="100ms"
-                />
-              </>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Main Content */}
-      <div className="mx-auto max-w-7xl px-6 py-8">
-        <div className="flex gap-8">
-          {/* Filters Sidebar */}
-          <aside className="w-56 flex-shrink-0">
-            <div className="sticky top-8 space-y-6">
-              <div>
-                <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  Workspace
-                </h3>
-                <nav className="space-y-1">
-                  <FilterButton
-                    active={selectedFilter === 'all'}
-                    onClick={() => setSelectedFilter('all')}
-                    count={specs.length}
-                  >
-                    All Specs
-                  </FilterButton>
-                  <FilterButton
-                    active={selectedFilter === 'personal'}
-                    onClick={() => setSelectedFilter('personal')}
-                    count={specs.filter(s => s.workspaceType === 'personal').length}
-                  >
-                    Personal
-                  </FilterButton>
-                  <FilterButton
-                    active={selectedFilter === 'team'}
-                    onClick={() => setSelectedFilter('team')}
-                    count={specs.filter(s => s.workspaceType === 'team').length}
-                  >
-                    Team
-                  </FilterButton>
-                  <FilterButton
-                    active={selectedFilter === 'partner'}
-                    onClick={() => setSelectedFilter('partner')}
-                    count={specs.filter(s => s.workspaceType === 'partner').length}
-                  >
-                    Partner
-                  </FilterButton>
-                  <FilterButton
-                    active={selectedFilter === 'public'}
-                    onClick={() => setSelectedFilter('public')}
-                    count={specs.filter(s => s.workspaceType === 'public').length}
-                  >
-                    Public
-                  </FilterButton>
-                </nav>
-              </div>
-            </div>
-          </aside>
-
-          {/* Specs Grid */}
-          <main className="flex-1">
-            {/* Search Bar */}
-            <div className="mb-6">
-              <div className="group relative">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground transition-colors group-focus-within:text-foreground" />
-                <input
-                  type="text"
-                  placeholder="Search specifications..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="h-10 w-full rounded-md border border-border bg-card pl-10 pr-20 text-sm text-card-foreground shadow-xs outline-none ring-0 transition-all placeholder:text-muted-foreground focus:border-ring focus:shadow-sm"
-                />
-                <kbd className="absolute right-3 top-1/2 -translate-y-1/2 rounded border border-border bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground opacity-60">
-                  ⌘K
-                </kbd>
-              </div>
-            </div>
-
-            {/* Specs Grid or Empty State */}
-            {isLoading ? (
-              <div className="grid gap-4 md:grid-cols-2">
-                <SpecCardSkeleton />
-                <SpecCardSkeleton />
-                <SpecCardSkeleton />
-                <SpecCardSkeleton />
-              </div>
-            ) : filteredSpecs.length > 0 ? (
-              <div className="grid gap-4 md:grid-cols-2">
-                {filteredSpecs.map((spec, index) => (
-                  <SpecCard key={spec.id} spec={spec} index={index} />
-                ))}
-              </div>
-            ) : (
-              <EmptyState />
-            )}
-          </main>
-        </div>
-      </div>
-
-      {/* Import Spec Dialog */}
-      <ImportSpecDialog
-        open={showImportDialog}
-        onOpenChange={setShowImportDialog}
+        }
       />
 
-      {/* AI Spec Generation Dialog */}
+      <div className="px-4 md:px-6 lg:px-8 pb-8">
+        {/* Primary KPI Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6 mt-6">
+          <KPICard
+            label="Spec / Lint Pass Rate"
+            value={passRate}
+            unit="%"
+            trend="up"
+            delta={3}
+            sparkline={[85, 87, 86, 89, 92]}
+            tooltip="Percentage of specs passing all quality checks"
+          />
+          <KPICard
+            label="Policy Coverage"
+            value={policyCoverage}
+            unit="%"
+            trend="up"
+            delta={5}
+            sparkline={[78, 82, 85, 88, 87]}
+            tooltip="APIs meeting governance policy requirements"
+          />
+          <KPICard
+            label="Breaking Changes Prevented"
+            value={breakingChangesPrevented}
+            trend="up"
+            delta={2}
+            sparkline={[10, 12, 13, 14, 15]}
+            tooltip="Number of breaking changes caught before deployment"
+          />
+          <KPICard
+            label="Auth Coverage"
+            value={authCoverage}
+            unit="%"
+            trend="up"
+            delta={1}
+            sparkline={[90, 91, 92, 93, 94]}
+            tooltip="APIs with proper authentication configured"
+          />
+        </div>
+
+        {/* Secondary KPIs */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <KPICard
+            label="Mean Time to Remediate"
+            value={3.2}
+            unit=" days"
+            trend="down"
+            delta={-15}
+            invertColors
+            sparkline={[4.2, 3.8, 3.5, 3.2]}
+            tooltip="Average time to fix quality issues"
+          />
+          <KPICard
+            label="Deprecated API Usage"
+            value={deprecatedUsage}
+            unit="%"
+            trend="down"
+            delta={-3}
+            invertColors
+            sparkline={[8, 7, 6, 5]}
+            tooltip="Percentage of APIs using deprecated features"
+          />
+          <KPICard
+            label="API Reuse Ratio"
+            value={reuseRatio}
+            unit="%"
+            trend="up"
+            delta={4}
+            sparkline={[60, 63, 65, 67, 68]}
+            tooltip="Component reuse across API specifications"
+          />
+        </div>
+
+        {/* Charts */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+          <ChartCard title="Quality Metrics Trend">
+            <ResponsiveContainer width="100%" height={250}>
+              <LineChart data={qualityTrendData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                <XAxis dataKey="month" stroke="var(--muted-foreground)" />
+                <YAxis stroke="var(--muted-foreground)" />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: 'var(--card)',
+                    border: '1px solid var(--border)',
+                    borderRadius: '6px',
+                  }}
+                />
+                <Line type="monotone" dataKey="quality" stroke="#10b981" strokeWidth={2} />
+                <Line type="monotone" dataKey="compliance" stroke="#3b82f6" strokeWidth={2} />
+              </LineChart>
+            </ResponsiveContainer>
+          </ChartCard>
+
+          <ChartCard title="Remediation Performance">
+            <ResponsiveContainer width="100%" height={250}>
+              <AreaChart data={remediationData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                <XAxis dataKey="week" stroke="var(--muted-foreground)" />
+                <YAxis stroke="var(--muted-foreground)" />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: 'var(--card)',
+                    border: '1px solid var(--border)',
+                    borderRadius: '6px',
+                  }}
+                />
+                <Area type="monotone" dataKey="avgDays" stroke="#f59e0b" fill="#f59e0b" fillOpacity={0.2} />
+              </AreaChart>
+            </ResponsiveContainer>
+          </ChartCard>
+        </div>
+
+        {/* Specifications Table */}
+        <div className="bg-white dark:bg-[#0a0a0a] rounded-lg border border-border overflow-hidden">
+          <div className="p-4 border-b border-border">
+            <h3 className="text-base font-semibold text-card-foreground">
+              API Specifications ({totalSpecs})
+            </h3>
+          </div>
+
+          <div className="overflow-x-auto">
+            {isLoading ? (
+              <div className="p-8 text-center">
+                <div className="inline-block h-6 w-6 animate-spin rounded-full border-2 border-solid border-border border-r-primary"></div>
+              </div>
+            ) : specs.length === 0 ? (
+              <div className="p-12 text-center">
+                <div className="text-muted-foreground mb-4">
+                  No specifications yet
+                </div>
+                <button
+                  onClick={() => setShowGenerateDialog(true)}
+                  className="px-4 py-2 text-sm font-medium text-primary-foreground bg-primary rounded-md hover:opacity-90 transition-opacity"
+                >
+                  Create Your First Spec
+                </button>
+              </div>
+            ) : (
+              <SpecTable specs={specs} onDelete={handleDelete} />
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Dialogs */}
       <GenerateSpecDialog
         open={showGenerateDialog}
         onClose={() => setShowGenerateDialog(false)}
         onGenerated={async (yamlSpec) => {
-          setShowGenerateDialog(false);
+          const yaml = await import('yaml');
+          const parsed = yaml.parse(yamlSpec);
 
-          // Parse and save the generated spec
-          try {
-            const yaml = await import('yaml');
-            const parsed = yaml.parse(yamlSpec);
-            const title = parsed.info?.title || 'Generated API';
+          const newSpec = await idbStorage.createSpec({
+            type: 'openapi',
+            content: yamlSpec,
+            title: parsed.info?.title || 'Generated API',
+            version: parsed.info?.version || '1.0.0',
+            description: parsed.info?.description,
+            metadata: {
+              score: 0,
+              tags: ['ai-generated'],
+              workspaceType: 'personal',
+              syncStatus: 'offline',
+              isDiscoverable: false,
+            },
+          });
 
-            const newSpec = await idbStorage.createSpec({
-              type: 'openapi',
-              content: yamlSpec,
-              title,
-              version: parsed.info?.version || '1.0.0',
-              description: parsed.info?.description,
-              metadata: {
-                score: 0,
-                tags: ['ai-generated'],
-                workspaceType: 'personal',
-                syncStatus: 'offline',
-                isDiscoverable: false,
-              },
-            });
-
-            toast.success('Specification generated successfully');
-            navigate(`/editor/${newSpec.id}`);
-          } catch (error) {
-            console.error('Failed to save generated spec:', error);
-            toast.error('Failed to save specification');
-          }
+          toast.success('Specification generated successfully');
+          navigate(`/editor/${newSpec.id}`);
         }}
-        groqApiKey={import.meta.env.VITE_GROQ_API_KEY || ''}
-        geminiApiKey={import.meta.env.VITE_GEMINI_API_KEY || ''}
       />
-    </AppLayout>
-  );
-}
 
-// ==================== Sub-Components ====================
-
-function StatCard({ icon, label, value, delay }: any) {
-  return (
-    <div
-      className="rounded-lg border border-border bg-card p-4 shadow-card transition-all hover:shadow-sm"
-      style={{ animationDelay: delay }}
-    >
-      <div className="flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-md bg-muted text-muted-foreground">
-          {icon}
-        </div>
-        <div>
-          <div className="text-2xl font-semibold tracking-tight text-card-foreground">
-            {value}
-          </div>
-          <div className="text-xs text-muted-foreground">{label}</div>
-        </div>
-      </div>
+      <ImportSpecDialog open={showImportDialog} onOpenChange={setShowImportDialog} />
     </div>
   );
-}
-
-function FilterButton({ active, onClick, count, children }: any) {
-  return (
-    <button
-      onClick={onClick}
-      className={`group flex w-full items-center justify-between rounded-md px-3 py-2 text-sm font-medium transition-all ${
-        active
-          ? 'bg-accent text-accent-foreground shadow-xs'
-          : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-      }`}
-    >
-      <span>{children}</span>
-      <span className={`text-xs ${active ? 'text-accent-foreground/70' : 'text-muted-foreground/50'}`}>
-        {count}
-      </span>
-    </button>
-  );
-}
-
-function SpecCard({ spec, index }: any) {
-  const scoreColor = spec.score >= 80 ? 'text-success' : spec.score >= 50 ? 'text-warning' : 'text-destructive';
-  const scoreRing = spec.score >= 80 ? 'stroke-success' : spec.score >= 50 ? 'stroke-warning' : 'stroke-destructive';
-
-  return (
-    <Link
-      to={`/spec/${spec.id}`}
-      className="group block rounded-lg border border-border bg-card p-5 shadow-card transition-all hover:border-ring hover:shadow-md"
-      style={{
-        animation: 'fadeInUp 0.4s ease-out forwards',
-        animationDelay: `${index * 50}ms`,
-        opacity: 0,
-      }}
-    >
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex-1 space-y-3">
-          {/* Header */}
-          <div>
-            <div className="flex items-center gap-2">
-              <h3 className="text-base font-semibold text-card-foreground group-hover:text-primary transition-colors">
-                {spec.title}
-              </h3>
-              <WorkspaceBadge type={spec.workspaceType} />
-            </div>
-            <p className="mt-1 text-sm text-muted-foreground line-clamp-2">
-              {spec.description}
-            </p>
-          </div>
-
-          {/* Tags */}
-          <div className="flex flex-wrap gap-1.5">
-            {spec.tags.map((tag: string) => (
-              <span
-                key={tag}
-                className="inline-flex items-center rounded-sm bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground"
-              >
-                {tag}
-              </span>
-            ))}
-          </div>
-
-          {/* Footer */}
-          <div className="flex items-center gap-4 text-xs text-muted-foreground">
-            <span>v{spec.version}</span>
-            <span>•</span>
-            <span>{formatRelativeTime(spec.updatedAt)}</span>
-          </div>
-        </div>
-
-        {/* Governance Score Ring */}
-        <div className="relative flex h-14 w-14 items-center justify-center">
-          <svg className="h-full w-full -rotate-90 transform">
-            <circle
-              cx="28"
-              cy="28"
-              r="24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              className="text-muted/20"
-            />
-            <circle
-              cx="28"
-              cy="28"
-              r="24"
-              fill="none"
-              strokeWidth="2"
-              strokeDasharray={`${2 * Math.PI * 24}`}
-              strokeDashoffset={`${2 * Math.PI * 24 * (1 - spec.score / 100)}`}
-              strokeLinecap="round"
-              className={`${scoreRing} transition-all duration-500`}
-            />
-          </svg>
-          <span className={`absolute text-sm font-bold ${scoreColor}`}>
-            {spec.score}
-          </span>
-        </div>
-      </div>
-    </Link>
-  );
-}
-
-function WorkspaceBadge({ type }: { type: string }) {
-  const colors = {
-    personal: 'bg-blue-500/10 text-blue-600 dark:text-blue-400',
-    team: 'bg-purple-500/10 text-purple-600 dark:text-purple-400',
-    partner: 'bg-amber-500/10 text-amber-600 dark:text-amber-400',
-    public: 'bg-green-500/10 text-green-600 dark:text-green-400',
-  };
-
-  return (
-    <span className={`inline-flex items-center rounded-sm px-1.5 py-0.5 text-xs font-medium ${colors[type as keyof typeof colors]}`}>
-      {type}
-    </span>
-  );
-}
-
-function EmptyState() {
-  return (
-    <div className="flex min-h-[400px] flex-col items-center justify-center rounded-lg border border-dashed border-border bg-muted/30 p-12 text-center">
-      <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-muted">
-        <FileCode2 className="h-8 w-8 text-muted-foreground" />
-      </div>
-      <h3 className="mt-6 text-lg font-semibold text-card-foreground">
-        No specifications yet
-      </h3>
-      <p className="mt-2 max-w-sm text-sm text-muted-foreground">
-        Get started by creating your first API specification or importing an existing OpenAPI file.
-      </p>
-      <div className="mt-6 flex gap-3">
-        <button className="inline-flex h-9 items-center gap-2 rounded-md border border-border bg-card px-4 text-sm font-medium text-card-foreground shadow-xs transition-all hover:bg-accent hover:shadow-sm">
-          <Plus className="h-4 w-4" />
-          Create Spec
-        </button>
-        <button className="inline-flex h-9 items-center gap-2 rounded-md bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-sm transition-all hover:bg-primary/90 hover:shadow-md">
-          <Sparkles className="h-4 w-4" />
-          Generate with AI
-        </button>
-      </div>
-    </div>
-  );
-}
-
-function formatRelativeTime(date: Date): string {
-  const now = new Date();
-  const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-
-  if (diffInSeconds < 60) return 'just now';
-  if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
-  if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
-  if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)}d ago`;
-
-  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-}
-
-// Add keyframe animation to CSS (client-side only)
-if (typeof document !== 'undefined') {
-  const styleSheet = document.createElement('style');
-  styleSheet.textContent = `
-    @keyframes fadeInUp {
-      from {
-        opacity: 0;
-        transform: translateY(10px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
-    }
-  `;
-  document.head.appendChild(styleSheet);
 }

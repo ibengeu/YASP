@@ -36,10 +36,11 @@ paths:
 
 test.describe('Import Specification', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/');
+    // Go to catalog where import functionality lives
+    await page.goto('/catalog');
     // Open import dialog
-    await page.getByRole('button', { name: /Import/i }).click();
-    await expect(page.getByRole('dialog')).toBeVisible();
+    await page.getByRole('button', { name: /Register New API|Import/i }).click();
+    await expect(page.getByRole('dialog')).toBeVisible({ timeout: 3000 });
   });
 
   test('should import spec via paste', async ({ page }) => {
@@ -56,7 +57,7 @@ test.describe('Import Specification', () => {
     await expect(page).toHaveURL(/\/editor\/[a-f0-9-]+/);
 
     // Editor should contain the pasted content
-    await expect(page.locator('.monaco-editor')).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('.cm-editor')).toBeVisible({ timeout: 5000 });
 
     // Check title was extracted
     const titleInput = page.locator('input[value="Test API"]');
@@ -73,8 +74,10 @@ test.describe('Import Specification', () => {
     // Click import button
     await page.getByRole('button', { name: /Import Specification/i }).click();
 
-    // Should show error toast
-    await expect(page.locator('[role="status"], .sonner-toast')).toContainText(/invalid/i, { timeout: 3000 });
+    // Should show error toast (wait for toast to appear and check text)
+    await page.waitForSelector('[data-sonner-toast]', { timeout: 3000 });
+    const toastText = await page.locator('[data-sonner-toast]').last().textContent();
+    expect(toastText).toMatch(/invalid|failed/i);
   });
 
   test('should disable import button when paste area is empty', async ({ page }) => {
@@ -122,8 +125,9 @@ test.describe('Import Specification', () => {
   });
 
   test('should close dialog with close button', async ({ page }) => {
-    // Find and click close button
-    const closeButton = page.locator('[role="dialog"] button[aria-label="Close"], [role="dialog"] button').first();
+    // Radix dialog close button has data-slot="dialog-close"
+    const closeButton = page.locator('[data-slot="dialog-close"]');
+    await expect(closeButton).toBeVisible();
     await closeButton.click();
 
     // Dialog should be hidden
