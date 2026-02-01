@@ -433,7 +433,7 @@ body {
     /* Mitigation for OWASP A04:2025 – Insecure Design: Apply consistent typography for accessibility and readability */
 }
 
-/* Animations for modern UI interactions */
+/* Material Design Motion - Standard Easing Curves */
 @keyframes slideDown {
     from {
         opacity: 0;
@@ -454,6 +454,17 @@ body {
     }
 }
 
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
 @keyframes fadeIn {
     from {
         opacity: 0;
@@ -463,15 +474,102 @@ body {
     }
 }
 
-/* Utility classes for animations and z-index */
+@keyframes scaleIn {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+@keyframes shimmer {
+    0% {
+        background-position: -1000px 0;
+    }
+    100% {
+        background-position: 1000px 0;
+    }
+}
+
+/* Utility classes for animations */
 .animate-slideDown {
-    animation: slideDown 0.2s ease-out;
+    animation: slideDown 300ms cubic-bezier(0.4, 0.0, 0.2, 1);
 }
 
 .animate-slideInRight {
-    animation: slideInRight 0.3s ease-out;
+    animation: slideInRight 400ms cubic-bezier(0.4, 0.0, 0.2, 1);
+}
+
+.animate-slideUp {
+    animation: slideUp 400ms cubic-bezier(0.4, 0.0, 0.2, 1);
 }
 
 .animate-fadeIn {
-    animation: fadeIn 0.2s ease-out;
+    animation: fadeIn 300ms cubic-bezier(0.4, 0.0, 0.2, 1);
+}
+
+.animate-scaleIn {
+    animation: scaleIn 200ms cubic-bezier(0.4, 0.0, 0.2, 1);
+}
+
+/* Page Transitions */
+.page-transition {
+    animation: fadeIn 400ms cubic-bezier(0.4, 0.0, 0.2, 1);
+}
+
+/* Skeleton Loading Animation */
+.skeleton {
+    background: linear-gradient(
+        90deg,
+        var(--muted) 0%,
+        var(--muted-foreground) 20%,
+        var(--muted) 40%,
+        var(--muted) 100%
+    );
+    background-size: 2000px 100%;
+    animation: shimmer 2s infinite linear;
+    border-radius: var(--radius-md);
+}
+
+/* Input/Textarea Dark Mode Fix */
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="search"],
+input[type="url"],
+textarea,
+select {
+    background-color: var(--input);
+    color: var(--foreground);
+    border-color: var(--border);
+}
+
+input[type="text"]:focus,
+input[type="email"]:focus,
+input[type="password"]:focus,
+input[type="search"]:focus,
+input[type="url"]:focus,
+textarea:focus,
+select:focus {
+    background-color: var(--background);
+    border-color: var(--ring);
+    outline: none;
+    ring: 2px;
+    ring-color: var(--ring);
+}
+
+/* Placeholder text color */
+input::placeholder,
+textarea::placeholder {
+    color: var(--muted-foreground);
+    opacity: 0.6;
+}
+
+.dark input::placeholder,
+.dark textarea::placeholder {
+    color: var(--muted-foreground);
+    opacity: 0.5;
 }

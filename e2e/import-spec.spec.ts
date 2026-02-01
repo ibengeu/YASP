@@ -10,7 +10,6 @@
  */
 
 import { test, expect } from '@playwright/test';
-import path from 'path';
 
 const SAMPLE_OPENAPI_YAML = `openapi: 3.1.0
 info:

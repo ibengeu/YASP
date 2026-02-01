@@ -94,7 +94,7 @@ test.describe('CommandDeck Navigation', () => {
     await expect(stillFocused).toBeVisible();
   });
 
-  test('should have responsive mobile menu', async ({ page, viewport }) => {
+  test('should have responsive mobile menu', async ({ page }) => {
     // Set mobile viewport
     await page.setViewportSize({ width: 375, height: 667 });
     await page.goto('/');

@@ -17,6 +17,11 @@ describe('TryItOutDrawer', () => {
         schema: { type: 'string' },
       },
     ],
+    responses: {
+      '200': {
+        description: 'Success',
+      },
+    },
   };
 
   const mockSpec = {

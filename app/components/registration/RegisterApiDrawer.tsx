@@ -199,17 +199,17 @@ paths: {}`;
       {/* Drawer */}
       <div className="absolute right-0 top-0 h-full w-full max-w-3xl bg-background border-l border-border shadow-2xl animate-slideInRight flex flex-col">
         {/* Header */}
-        <div className="flex-shrink-0 px-6 py-5 border-b border-border">
+        <div className="flex-shrink-0 px-6 py-5 border-b border-border bg-card">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-xl font-bold text-card-foreground">Register New API</h2>
+              <h2 className="text-xl font-bold text-foreground">Register New API</h2>
               <p className="text-sm text-muted-foreground mt-1">
                 Step {currentStep} of {STEPS.length}: {STEPS[currentStep - 1].title}
               </p>
             </div>
             <button
               onClick={onClose}
-              className="p-2 hover:bg-muted rounded-lg transition-colors"
+              className="p-2 hover:bg-muted rounded-lg transition-colors text-foreground"
               aria-label="Close drawer"
             >
               <X className="w-5 h-5" />
@@ -252,7 +252,7 @@ paths: {}`;
         </div>
 
         {/* Footer */}
-        <div className="flex-shrink-0 px-6 py-4 border-t border-border bg-muted/30">
+        <div className="flex-shrink-0 px-6 py-4 border-t border-border bg-card">
           <div className="flex items-center justify-between">
             <button
               onClick={handleBack}
@@ -302,23 +302,23 @@ function BasicInfoStepInline({ formData, errors, updateFormData }: any) {
   return (
     <div className="space-y-4">
       <div>
-        <label className="block text-sm font-medium mb-2">API Name *</label>
+        <label className="block text-sm font-medium mb-2 text-foreground">API Name *</label>
         <input
           type="text"
           value={formData.name}
           onChange={(e) => updateFormData('name', e.target.value)}
-          className="w-full px-3 py-2 border border-border rounded-md bg-card"
+          className="w-full px-3 py-2 border border-border rounded-md bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
           placeholder="my-payment-api"
         />
         {errors.name && <p className="text-xs text-red-500 mt-1">{errors.name}</p>}
       </div>
 
       <div>
-        <label className="block text-sm font-medium mb-2">Description *</label>
+        <label className="block text-sm font-medium mb-2 text-foreground">Description *</label>
         <textarea
           value={formData.description}
           onChange={(e) => updateFormData('description', e.target.value)}
-          className="w-full px-3 py-2 border border-border rounded-md bg-card"
+          className="w-full px-3 py-2 border border-border rounded-md bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
           rows={4}
           placeholder="Describe what this API does..."
         />
@@ -327,11 +327,11 @@ function BasicInfoStepInline({ formData, errors, updateFormData }: any) {
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium mb-2">Type *</label>
+          <label className="block text-sm font-medium mb-2 text-foreground">Type *</label>
           <select
             value={formData.type}
             onChange={(e) => updateFormData('type', e.target.value)}
-            className="w-full px-3 py-2 border border-border rounded-md bg-card"
+            className="w-full px-3 py-2 border border-border rounded-md bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
           >
             <option value="">Select...</option>
             <option value="REST">REST</option>
@@ -343,12 +343,12 @@ function BasicInfoStepInline({ formData, errors, updateFormData }: any) {
         </div>
 
         <div>
-          <label className="block text-sm font-medium mb-2">Version *</label>
+          <label className="block text-sm font-medium mb-2 text-foreground">Version *</label>
           <input
             type="text"
             value={formData.version}
             onChange={(e) => updateFormData('version', e.target.value)}
-            className="w-full px-3 py-2 border border-border rounded-md bg-card"
+            className="w-full px-3 py-2 border border-border rounded-md bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
             placeholder="v1.0.0"
           />
           {errors.version && <p className="text-xs text-red-500 mt-1">{errors.version}</p>}
@@ -356,12 +356,12 @@ function BasicInfoStepInline({ formData, errors, updateFormData }: any) {
       </div>
 
       <div>
-        <label className="block text-sm font-medium mb-2">Endpoint / Base URL *</label>
+        <label className="block text-sm font-medium mb-2 text-foreground">Endpoint / Base URL *</label>
         <input
           type="url"
           value={formData.endpoint}
           onChange={(e) => updateFormData('endpoint', e.target.value)}
-          className="w-full px-3 py-2 border border-border rounded-md bg-card"
+          className="w-full px-3 py-2 border border-border rounded-md bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
           placeholder="https://api.example.com/v1"
         />
         {errors.endpoint && <p className="text-xs text-red-500 mt-1">{errors.endpoint}</p>}
@@ -387,23 +387,23 @@ function OwnershipStepInline({ formData, errors, updateFormData }: any) {
   return (
     <div className="space-y-4">
       <div>
-        <label className="block text-sm font-medium mb-2">Owner *</label>
+        <label className="block text-sm font-medium mb-2 text-foreground">Owner *</label>
         <input
           type="email"
           value={formData.owner}
           onChange={(e) => updateFormData('owner', e.target.value)}
-          className="w-full px-3 py-2 border border-border rounded-md bg-card"
+          className="w-full px-3 py-2 border border-border rounded-md bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
           placeholder="owner@company.com"
         />
         {errors.owner && <p className="text-xs text-red-500 mt-1">{errors.owner}</p>}
       </div>
 
       <div>
-        <label className="block text-sm font-medium mb-2">Team *</label>
+        <label className="block text-sm font-medium mb-2 text-foreground">Team *</label>
         <select
           value={formData.team}
           onChange={(e) => updateFormData('team', e.target.value)}
-          className="w-full px-3 py-2 border border-border rounded-md bg-card"
+          className="w-full px-3 py-2 border border-border rounded-md bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
         >
           <option value="">Select...</option>
           <option value="Platform Engineering">Platform Engineering</option>
@@ -415,7 +415,7 @@ function OwnershipStepInline({ formData, errors, updateFormData }: any) {
       </div>
 
       <div>
-        <label className="block text-sm font-medium mb-2">Tags *</label>
+        <label className="block text-sm font-medium mb-2 text-foreground">Tags *</label>
         {formData.tags.length > 0 && (
           <div className="flex flex-wrap gap-2 mb-2">
             {formData.tags.map((tag: string) => (
@@ -432,13 +432,13 @@ function OwnershipStepInline({ formData, errors, updateFormData }: any) {
             value={tagInput}
             onChange={(e) => setTagInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addTag())}
-            className="flex-1 px-3 py-2 border border-border rounded-md bg-card"
+            className="flex-1 px-3 py-2 border border-border rounded-md bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
             placeholder="Type tag and press Enter"
           />
           <button
             type="button"
             onClick={addTag}
-            className="px-4 py-2 bg-primary text-primary-foreground rounded-md"
+            className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:opacity-90 transition-opacity"
           >
             Add
           </button>
@@ -449,26 +449,26 @@ function OwnershipStepInline({ formData, errors, updateFormData }: any) {
   );
 }
 
-function DocumentationStepInline({ formData, errors, updateFormData }: any) {
+function DocumentationStepInline({ formData, updateFormData }: any) {
   return (
     <div className="space-y-4">
       <div>
-        <label className="block text-sm font-medium mb-2">Documentation URL (Optional)</label>
+        <label className="block text-sm font-medium mb-2 text-foreground">Documentation URL (Optional)</label>
         <input
           type="url"
           value={formData.documentationUrl}
           onChange={(e) => updateFormData('documentationUrl', e.target.value)}
-          className="w-full px-3 py-2 border border-border rounded-md bg-card"
+          className="w-full px-3 py-2 border border-border rounded-md bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
           placeholder="https://docs.example.com/api/v1"
         />
       </div>
 
       <div>
-        <label className="block text-sm font-medium mb-2">OpenAPI Specification (Optional)</label>
+        <label className="block text-sm font-medium mb-2 text-foreground">OpenAPI Specification (Optional)</label>
         <textarea
           value={formData.openapiSpec.content}
           onChange={(e) => updateFormData('openapiSpec', { ...formData.openapiSpec, content: e.target.value, source: 'paste' })}
-          className="w-full px-3 py-2 border border-border rounded-md bg-card font-mono text-sm"
+          className="w-full px-3 py-2 border border-border rounded-md bg-card text-foreground placeholder:text-muted-foreground font-mono text-sm focus:outline-none focus:ring-2 focus:ring-primary"
           rows={12}
           placeholder="Paste your OpenAPI spec here (YAML or JSON)..."
         />
@@ -484,43 +484,43 @@ function ReviewStepInline({ formData }: any) {
   return (
     <div className="space-y-4">
       <div className="p-4 border border-border rounded-lg bg-card">
-        <h3 className="font-semibold mb-3">Basic Information</h3>
+        <h3 className="font-semibold mb-3 text-foreground">Basic Information</h3>
         <dl className="space-y-2 text-sm">
           <div className="flex justify-between">
             <dt className="text-muted-foreground">Name:</dt>
-            <dd className="font-medium">{formData.name}</dd>
+            <dd className="font-medium text-foreground">{formData.name}</dd>
           </div>
           <div className="flex justify-between">
             <dt className="text-muted-foreground">Type:</dt>
-            <dd className="font-medium">{formData.type}</dd>
+            <dd className="font-medium text-foreground">{formData.type}</dd>
           </div>
           <div className="flex justify-between">
             <dt className="text-muted-foreground">Version:</dt>
-            <dd className="font-medium">{formData.version}</dd>
+            <dd className="font-medium text-foreground">{formData.version}</dd>
           </div>
           <div>
             <dt className="text-muted-foreground">Endpoint:</dt>
-            <dd className="font-mono text-xs mt-1">{formData.endpoint}</dd>
+            <dd className="font-mono text-xs mt-1 text-foreground">{formData.endpoint}</dd>
           </div>
         </dl>
       </div>
 
       <div className="p-4 border border-border rounded-lg bg-card">
-        <h3 className="font-semibold mb-3">Ownership</h3>
+        <h3 className="font-semibold mb-3 text-foreground">Ownership</h3>
         <dl className="space-y-2 text-sm">
           <div className="flex justify-between">
             <dt className="text-muted-foreground">Owner:</dt>
-            <dd className="font-medium">{formData.owner}</dd>
+            <dd className="font-medium text-foreground">{formData.owner}</dd>
           </div>
           <div className="flex justify-between">
             <dt className="text-muted-foreground">Team:</dt>
-            <dd className="font-medium">{formData.team}</dd>
+            <dd className="font-medium text-foreground">{formData.team}</dd>
           </div>
           <div>
             <dt className="text-muted-foreground mb-2">Tags:</dt>
             <dd className="flex flex-wrap gap-1">
               {formData.tags.map((tag: string) => (
-                <span key={tag} className="px-2 py-1 bg-muted text-xs rounded">{tag}</span>
+                <span key={tag} className="px-2 py-1 bg-muted text-foreground text-xs rounded">{tag}</span>
               ))}
             </dd>
           </div>
@@ -528,15 +528,15 @@ function ReviewStepInline({ formData }: any) {
       </div>
 
       <div className="p-4 border border-border rounded-lg bg-card">
-        <h3 className="font-semibold mb-3">Documentation</h3>
+        <h3 className="font-semibold mb-3 text-foreground">Documentation</h3>
         <dl className="space-y-2 text-sm">
           <div className="flex justify-between">
             <dt className="text-muted-foreground">Documentation URL:</dt>
-            <dd className="font-medium">{formData.documentationUrl || 'Not provided'}</dd>
+            <dd className="font-medium text-foreground">{formData.documentationUrl || 'Not provided'}</dd>
           </div>
           <div className="flex justify-between">
             <dt className="text-muted-foreground">OpenAPI Spec:</dt>
-            <dd className="font-medium">{formData.openapiSpec.content ? 'Provided' : 'Not provided'}</dd>
+            <dd className="font-medium text-foreground">{formData.openapiSpec.content ? 'Provided' : 'Not provided'}</dd>
           </div>
         </dl>
       </div>

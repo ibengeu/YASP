@@ -11,7 +11,7 @@
  * Switched from Monaco to CodeMirror for better Vite compatibility
  */
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
 import { EditorView, keymap, lineNumbers } from '@codemirror/view';
 import { EditorState } from '@codemirror/state';
 import { yaml } from '@codemirror/lang-yaml';
@@ -30,17 +30,44 @@ export interface CodeEditorProps {
   onSave?: () => void;
 }
 
-export function CodeEditor({
+export interface CodeEditorRef {
+  scrollToLine: (lineNumber: number) => void;
+}
+
+export const CodeEditor = forwardRef<CodeEditorRef, CodeEditorProps>(function CodeEditor({
   language = 'yaml',
   height = '100%',
   readOnly = false,
   onSave,
-}: CodeEditorProps) {
+}, ref) {
   const editorRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
   const content = useEditorStore((state) => state.content);
   const setContent = useEditorStore((state) => state.setContent);
   const isUserEditRef = useRef(false);
+
+  // Expose scrollToLine method via ref
+  useImperativeHandle(ref, () => ({
+    scrollToLine: (lineNumber: number) => {
+      if (!viewRef.current) return;
+
+      try {
+        // Get the line (1-indexed externally, but CodeMirror uses 1-indexed line() method)
+        const line = viewRef.current.state.doc.line(lineNumber);
+
+        // Dispatch changes to select the line and scroll it into view
+        viewRef.current.dispatch({
+          selection: { anchor: line.from },
+          scrollIntoView: true,
+        });
+
+        // Focus the editor
+        viewRef.current.focus();
+      } catch (error) {
+        console.error('Error scrolling to line:', lineNumber, error);
+      }
+    },
+  }));
 
   // Initialize editor once
   useEffect(() => {
@@ -165,4 +192,4 @@ export function CodeEditor({
       style={{ height }}
     />
   );
-}
+});

@@ -12,6 +12,8 @@
 
 import { test, expect } from '@playwright/test';
 
+// Sample spec for future use
+/*
 const SAMPLE_SPEC = `openapi: 3.1.0
 info:
   title: E2E Test API
@@ -30,6 +32,7 @@ paths:
               schema:
                 type: array
 `;
+*/
 
 test.describe('Spec Editor', () => {
   test('should load new spec editor with score cards', async ({ page }) => {

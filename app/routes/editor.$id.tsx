@@ -3,20 +3,25 @@
  * Features: Editor/Docs tabs, Endpoint sidebar (both tabs), Diagnostics panel, Maximize mode
  */
 
-import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router';
+import { useState, useEffect, useRef } from 'react';
+import { useParams, useNavigate, useFetcher } from 'react-router';
 import {
-  Save, Code2, FileText, AlertCircle, Maximize2, Minimize2,
+  Save, AlertCircle, Maximize2, Minimize2,
   TerminalSquare, ChevronDown, ChevronUp, Play
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { CodeEditor } from '@/features/editor/components/CodeEditor';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import { animate } from 'animejs';
+import { CodeEditor, type CodeEditorRef } from '@/features/editor/components/CodeEditor';
 import { useEditorStore } from '@/features/editor/store/editor.store';
 import { TryItOutDrawer } from '@/components/api-details/TryItOutDrawer';
 import { idbStorage } from '@/core/storage/idb-storage';
 import { SpectralService } from '@/features/governance/services/spectral.service';
 import type { ISpectralDiagnostic } from '@/core/events/event-types';
 import type { PathItemObject, OperationObject, ServerObject } from '@/types/openapi-spec';
+import type { QuickFixResponse } from '@/features/ai-catalyst/services/openrouter-provider';
+import { QuickFixDialog } from '@/features/governance/components/QuickFixDialog';
 
 // Parsed OpenAPI spec structure
 interface ParsedOpenAPISpec {
@@ -36,8 +41,10 @@ const spectralService = new SpectralService();
 export default function SpecEditor() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const quickFixFetcher = useFetcher();
   const content = useEditorStore((state) => state.content);
   const setEditorContent = useEditorStore((state) => state.setContent);
+  const editorRef = useRef<CodeEditorRef>(null);
   const [title, setTitle] = useState('');
   const [diagnostics, setDiagnostics] = useState<ISpectralDiagnostic[]>([]);
   const [score, setScore] = useState(100);
@@ -52,10 +59,36 @@ export default function SpecEditor() {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isMaximized, setIsMaximized] = useState(false);
   const [isDiagnosticsCollapsed, setIsDiagnosticsCollapsed] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [quickFixDialog, setQuickFixDialog] = useState<{
+    open: boolean;
+    diagnostic: ISpectralDiagnostic | null;
+    quickFix: QuickFixResponse | null;
+    isLoading: boolean;
+  }>({
+    open: false,
+    diagnostic: null,
+    quickFix: null,
+    isLoading: false,
+  });
+
+  // Refs for anime.js
+  const contentRef = useRef<HTMLDivElement>(null);
+
+  // Auto-detect language based on content
+  const detectedLanguage = (() => {
+    if (!content || content.trim().length === 0) return 'yaml';
+    const trimmed = content.trim();
+    // Check if it starts with { or [ (JSON)
+    if (trimmed.startsWith('{') || trimmed.startsWith('[')) return 'json';
+    // Default to YAML
+    return 'yaml';
+  })();
 
   // Load spec from storage
   useEffect(() => {
     const loadSpec = async () => {
+      setIsLoading(true);
       if (id === 'new') {
         // New spec template
         const template = `openapi: 3.1.0
@@ -88,6 +121,7 @@ paths:
           setTitle(spec.title || 'Untitled');
         }
       }
+      setIsLoading(false);
     };
 
     loadSpec();
@@ -134,6 +168,18 @@ paths:
 
     validateAndParse();
   }, [content]);
+
+  // Animate tab content when switching
+  useEffect(() => {
+    if (contentRef.current && !isLoading) {
+      animate(contentRef.current, {
+        opacity: [0, 1],
+        translateY: [10, 0],
+        duration: 300,
+        easing: 'cubicBezier(0.4, 0.0, 0.2, 1)',
+      });
+    }
+  }, [activeTab, isLoading]);
 
   const handleSave = async () => {
     setIsSaving(true);
@@ -206,22 +252,165 @@ paths:
   };
 
   const scrollToYamlLine = (path: string, method: string) => {
-    // Find the line number in YAML content where this endpoint is defined
-    const lines = content.split('\n');
-    const searchPattern = `  ${path}:`;
-    const pathLineIndex = lines.findIndex(line => line.trim() === searchPattern.trim());
+    if (!content || !editorRef.current) return;
 
-    if (pathLineIndex >= 0) {
-      // Find the method line after the path
-      const methodLineIndex = lines.findIndex((line, idx) =>
-        idx > pathLineIndex && line.trim().startsWith(`${method}:`)
+    const lines = content.split('\n');
+    const isJSON = detectedLanguage === 'json';
+
+    if (isJSON) {
+      // For JSON: Look for "path": { "method": {
+      // Find the line with the path as a JSON key
+      const pathPattern = `"${path}"`;
+      const pathLineIndex = lines.findIndex(line => line.includes(pathPattern) && line.includes(':'));
+
+      if (pathLineIndex >= 0) {
+        // Find the method line after the path
+        const methodPattern = `"${method}"`;
+        const methodLineIndex = lines.findIndex((line, idx) =>
+          idx > pathLineIndex && line.includes(methodPattern) && line.includes(':')
+        );
+
+        if (methodLineIndex >= 0) {
+          editorRef.current.scrollToLine(methodLineIndex + 1);
+          return;
+        }
+      }
+    } else {
+      // For YAML: Look for path: and method:
+      const searchPattern = `${path}:`;
+      const pathLineIndex = lines.findIndex(line => {
+        const trimmed = line.trim();
+        return trimmed === searchPattern || trimmed.startsWith(searchPattern + ' ');
+      });
+
+      if (pathLineIndex >= 0) {
+        // Find the method line after the path
+        const methodLineIndex = lines.findIndex((line, idx) => {
+          if (idx <= pathLineIndex) return false;
+          const trimmed = line.trim();
+          return trimmed.startsWith(`${method}:`) || trimmed === `${method}:`;
+        });
+
+        if (methodLineIndex >= 0) {
+          editorRef.current.scrollToLine(methodLineIndex + 1);
+          return;
+        }
+      }
+    }
+
+    // Fallback: just focus the editor
+    console.log('Could not find endpoint in content:', path, method);
+  };
+
+  // Quick Fix handler
+  const handleQuickFix = async (diagnostic: ISpectralDiagnostic) => {
+    setQuickFixDialog({
+      open: true,
+      diagnostic,
+      quickFix: null,
+      isLoading: true,
+    });
+
+    // Parse spec to get current value at diagnostic path
+    const yaml = await import('yaml');
+    const parsed = yaml.parse(content);
+
+    // Navigate to the error path to get current value
+    let currentValue = parsed;
+    for (const segment of diagnostic.path) {
+      currentValue = currentValue?.[segment];
+    }
+
+    // Submit to React Router action
+    const requestData = JSON.stringify({
+      diagnostic,
+      specContent: content,
+      context: {
+        path: diagnostic.path,
+        currentValue,
+      },
+    });
+
+    quickFixFetcher.submit(requestData, {
+      method: 'POST',
+      action: '/api/quick-fix',
+      encType: 'application/json',
+    });
+  };
+
+  // Handle quick fix fetcher response
+  useEffect(() => {
+    if (quickFixFetcher.state === 'idle' && quickFixFetcher.data && quickFixDialog.open) {
+      if (quickFixFetcher.data.success) {
+        setQuickFixDialog(prev => ({
+          ...prev,
+          quickFix: quickFixFetcher.data.data,
+          isLoading: false,
+        }));
+      } else {
+        const errorMessage = quickFixFetcher.data.error || 'Failed to generate quick fix';
+        toast.error(errorMessage);
+        setQuickFixDialog({ open: false, diagnostic: null, quickFix: null, isLoading: false });
+      }
+    }
+  }, [quickFixFetcher.state, quickFixFetcher.data, quickFixDialog.open]);
+
+  const handleAcceptFix = async () => {
+    if (!quickFixDialog.quickFix || !quickFixDialog.diagnostic) return;
+
+    try {
+      // Apply the fix by replacing the original code with fixed code
+      const newContent = content.replace(
+        quickFixDialog.quickFix.originalCode,
+        quickFixDialog.quickFix.fixedCode
       );
 
-      if (methodLineIndex >= 0) {
-        // Scroll to that line in the editor
-        // TODO: Implement scroll to line in CodeMirror
-        console.log('Scroll to line:', methodLineIndex + 1);
+      // Update content - this will trigger validation and re-parse
+      setEditorContent(newContent, 'code');
+
+      // Force immediate re-validation to update diagnostics
+      // This ensures diagnostics panel updates immediately
+      const result = await spectralService.lintSpec(newContent);
+      setDiagnostics(result.diagnostics);
+      setScore(result.score);
+
+      // Re-parse spec to update sidebar (handle both YAML and JSON)
+      let parsed: ParsedOpenAPISpec;
+      if (detectedLanguage === 'json') {
+        parsed = JSON.parse(newContent);
+      } else {
+        const yaml = await import('yaml');
+        parsed = yaml.parse(newContent);
       }
+      setParsedSpec(parsed);
+
+      // Verify selected endpoint still exists, reset if needed
+      if (selectedEndpoint && parsed.paths) {
+        const pathExists = parsed.paths[selectedEndpoint.path];
+        if (!pathExists || !pathExists[selectedEndpoint.method as keyof PathItemObject]) {
+          // Selected endpoint no longer exists, select first available
+          const firstPath = Object.keys(parsed.paths)[0];
+          if (firstPath) {
+            const pathItem = parsed.paths[firstPath] as PathItemObject;
+            const firstMethod = ['get', 'post', 'put', 'delete', 'patch'].find(
+              (m) => pathItem[m as keyof PathItemObject]
+            );
+            if (firstMethod) {
+              setSelectedEndpoint({
+                path: firstPath,
+                method: firstMethod,
+                operation: pathItem[firstMethod as keyof PathItemObject] as OperationObject,
+              });
+            }
+          }
+        }
+      }
+
+      toast.success('Fix applied successfully');
+      setQuickFixDialog({ open: false, diagnostic: null, quickFix: null, isLoading: false });
+    } catch (error) {
+      console.error('Failed to apply fix:', error);
+      toast.error('Failed to apply fix');
     }
   };
 
@@ -242,11 +431,11 @@ paths:
   };
 
   return (
-    <div className={`flex flex-col h-screen overflow-hidden bg-background text-foreground ${isMaximized ? 'fixed inset-0 z-[100]' : ''}`}>
+    <div className={`flex flex-col h-screen overflow-hidden bg-background text-foreground transition-all duration-300 ease-out ${isMaximized ? 'fixed inset-0 z-50' : ''}`}>
       {/* Header */}
       <div className="border-b border-border bg-card shrink-0">
-        {/* Top Row: Breadcrumb and Actions */}
-        <div className="flex h-14 items-center justify-between px-6 border-b border-border/60">
+        {/* Top Row: Breadcrumb, Tab Switcher, and Actions */}
+        <div className="relative flex h-14 items-center justify-between px-6">
           {/* Left: Breadcrumb */}
           <div className="flex items-center gap-3">
             {!isMaximized && (
@@ -255,9 +444,9 @@ paths:
                   onClick={() => navigate('/catalog')}
                   className="text-sm text-muted-foreground hover:text-foreground transition-colors"
                 >
-                  ← Catalog
+                  ← <span className="hidden sm:inline">Catalog</span>
                 </button>
-                <div className="h-4 w-px bg-border rotate-12" />
+                <div className="h-4 w-[1px] bg-border rotate-12" />
               </>
             )}
             <div className="flex items-center gap-3">
@@ -268,11 +457,6 @@ paths:
                 className="border-none bg-transparent text-base font-medium text-foreground outline-none placeholder:text-muted-foreground"
                 placeholder="Untitled Spec"
               />
-              {parsedSpec?.info?.version && (
-                <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-medium">
-                  v{parsedSpec.info.version}
-                </span>
-              )}
             </div>
           </div>
 
@@ -281,20 +465,20 @@ paths:
             <div className="flex p-1 bg-muted border border-border rounded-lg shadow-inner">
               <button
                 onClick={() => setActiveTab('docs')}
-                className={`px-4 py-1.5 rounded-md transition-all text-sm font-medium ${
+                className={`px-4 py-1.5 rounded-md transition-all duration-200 ease-out text-sm font-medium ${
                   activeTab === 'docs'
-                    ? 'bg-card text-foreground shadow-sm'
-                    : 'text-muted-foreground hover:text-foreground'
+                    ? 'bg-card text-foreground shadow-sm scale-[1.02]'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-card/50'
                 }`}
               >
                 Documentation
               </button>
               <button
                 onClick={() => setActiveTab('editor')}
-                className={`px-4 py-1.5 rounded-md transition-all text-sm font-medium ${
+                className={`px-4 py-1.5 rounded-md transition-all duration-200 ease-out text-sm font-medium ${
                   activeTab === 'editor'
-                    ? 'bg-card text-foreground shadow-sm'
-                    : 'text-muted-foreground hover:text-foreground'
+                    ? 'bg-card text-foreground shadow-sm scale-[1.02]'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-card/50'
                 }`}
               >
                 Editor
@@ -304,14 +488,6 @@ paths:
 
           {/* Right: Actions */}
           <div className="flex items-center gap-2">
-            {/* Error/Warning Badge */}
-            {totalProblems > 0 && (
-              <div className="flex items-center gap-2 px-3 py-1.5 bg-destructive/10 border border-destructive/20 rounded-full text-destructive text-xs font-medium">
-                <AlertCircle className="w-3.5 h-3.5" />
-                {errorCount > 0 ? `${errorCount} Error${errorCount > 1 ? 's' : ''}` : `${warningCount} Warning${warningCount > 1 ? 's' : ''}`}
-              </div>
-            )}
-
             {/* Maximize Button */}
             <button
               onClick={() => setIsMaximized(!isMaximized)}
@@ -329,7 +505,7 @@ paths:
             {activeTab === 'docs' && selectedEndpoint && (
               <button
                 onClick={() => setIsDrawerOpen(true)}
-                className="px-3 py-2 text-sm font-medium text-white bg-purple-500/10 border border-purple-500/30 rounded-lg hover:bg-purple-500/20 transition-colors flex items-center gap-2"
+                className="px-3 py-2 text-sm font-medium text-purple-400 bg-purple-500/10 border border-purple-500/30 rounded-lg hover:bg-purple-500/20 transition-colors flex items-center gap-2"
               >
                 <Play className="w-4 h-4" />
                 Try It Out
@@ -412,27 +588,43 @@ paths:
 
         {/* Content Area */}
         <div className="flex-1 flex flex-col overflow-hidden">
-          {/* Editor Tab */}
-          {activeTab === 'editor' && (
-            <div className="flex-1 flex flex-col overflow-hidden">
-              <CodeEditor language="yaml" />
+          {/* Loading State */}
+          {isLoading ? (
+            <div className="flex-1 flex items-center justify-center bg-background">
+              <div className="text-center space-y-4">
+                <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent"></div>
+                <p className="text-sm text-muted-foreground">Loading API specification...</p>
+              </div>
             </div>
-          )}
+          ) : (
+            <>
+              {/* Editor Tab */}
+              {activeTab === 'editor' && (
+                <div ref={contentRef} className="flex-1 flex flex-col overflow-hidden" style={{ opacity: 0 }}>
+                  <CodeEditor ref={editorRef} language={detectedLanguage} />
+                </div>
+              )}
 
-          {/* Documentation Tab */}
-          {activeTab === 'docs' && (
-            <div className="flex-1 overflow-auto bg-background p-8 md:p-12">
-              <div className="max-w-4xl mx-auto">
+              {/* Documentation Tab */}
+              {activeTab === 'docs' && (
+                <div ref={contentRef} className="flex-1 overflow-auto bg-background p-8 md:p-12" style={{ opacity: 0 }}>
+                  <div className="max-w-4xl mx-auto">
                 {parsedSpec && parsedSpec.paths ? (
                   <>
                     {/* API Info Header */}
                     <div className="mb-12">
-                      <h1 className="text-3xl md:text-4xl font-bold tracking-tight mb-3 text-foreground">
+                      <h1 className="text-2xl md:text-3xl font-bold tracking-tight mb-3 text-foreground">
                         {parsedSpec.info.title}
                       </h1>
-                      <p className="text-base leading-relaxed text-muted-foreground">
-                        {parsedSpec.info.description || 'No description provided'}
-                      </p>
+                      <div className="text-base leading-relaxed text-muted-foreground prose prose-sm prose-invert max-w-none [&_table]:border-collapse [&_table]:w-full [&_th]:border [&_th]:border-border [&_th]:px-4 [&_th]:py-2 [&_th]:bg-muted [&_th]:text-left [&_th]:font-semibold [&_td]:border [&_td]:border-border [&_td]:px-4 [&_td]:py-2 [&_code]:text-xs [&_code]:bg-muted [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded [&_pre]:bg-muted [&_pre]:p-3 [&_pre]:rounded [&_pre]:overflow-x-auto">
+                        {parsedSpec.info.description ? (
+                          <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                            {parsedSpec.info.description}
+                          </ReactMarkdown>
+                        ) : (
+                          'No description provided'
+                        )}
+                      </div>
                       <div className="mt-3 flex items-center gap-3 text-sm text-muted-foreground">
                         <span>Version {parsedSpec.info.version}</span>
                         {parsedSpec.servers?.[0] && (
@@ -464,12 +656,18 @@ paths:
                               <div className="h-1 w-16 bg-gradient-to-r from-purple-500 to-pink-500 mb-4 rounded-full" />
 
                               {/* Operation Summary */}
-                              <h2 className="text-2xl md:text-3xl uppercase font-bold tracking-tight mb-3 text-foreground">
-                                {op.summary || 'Unnamed Operation'}
+                              <h2 className="text-xl md:text-2xl uppercase font-bold tracking-tight mb-3 text-foreground">
+                                {op.summary || `${method.toUpperCase()} ${path}`}
                               </h2>
-                              <p className="text-sm md:text-base leading-relaxed mb-6 text-muted-foreground">
-                                {op.description || 'No detailed description provided in the specification.'}
-                              </p>
+                              <div className="text-sm md:text-base leading-relaxed mb-6 text-muted-foreground prose prose-sm prose-invert max-w-none [&_table]:border-collapse [&_table]:w-full [&_th]:border [&_th]:border-border [&_th]:px-4 [&_th]:py-2 [&_th]:bg-muted [&_th]:text-left [&_th]:font-semibold [&_td]:border [&_td]:border-border [&_td]:px-4 [&_td]:py-2 [&_code]:text-xs [&_code]:bg-muted [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded [&_pre]:bg-muted [&_pre]:p-3 [&_pre]:rounded [&_pre]:overflow-x-auto">
+                                {op.description ? (
+                                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                    {op.description}
+                                  </ReactMarkdown>
+                                ) : (
+                                  'No detailed description provided in the specification.'
+                                )}
+                              </div>
 
                               {/* Endpoint Badge */}
                               <div className="flex items-center gap-3 mb-6 p-3 bg-card border border-border rounded-lg">
@@ -477,25 +675,13 @@ paths:
                                   {method.toUpperCase()}
                                 </span>
                                 <code className="text-sm font-mono text-foreground">{path}</code>
-                                <button
-                                  onClick={() => {
-                                    setSelectedEndpoint({ path, method, operation: op });
-                                    setIsDrawerOpen(true);
-                                  }}
-                                  className="ml-auto px-3 py-1.5 text-xs font-medium text-white bg-purple-500/10 border border-purple-500/30 rounded hover:bg-purple-500/20 transition-colors flex items-center gap-2"
-                                >
-                                  <Play className="w-3 h-3" />
-                                  Try It Out
-                                </button>
                               </div>
 
                               {/* Parameters */}
                               {op.parameters && op.parameters.length > 0 && (
                                 <div className="mb-6">
-                                  <h3 className="text-base font-semibold text-foreground mb-3 flex items-center gap-2">
-                                    <div className="h-px flex-1 bg-border" />
-                                    <span>Parameters</span>
-                                    <div className="h-px flex-1 bg-border" />
+                                  <h3 className="text-sm font-semibold text-foreground mb-3">
+                                    Parameters
                                   </h3>
                                   <div className="overflow-x-auto">
                                     <table className="w-full border border-border rounded-lg overflow-hidden">
@@ -537,10 +723,8 @@ paths:
                               {/* Request Body */}
                               {op.requestBody && (
                                 <div className="mb-6">
-                                  <h3 className="text-base font-semibold text-foreground mb-3 flex items-center gap-2">
-                                    <div className="h-px flex-1 bg-border" />
-                                    <span>Request Body</span>
-                                    <div className="h-px flex-1 bg-border" />
+                                  <h3 className="text-sm font-semibold text-foreground mb-3">
+                                    Request Body
                                   </h3>
                                   <div className="p-4 bg-card border border-border rounded-lg">
                                     <p className="text-sm text-muted-foreground mb-2">
@@ -555,10 +739,8 @@ paths:
 
                               {/* Responses */}
                               <div className="mb-6">
-                                <h3 className="text-base font-semibold text-foreground mb-3 flex items-center gap-2">
-                                  <div className="h-px flex-1 bg-border" />
-                                  <span>Responses</span>
-                                  <div className="h-px flex-1 bg-border" />
+                                <h3 className="text-sm font-semibold text-foreground mb-3">
+                                  Responses
                                 </h3>
                                 <div className="overflow-x-auto">
                                   <table className="w-full border border-border rounded-lg overflow-hidden">
@@ -601,6 +783,8 @@ paths:
               </div>
             </div>
           )}
+            </>
+          )}
 
           {/* Diagnostics Panel (collapsible) */}
           {diagnostics.length > 0 && (
@@ -633,7 +817,7 @@ paths:
                         key={idx}
                         className={`py-3 -mx-4 px-4 transition-colors cursor-pointer group ${
                           diagnostic.severity === 0
-                            ? 'hover:bg-destructive/5 bg-destructive/[0.02]'
+                            ? 'bg-red-500/[0.08] hover:bg-red-500/[0.12] border-l-4 border-l-red-500'
                             : 'hover:bg-muted/30'
                         }`}
                         onClick={() => handleJumpToIssue(diagnostic)}
@@ -659,7 +843,10 @@ paths:
                               <span className="px-2 py-0.5 rounded bg-card border border-border text-xs font-mono text-muted-foreground">
                                 Line {diagnostic.range?.start.line ?? '?'}, Col {diagnostic.range?.start.character ?? '?'}
                               </span>
-                              <button className="text-xs text-primary hover:underline opacity-0 group-hover:opacity-100 transition-opacity">
+                              <button
+                                onClick={() => handleQuickFix(diagnostic)}
+                                className="text-xs text-primary hover:underline opacity-0 group-hover:opacity-100 transition-opacity"
+                              >
                                 Quick Fix
                               </button>
                             </div>
@@ -687,6 +874,16 @@ paths:
           spec={parsedSpec}
         />
       )}
+
+      {/* Quick Fix Dialog */}
+      <QuickFixDialog
+        open={quickFixDialog.open}
+        onClose={() => setQuickFixDialog({ open: false, diagnostic: null, quickFix: null, isLoading: false })}
+        diagnostic={quickFixDialog.diagnostic!}
+        quickFix={quickFixDialog.quickFix}
+        isLoading={quickFixDialog.isLoading}
+        onAccept={handleAcceptFix}
+      />
     </div>
   );
 }

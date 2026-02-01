@@ -6,7 +6,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { toast } from 'sonner';
-import { Plus, Upload, MoreVertical, Calendar, Download, Settings } from 'lucide-react';
+import { MoreVertical, Calendar, Download, Settings } from 'lucide-react';
 import { PageHeader } from '@/components/navigation/PageHeader';
 import { KPICard } from '@/components/dashboard/KPICard';
 import { ChartCard } from '@/components/dashboard/ChartCard';
@@ -69,7 +69,6 @@ export default function DashboardPage() {
   const authCoverage = specs.length > 0 ? Math.round((specs.filter(s => s.content.includes('securitySchemes')).length / specs.length) * 100) : 0;
 
   // Secondary KPIs
-  const criticalIssues = specs.filter((spec) => (spec.metadata.score || 0) < 60).length;
   const deprecatedUsage = specs.length > 0 ? Math.round((specs.filter(s => s.content.includes('deprecated: true')).length / specs.length) * 100) : 0;
   const reuseRatio = 68; // Placeholder - would calculate from shared components
 

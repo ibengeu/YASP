@@ -10,7 +10,7 @@ export default defineConfig(({ mode }) => ({
         mode !== 'test' && reactRouter(),
         tailwindcss(),
         tsconfigPaths()
-    ].filter(Boolean),
+    ].filter(Boolean) as any,
     test: {
         environment: 'jsdom',
         setupFiles: ['./vitest.setup.ts'],

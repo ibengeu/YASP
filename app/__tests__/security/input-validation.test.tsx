@@ -100,20 +100,18 @@ describe('Input Validation Security', () => {
 describe('Type Safety Security', () => {
   it('should enforce number type for score values', () => {
     // TypeScript should prevent this at compile time
-    // @ts-expect-error - Testing runtime type safety
-    const { container } = render(<ScoreCard label="Test" score={"100" as any} />);
+    render(<ScoreCard label="Test" score={"100" as any} />);
 
     // Should not crash even with wrong type
-    expect(container).toBeInTheDocument();
+    expect(screen.getByText('Test')).toBeInTheDocument();
   });
 
   it('should enforce number type for KPI values', () => {
     // TypeScript should prevent this at compile time
-    // @ts-expect-error - Testing runtime type safety
-    const { container } = render(<KPICard label="Test" value={"100" as any} />);
+    render(<KPICard label="Test" value={"100" as any} />);
 
     // Should not crash even with wrong type
-    expect(container).toBeInTheDocument();
+    expect(screen.getByText('Test')).toBeInTheDocument();
   });
 });
 

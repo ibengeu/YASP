@@ -12,7 +12,30 @@
  * - Block: Private IPs, localhost, internal networks, metadata endpoints
  */
 
-import { isIP } from 'node:net';
+/**
+ * Browser-compatible IP validation
+ * Returns 4 for IPv4, 6 for IPv6, 0 for invalid
+ */
+function isIP(input: string): 0 | 4 | 6 {
+  // IPv4 pattern
+  const ipv4Pattern = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/;
+  const ipv4Match = input.match(ipv4Pattern);
+  if (ipv4Match) {
+    const parts = ipv4Match.slice(1).map(Number);
+    if (parts.every(part => part >= 0 && part <= 255)) {
+      return 4;
+    }
+    return 0;
+  }
+
+  // IPv6 pattern (simplified - supports standard notation and :: compression)
+  const ipv6Pattern = /^([0-9a-fA-F]{0,4}:){2,7}[0-9a-fA-F]{0,4}$/;
+  if (ipv6Pattern.test(input) || input === '::1' || input === '::') {
+    return 6;
+  }
+
+  return 0;
+}
 
 export interface ValidationResult {
   valid: boolean;

@@ -3,7 +3,7 @@
  * Transformed with modern ApiCard components and PageHeader
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router';
 import { toast } from 'sonner';
 import { Plus, Upload, Search } from 'lucide-react';
@@ -14,6 +14,7 @@ import { ImportSpecDialog } from '@/features/library/components/ImportSpecDialog
 import { RegisterApiDrawer } from '@/components/registration/RegisterApiDrawer';
 import { idbStorage } from '@/core/storage/idb-storage';
 import type { OpenApiDocument } from '@/core/storage/storage-schema';
+import { staggerFadeIn, pageTransition } from '@/lib/animations';
 
 export default function CatalogPage() {
   const navigate = useNavigate();
@@ -26,8 +27,19 @@ export default function CatalogPage() {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [typeFilter, setTypeFilter] = useState<string>('all');
 
+  // Refs for anime.js animations (React pattern)
+  const pageRef = useRef<HTMLDivElement>(null);
+  const cardsRef = useRef<(HTMLDivElement | null)[]>([]);
+
   useEffect(() => {
     loadSpecs();
+  }, []);
+
+  // Animate page entrance
+  useEffect(() => {
+    if (pageRef.current) {
+      pageTransition(pageRef.current);
+    }
   }, []);
 
   const loadSpecs = async () => {
@@ -144,8 +156,20 @@ paths:
     return matchesSearch && matchesStatus && matchesType;
   });
 
+  // Animate cards when loaded (following anime.js React docs)
+  useEffect(() => {
+    if (!isLoading && filteredSpecs.length > 0) {
+      // Filter out null refs
+      const validRefs = cardsRef.current.filter((ref): ref is HTMLDivElement => ref !== null);
+
+      if (validRefs.length > 0) {
+        staggerFadeIn(validRefs, 50);
+      }
+    }
+  }, [isLoading, filteredSpecs.length]);
+
   return (
-    <div className="bg-[#FAFBFC] dark:bg-[#0E1420] min-h-screen">
+    <div ref={pageRef} className="bg-[#FAFBFC] dark:bg-[#0E1420] min-h-screen" style={{ opacity: 0 }}>
       <PageHeader
         title="API Catalog"
         description={`Browse ${specs.length} registered APIs`}
@@ -232,13 +256,20 @@ paths:
           </div>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {filteredSpecs.map((spec) => (
-              <ApiCard
+            {filteredSpecs.map((spec, index) => (
+              <div
                 key={spec.id}
-                spec={spec}
-                onClick={() => navigate(`/editor/${spec.id}`)}
-                onDelete={handleDelete}
-              />
+                ref={(el) => {
+                  cardsRef.current[index] = el;
+                }}
+                style={{ opacity: 0 }}
+              >
+                <ApiCard
+                  spec={spec}
+                  onClick={() => navigate(`/editor/${spec.id}`)}
+                  onDelete={handleDelete}
+                />
+              </div>
             ))}
           </div>
         )}

@@ -18,4 +18,8 @@ export default [
 
   // Spec Editor - Edit and test API specifications
   route("editor/:id", "routes/editor.$id.tsx"),
+
+  // API Resource Routes (server actions only, no UI)
+  route("api/execute-request", "routes/api.execute-request.ts"),
+  route("api/quick-fix", "routes/api.quick-fix.ts"),
 ] satisfies RouteConfig;

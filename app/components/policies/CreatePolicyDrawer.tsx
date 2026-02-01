@@ -149,17 +149,17 @@ export function CreatePolicyDrawer({ isOpen, onClose, onSuccess }: CreatePolicyD
       {/* Drawer */}
       <div className="absolute right-0 top-0 h-full w-full max-w-2xl bg-background border-l border-border shadow-2xl animate-slideInRight flex flex-col">
         {/* Header */}
-        <div className="flex-shrink-0 px-6 py-5 border-b border-border">
+        <div className="flex-shrink-0 px-6 py-5 border-b border-border bg-card">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-xl font-bold text-card-foreground">Create New Policy</h2>
+              <h2 className="text-xl font-bold text-foreground">Create New Policy</h2>
               <p className="text-sm text-muted-foreground mt-1">
                 Step {currentStep} of {STEPS.length}: {STEPS[currentStep - 1].title}
               </p>
             </div>
             <button
               onClick={onClose}
-              className="p-2 hover:bg-muted rounded-lg transition-colors"
+              className="p-2 hover:bg-muted rounded-lg transition-colors text-foreground"
               aria-label="Close drawer"
             >
               <X className="w-5 h-5" />
@@ -197,7 +197,7 @@ export function CreatePolicyDrawer({ isOpen, onClose, onSuccess }: CreatePolicyD
         </div>
 
         {/* Footer */}
-        <div className="flex-shrink-0 px-6 py-4 border-t border-border bg-muted/30">
+        <div className="flex-shrink-0 px-6 py-4 border-t border-border bg-card">
           <div className="flex items-center justify-between">
             <button
               onClick={handleBack}
@@ -254,7 +254,7 @@ function BasicInfoStep({ formData, errors, updateFormData }: any) {
           type="text"
           value={formData.name}
           onChange={(e) => updateFormData('name', e.target.value)}
-          className="w-full px-3 py-2 border border-border rounded-md bg-card text-foreground"
+          className="w-full px-3 py-2 border border-border rounded-md bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
           placeholder="API Must Have Description"
         />
         {errors.name && <p className="text-xs text-red-500 mt-1">{errors.name}</p>}
@@ -267,7 +267,7 @@ function BasicInfoStep({ formData, errors, updateFormData }: any) {
         <textarea
           value={formData.description}
           onChange={(e) => updateFormData('description', e.target.value)}
-          className="w-full px-3 py-2 border border-border rounded-md bg-card text-foreground"
+          className="w-full px-3 py-2 border border-border rounded-md bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
           rows={3}
           placeholder="Describe what this policy enforces..."
         />
@@ -282,7 +282,7 @@ function BasicInfoStep({ formData, errors, updateFormData }: any) {
           <select
             value={formData.category}
             onChange={(e) => updateFormData('category', e.target.value)}
-            className="w-full px-3 py-2 border border-border rounded-md bg-card text-foreground"
+            className="w-full px-3 py-2 border border-border rounded-md bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
           >
             <option value="">Select...</option>
             <option value="Documentation">Documentation</option>
@@ -301,7 +301,7 @@ function BasicInfoStep({ formData, errors, updateFormData }: any) {
           <select
             value={formData.severity}
             onChange={(e) => updateFormData('severity', e.target.value)}
-            className="w-full px-3 py-2 border border-border rounded-md bg-card text-foreground"
+            className="w-full px-3 py-2 border border-border rounded-md bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
           >
             <option value="">Select...</option>
             <option value="error">Error</option>

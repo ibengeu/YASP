@@ -46,7 +46,7 @@ describe('ScoreCard', () => {
   });
 
   it('should apply correct color for excellent scores', () => {
-    const { container } = render(<ScoreCard label="Score" score={95} />);
+    render(<ScoreCard label="Score" score={95} />);
 
     // Check for green color class
     const badge = screen.getByText('Excellent').closest('div');
@@ -54,7 +54,7 @@ describe('ScoreCard', () => {
   });
 
   it('should apply correct color for critical scores', () => {
-    const { container } = render(<ScoreCard label="Score" score={30} />);
+    render(<ScoreCard label="Score" score={30} />);
 
     // Check for red color class
     const badge = screen.getByText('Critical').closest('div');

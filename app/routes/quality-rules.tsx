@@ -93,7 +93,6 @@ export default function QualityRulesPage() {
   const enabledCount = rules.filter((r) => r.enabled).length;
   const avgCoverage = Math.round((enabledCount / totalPolicies) * 100);
   const errorCount = rules.filter((r) => r.enabled && r.severity === 'error').length;
-  const warningCount = rules.filter((r) => r.enabled && r.severity === 'warning').length;
   const criticalCount = errorCount; // Critical policies are error-level
 
   return (

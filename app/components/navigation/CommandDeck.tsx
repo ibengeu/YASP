@@ -50,48 +50,53 @@ export function CommandDeck() {
 
   return (
     <nav
-      className="fixed top-0 left-0 right-0 bg-card border-b border-border"
-      style={{ zIndex: 'var(--z-navigation)' }}
+      className="fixed top-0 left-0 right-0 bg-card border-b border-border z-40"
     >
       <div className="px-4 md:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
-          {/* Logo */}
-          <div className="flex items-center gap-2">
-            <Shield className="w-6 h-6 text-primary" />
-            <span className="text-lg font-semibold text-card-foreground tracking-tight">
-              YASP
-            </span>
+        <div className="flex items-center h-16">
+          {/* Logo and Navigation Modules (Left Side) */}
+          <div className="flex items-center gap-6">
+            {/* Logo */}
+            <div className="flex items-center gap-2">
+              <Shield className="w-6 h-6 text-primary" />
+              <span className="text-lg font-semibold text-card-foreground tracking-tight">
+                YASP
+              </span>
+            </div>
+
+            {/* Navigation Modules */}
+            <div className="hidden md:flex items-center gap-1">
+              {navModules.map((module) => {
+                const Icon = module.icon;
+                const active = isActive(module.path);
+
+                return (
+                  <button
+                    key={module.id}
+                    onClick={() => navigate(module.path)}
+                    className={cn(
+                      'flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 ease-out',
+                      active
+                        ? 'bg-accent text-accent-foreground scale-[1.02]'
+                        : 'text-muted-foreground hover:bg-muted hover:text-foreground hover:scale-105'
+                    )}
+                    title={module.description}
+                  >
+                    <Icon className="w-4 h-4" />
+                    {module.label}
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
-          {/* Navigation Modules */}
-          <div className="hidden md:flex items-center gap-1">
-            {navModules.map((module) => {
-              const Icon = module.icon;
-              const active = isActive(module.path);
-
-              return (
-                <button
-                  key={module.id}
-                  onClick={() => navigate(module.path)}
-                  className={cn(
-                    'flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors',
-                    active
-                      ? 'bg-accent text-accent-foreground'
-                      : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-                  )}
-                  title={module.description}
-                >
-                  <Icon className="w-4 h-4" />
-                  {module.label}
-                </button>
-              );
-            })}
-          </div>
+          {/* Spacer to push dark mode toggle to the right */}
+          <div className="flex-1" />
 
           {/* Dark Mode Toggle */}
           <button
             onClick={toggleDarkMode}
-            className="p-2 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+            className="p-2 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-all duration-200 ease-out hover:scale-110 active:scale-95"
             aria-label={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
           >
             {darkMode ? (
@@ -113,7 +118,7 @@ export function CommandDeck() {
                 key={module.id}
                 onClick={() => navigate(module.path)}
                 className={cn(
-                  'flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap',
+                  'flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 ease-out whitespace-nowrap',
                   active
                     ? 'bg-accent text-accent-foreground'
                     : 'text-muted-foreground hover:bg-muted'

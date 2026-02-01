@@ -3,13 +3,14 @@
  * Matching reference platform functionality
  */
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
+import { useFetcher } from 'react-router';
 import {
   X, Play, ChevronLeft, ChevronRight, Search,
   ChevronDown, Folder, FolderOpen, Copy, GripHorizontal
 } from 'lucide-react';
 import { toast } from 'sonner';
-import type { OperationObject, PathItemObject } from '@/types/openapi-spec';
+import type { OperationObject } from '@/types/openapi-spec';
 
 type HTTPMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 
@@ -77,14 +78,14 @@ interface TryItOutDrawerProps {
 export function TryItOutDrawer({
   open,
   onClose,
-  operation: initialOperation,
+  operation: _initialOperation,
   path: initialPath,
   method: initialMethod,
   baseUrl,
   spec,
 }: TryItOutDrawerProps) {
+  const fetcher = useFetcher();
   const [activeTab, setActiveTab] = useState<'params' | 'auth' | 'headers' | 'body'>('params');
-  const [isLoading, setIsLoading] = useState(false);
   const [response, setResponse] = useState<TestResponse | null>(null);
   const [drawerHeight, setDrawerHeight] = useState<number>(600);
   const [isResizing, setIsResizing] = useState(false);
@@ -202,34 +203,61 @@ export function TryItOutDrawer({
     }
   }, [selectedEndpoint, baseUrl]);
 
-  const handleSendRequest = async () => {
-    setIsLoading(true);
-    const startTime = Date.now();
+  const handleSendRequest = () => {
+    // Build headers from enabled rows
+    const headers: Record<string, string> = {};
+    request.headers
+      .filter(h => h.enabled && h.key && h.value)
+      .forEach(h => {
+        headers[h.key] = h.value;
+      });
 
-    try {
-      await new Promise(resolve => setTimeout(resolve, 800 + Math.random() * 400));
-
-      const time = Date.now() - startTime;
-      const mockResponse: TestResponse = {
-        status: 200,
-        statusText: 'OK',
-        time,
-        size: 2.4,
-        headers: {
-          'content-type': 'application/json',
-          'x-request-id': 'req_' + Math.random().toString(36).substr(2, 9),
-        },
-        body: { success: true, message: 'Mock response', data: {} },
-      };
-
-      setResponse(mockResponse);
-      toast.success('Request completed successfully');
-    } catch (error) {
-      toast.error('Request failed');
-    } finally {
-      setIsLoading(false);
+    // Build query params
+    let url = request.url;
+    const enabledParams = request.params.filter(p => p.enabled && p.key && p.value);
+    if (enabledParams.length > 0) {
+      const queryString = enabledParams
+        .map(p => `${encodeURIComponent(p.key)}=${encodeURIComponent(p.value)}`)
+        .join('&');
+      url = `${url}?${queryString}`;
     }
+
+    // Submit to React Router action
+    const requestData = JSON.stringify({
+      method: request.method,
+      url,
+      headers,
+      body: ['POST', 'PUT', 'PATCH'].includes(request.method) ? request.body : undefined,
+      auth: request.auth,
+    });
+
+    fetcher.submit(requestData, {
+      method: 'POST',
+      action: '/api/execute-request',
+      encType: 'application/json',
+    });
   };
+
+  // Handle fetcher response
+  useEffect(() => {
+    if (fetcher.state === 'idle' && fetcher.data) {
+      if (fetcher.data.success) {
+        setResponse(fetcher.data.data);
+        toast.success(`Request completed in ${fetcher.data.data.time}ms`);
+      } else {
+        const errorMessage = fetcher.data.error || 'Request failed';
+        toast.error(errorMessage);
+        setResponse({
+          status: 0,
+          statusText: 'Error',
+          time: 0,
+          size: 0,
+          headers: {},
+          body: { error: errorMessage },
+        });
+      }
+    }
+  }, [fetcher.state, fetcher.data]);
 
   const handleCopyResponse = () => {
     if (response) {
@@ -461,10 +489,10 @@ export function TryItOutDrawer({
               {/* Send Button */}
               <button
                 onClick={handleSendRequest}
-                disabled={isLoading}
+                disabled={fetcher.state !== 'idle'}
                 className="h-10 px-6 bg-primary hover:opacity-90 text-primary-foreground text-xs font-semibold rounded-md transition-all flex items-center justify-center gap-2 min-w-[100px] disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <span>{isLoading ? 'Sending...' : 'Send'}</span>
+                <span>{fetcher.state !== 'idle' ? 'Sending...' : 'Send'}</span>
                 <Play className="w-3.5 h-3.5 fill-current" />
               </button>
             </div>

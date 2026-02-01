@@ -60,7 +60,7 @@ function validateApiUrl(url: string, allowedDomains?: string[]): boolean {
     const ipv4Pattern = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/;
     const ipMatch = hostname.match(ipv4Pattern);
     if (ipMatch) {
-      const [, a, b, c, d] = ipMatch.map(Number);
+      const [, a, b] = ipMatch.map(Number);
 
       // 10.0.0.0/8
       if (a === 10) return false;
