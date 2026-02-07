@@ -6,11 +6,10 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router';
 import { toast } from 'sonner';
-import { Plus, Upload, Search, Trash2 } from 'lucide-react';
+import { Plus, Search, Trash2 } from 'lucide-react';
 import { PageHeader } from '@/components/navigation/PageHeader';
 import { ApiCard } from '@/components/catalog/ApiCard';
 import { GenerateSpecDialog } from '@/features/ai-catalyst/components/GenerateSpecDialog';
-import { ImportSpecDialog } from '@/features/library/components/ImportSpecDialog';
 import { RegisterApiDrawer } from '@/components/registration/RegisterApiDrawer';
 import { idbStorage } from '@/core/storage/idb-storage';
 import type { OpenApiDocument } from '@/core/storage/storage-schema';
@@ -19,7 +18,6 @@ import { staggerFadeIn, pageTransition } from '@/lib/animations';
 export default function CatalogPage() {
   const navigate = useNavigate();
   const [showGenerateDialog, setShowGenerateDialog] = useState(false);
-  const [showImportDialog, setShowImportDialog] = useState(false);
   const [showRegisterDrawer, setShowRegisterDrawer] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [specs, setSpecs] = useState<OpenApiDocument[]>([]);
@@ -174,22 +172,13 @@ paths:
         title="API Catalog"
         description={`Browse ${specs.length} registered APIs`}
         actions={
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setShowImportDialog(true)}
-              className="px-3 py-2 text-sm font-medium text-foreground bg-card border border-border rounded-md hover:bg-muted transition-colors flex items-center gap-2 cursor-pointer"
-            >
-              <Upload className="w-4 h-4" />
-              Import
-            </button>
-            <button
-              onClick={() => setShowRegisterDrawer(true)}
-              className="px-3 py-2 text-sm font-medium text-primary-foreground bg-primary rounded-md hover:opacity-90 transition-opacity flex items-center gap-2 cursor-pointer"
-            >
-              <Plus className="w-4 h-4" />
-              Register New API
-            </button>
-          </div>
+          <button
+            onClick={() => setShowRegisterDrawer(true)}
+            className="px-3 py-2 text-sm font-medium text-primary-foreground bg-primary rounded-md hover:opacity-90 transition-opacity flex items-center gap-2 cursor-pointer"
+          >
+            <Plus className="w-4 h-4" />
+            Register New API
+          </button>
         }
         extraContent={
           <div className="flex flex-col sm:flex-row gap-2">
@@ -432,8 +421,6 @@ paths:
           navigate(`/editor/${newSpec.id}`);
         }}
       />
-
-      <ImportSpecDialog open={showImportDialog} onOpenChange={setShowImportDialog} />
 
       <RegisterApiDrawer
         isOpen={showRegisterDrawer}

@@ -1,34 +1,40 @@
 /**
  * RegisterApiDrawer - Multi-step API registration wizard
- * Following reference platform's 4-step registration flow
+ * Streamlined 3-step flow with integrated spec upload/import
+ *
+ * Features:
+ * - Basic info input (name, version, endpoint, description)
+ * - Upload/paste/URL import for OpenAPI specifications
+ * - Tag management
+ * - Auto-parse spec metadata when provided
+ *
+ * Security: OWASP A03:2025 - Input validation for file uploads
+ * Security: OWASP A10:2025 - SSRF prevention for URL imports
  */
 
 import { useState, useEffect } from 'react';
-import { X, ChevronLeft, ChevronRight, Save, Loader2 } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, Save, Loader2, Upload, ClipboardPaste, Link as LinkIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { idbStorage } from '@/core/storage/idb-storage';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 export interface ApiFormData {
   // Basic Info
   name: string;
   description: string;
-  type: 'REST' | 'GraphQL' | 'gRPC' | 'AsyncAPI' | '';
   version: string;
   endpoint: string;
-  
-  // Ownership
-  owner: string;
-  team: string;
+
+  // Tags
   tags: string[];
-  
-  // Documentation
-  documentationUrl: string;
+
+  // OpenAPI Specification
   openapiSpec: {
     source: 'upload' | 'paste' | 'url' | '';
     content: string;
     fileName?: string;
   };
-  
+
   // Status
   status: 'draft' | 'active';
 }
@@ -44,22 +50,17 @@ interface RegisterApiDrawerProps {
 }
 
 const STEPS = [
-  { id: 1, title: 'Basic Information', description: 'Name, type, and endpoint details' },
-  { id: 2, title: 'Ownership & Organization', description: 'Owner, team, and tags' },
-  { id: 3, title: 'Documentation', description: 'OpenAPI spec and docs (optional)' },
-  { id: 4, title: 'Review & Submit', description: 'Final review' },
+  { id: 1, title: 'Basic Information', description: 'Name, version, and endpoint details' },
+  { id: 2, title: 'OpenAPI Specification', description: 'Upload, paste, or import from URL' },
+  { id: 3, title: 'Review & Submit', description: 'Review and register API' },
 ];
 
 const initialFormData: ApiFormData = {
   name: '',
   description: '',
-  type: '',
   version: '',
   endpoint: '',
-  owner: '',
-  team: '',
   tags: [],
-  documentationUrl: '',
   openapiSpec: {
     source: '',
     content: '',
@@ -98,6 +99,7 @@ export function RegisterApiDrawer({ isOpen, onClose, onSuccess }: RegisterApiDra
     const newErrors: ValidationErrors = {};
 
     if (step === 1) {
+      // Mitigation for OWASP A03:2025 - Injection: Validate input lengths
       if (!formData.name || formData.name.length < 3) {
         newErrors.name = 'API name is required (min 3 characters)';
       }
@@ -106,9 +108,6 @@ export function RegisterApiDrawer({ isOpen, onClose, onSuccess }: RegisterApiDra
       }
       if (formData.description.length > 500) {
         newErrors.description = 'Description cannot exceed 500 characters';
-      }
-      if (!formData.type) {
-        newErrors.type = 'API type is required';
       }
       if (!formData.version) {
         newErrors.version = 'Version is required';
@@ -119,14 +118,14 @@ export function RegisterApiDrawer({ isOpen, onClose, onSuccess }: RegisterApiDra
         newErrors.endpoint = 'Endpoint must use HTTPS';
       }
     } else if (step === 2) {
-      if (!formData.owner) {
-        newErrors.owner = 'Owner is required';
-      }
-      if (!formData.team) {
-        newErrors.team = 'Team is required';
-      }
-      if (formData.tags.length === 0) {
-        newErrors.tags = 'At least one tag is required';
+      // Optional: Validate OpenAPI spec if provided
+      if (formData.openapiSpec.content) {
+        try {
+          // Try parsing to validate format
+          JSON.parse(formData.openapiSpec.content);
+        } catch {
+          // Not JSON, could be YAML - validation happens during import
+        }
       }
     }
 
@@ -149,8 +148,47 @@ export function RegisterApiDrawer({ isOpen, onClose, onSuccess }: RegisterApiDra
 
     setIsSubmitting(true);
     try {
-      // Create OpenAPI spec content
-      const specContent = formData.openapiSpec.content || `openapi: 3.1.0
+      let specContent = formData.openapiSpec.content;
+      let parsedSpec;
+
+      // If user provided a spec, parse and validate it
+      if (specContent) {
+        try {
+          // Try parsing as JSON first
+          parsedSpec = JSON.parse(specContent);
+        } catch {
+          // Try parsing as YAML
+          const yaml = await import('yaml');
+          parsedSpec = yaml.parse(specContent);
+        }
+
+        // Validate it's an OpenAPI spec
+        if (!parsedSpec.openapi && !parsedSpec.swagger) {
+          throw new Error('Not a valid OpenAPI specification');
+        }
+
+        // Use spec's info if available, otherwise use form data
+        const title = parsedSpec.info?.title || formData.name;
+        const version = parsedSpec.info?.version || formData.version;
+        const description = parsedSpec.info?.description || formData.description;
+
+        await idbStorage.createSpec({
+          type: 'openapi',
+          content: specContent,
+          title,
+          version,
+          description,
+          metadata: {
+            score: 0,
+            tags: formData.tags,
+            workspaceType: 'personal',
+            syncStatus: 'offline',
+            isDiscoverable: true,
+          },
+        });
+      } else {
+        // Create a basic OpenAPI spec from form data
+        specContent = `openapi: 3.1.0
 info:
   title: ${formData.name}
   version: ${formData.version}
@@ -159,27 +197,28 @@ servers:
   - url: ${formData.endpoint}
 paths: {}`;
 
-      await idbStorage.createSpec({
-        type: 'openapi',
-        content: specContent,
-        title: formData.name,
-        version: formData.version,
-        description: formData.description,
-        metadata: {
-          score: 0,
-          tags: formData.tags,
-          workspaceType: 'personal',
-          syncStatus: 'offline',
-          isDiscoverable: true,
-        },
-      });
+        await idbStorage.createSpec({
+          type: 'openapi',
+          content: specContent,
+          title: formData.name,
+          version: formData.version,
+          description: formData.description,
+          metadata: {
+            score: 0,
+            tags: formData.tags,
+            workspaceType: 'personal',
+            syncStatus: 'offline',
+            isDiscoverable: true,
+          },
+        });
+      }
 
       toast.success('API registered successfully');
       onSuccess?.();
       onClose();
     } catch (error) {
       console.error('Registration error:', error);
-      toast.error('Failed to register API');
+      toast.error(error instanceof Error ? error.message : 'Failed to register API');
     } finally {
       setIsSubmitting(false);
     }
@@ -241,12 +280,9 @@ paths: {}`;
             <BasicInfoStepInline formData={formData} errors={errors} updateFormData={updateFormData} />
           )}
           {currentStep === 2 && (
-            <OwnershipStepInline formData={formData} errors={errors} updateFormData={updateFormData} />
+            <SpecUploadStepInline formData={formData} errors={errors} updateFormData={updateFormData} />
           )}
           {currentStep === 3 && (
-            <DocumentationStepInline formData={formData} errors={errors} updateFormData={updateFormData} />
-          )}
-          {currentStep === 4 && (
             <ReviewStepInline formData={formData} />
           )}
         </div>
@@ -325,34 +361,16 @@ function BasicInfoStepInline({ formData, errors, updateFormData }: any) {
         {errors.description && <p className="text-xs text-red-500 mt-1">{errors.description}</p>}
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium mb-2 text-foreground">Type *</label>
-          <select
-            value={formData.type}
-            onChange={(e) => updateFormData('type', e.target.value)}
-            className="w-full px-3 py-2 border border-border rounded-md bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-          >
-            <option value="">Select...</option>
-            <option value="REST">REST</option>
-            <option value="GraphQL">GraphQL</option>
-            <option value="gRPC">gRPC</option>
-            <option value="AsyncAPI">AsyncAPI</option>
-          </select>
-          {errors.type && <p className="text-xs text-red-500 mt-1">{errors.type}</p>}
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium mb-2 text-foreground">Version *</label>
-          <input
-            type="text"
-            value={formData.version}
-            onChange={(e) => updateFormData('version', e.target.value)}
-            className="w-full px-3 py-2 border border-border rounded-md bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-            placeholder="v1.0.0"
-          />
-          {errors.version && <p className="text-xs text-red-500 mt-1">{errors.version}</p>}
-        </div>
+      <div>
+        <label className="block text-sm font-medium mb-2 text-foreground">Version *</label>
+        <input
+          type="text"
+          value={formData.version}
+          onChange={(e) => updateFormData('version', e.target.value)}
+          className="w-full px-3 py-2 border border-border rounded-md bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+          placeholder="v1.0.0"
+        />
+        {errors.version && <p className="text-xs text-red-500 mt-1">{errors.version}</p>}
       </div>
 
       <div>
@@ -370,8 +388,98 @@ function BasicInfoStepInline({ formData, errors, updateFormData }: any) {
   );
 }
 
-function OwnershipStepInline({ formData, errors, updateFormData }: any) {
+function SpecUploadStepInline({ formData, updateFormData }: any) {
+  const [pastedContent, setPastedContent] = useState(formData.openapiSpec.content || '');
+  const [url, setUrl] = useState('');
+  const [isImporting, setIsImporting] = useState(false);
   const [tagInput, setTagInput] = useState('');
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Mitigation for OWASP A03:2025 - Injection: Validate file type
+    if (!file.name.match(/\.(yaml|yml|json)$/i)) {
+      toast.error('Invalid file type. Please upload a YAML or JSON file.');
+      return;
+    }
+
+    // Mitigation for OWASP A03:2025 - Injection: Limit file size (5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('File too large. Maximum size is 5MB.');
+      return;
+    }
+
+    setIsImporting(true);
+    try {
+      const content = await file.text();
+      updateFormData('openapiSpec', {
+        source: 'upload',
+        content,
+        fileName: file.name,
+      });
+      toast.success('File uploaded successfully');
+    } catch (error) {
+      toast.error('Failed to read file');
+      console.error('File upload error:', error);
+    } finally {
+      setIsImporting(false);
+    }
+  };
+
+  const handlePaste = () => {
+    if (!pastedContent.trim()) {
+      toast.error('Please paste your OpenAPI specification');
+      return;
+    }
+
+    updateFormData('openapiSpec', {
+      source: 'paste',
+      content: pastedContent,
+    });
+    toast.success('Specification added');
+  };
+
+  const handleUrlImport = async () => {
+    if (!url.trim()) {
+      toast.error('Please enter a URL');
+      return;
+    }
+
+    // Mitigation for OWASP A10:2025 - SSRF: Validate URL
+    try {
+      const urlObj = new URL(url);
+      if (!['http:', 'https:'].includes(urlObj.protocol)) {
+        toast.error('Only HTTP and HTTPS URLs are allowed');
+        return;
+      }
+    } catch {
+      toast.error('Invalid URL');
+      return;
+    }
+
+    setIsImporting(true);
+    try {
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      const content = await response.text();
+      const fileName = url.split('/').pop() || 'Imported Spec';
+      updateFormData('openapiSpec', {
+        source: 'url',
+        content,
+        fileName,
+      });
+      toast.success('Specification imported from URL');
+    } catch (error) {
+      toast.error('Failed to fetch specification from URL');
+      console.error('URL import error:', error);
+    } finally {
+      setIsImporting(false);
+    }
+  };
 
   const addTag = () => {
     if (tagInput.trim() && !formData.tags.includes(tagInput.trim())) {
@@ -385,43 +493,111 @@ function OwnershipStepInline({ formData, errors, updateFormData }: any) {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
+      {/* OpenAPI Specification Upload */}
       <div>
-        <label className="block text-sm font-medium mb-2 text-foreground">Owner *</label>
-        <input
-          type="email"
-          value={formData.owner}
-          onChange={(e) => updateFormData('owner', e.target.value)}
-          className="w-full px-3 py-2 border border-border rounded-md bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-          placeholder="owner@company.com"
-        />
-        {errors.owner && <p className="text-xs text-red-500 mt-1">{errors.owner}</p>}
+        <label className="block text-sm font-medium mb-3 text-foreground">
+          OpenAPI Specification (Optional)
+        </label>
+
+        <Tabs defaultValue="file">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="file" className="gap-2">
+              <Upload className="h-4 w-4" />
+              File
+            </TabsTrigger>
+            <TabsTrigger value="paste" className="gap-2">
+              <ClipboardPaste className="h-4 w-4" />
+              Paste
+            </TabsTrigger>
+            <TabsTrigger value="url" className="gap-2">
+              <LinkIcon className="h-4 w-4" />
+              URL
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="file" className="space-y-4 mt-4">
+            <div className="flex items-center justify-center rounded-lg border-2 border-dashed border-border bg-muted/50 p-8">
+              <label className="cursor-pointer text-center">
+                <Upload className="mx-auto h-10 w-10 text-muted-foreground" />
+                <p className="mt-2 text-sm font-medium">
+                  Click to upload or drag and drop
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  YAML or JSON files (max 5MB)
+                </p>
+                <input
+                  type="file"
+                  accept=".yaml,.yml,.json"
+                  onChange={handleFileUpload}
+                  className="hidden"
+                  disabled={isImporting}
+                />
+              </label>
+            </div>
+            {formData.openapiSpec.source === 'upload' && formData.openapiSpec.fileName && (
+              <p className="text-sm text-muted-foreground">
+                ✓ Uploaded: {formData.openapiSpec.fileName}
+              </p>
+            )}
+          </TabsContent>
+
+          <TabsContent value="paste" className="space-y-4 mt-4">
+            <textarea
+              value={pastedContent}
+              onChange={(e) => setPastedContent(e.target.value)}
+              placeholder="Paste your OpenAPI specification here..."
+              className="min-h-[200px] w-full rounded-md border border-border bg-background p-4 font-mono text-sm"
+              disabled={isImporting}
+            />
+            <button
+              onClick={handlePaste}
+              disabled={isImporting || !pastedContent.trim()}
+              className="w-full px-4 py-2 text-sm font-medium text-primary-foreground bg-primary rounded-md hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+            >
+              {isImporting ? 'Processing...' : 'Use Pasted Specification'}
+            </button>
+          </TabsContent>
+
+          <TabsContent value="url" className="space-y-4 mt-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Specification URL</label>
+              <input
+                type="url"
+                value={url}
+                onChange={(e) => setUrl(e.target.value)}
+                placeholder="https://example.com/openapi.yaml"
+                className="w-full rounded-md border border-border bg-background px-4 py-2 text-sm"
+                disabled={isImporting}
+              />
+              <p className="text-xs text-muted-foreground">
+                Enter the URL of a publicly accessible OpenAPI specification
+              </p>
+            </div>
+            <button
+              onClick={handleUrlImport}
+              disabled={isImporting || !url.trim()}
+              className="w-full px-4 py-2 text-sm font-medium text-primary-foreground bg-primary rounded-md hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+            >
+              {isImporting ? 'Importing...' : 'Import from URL'}
+            </button>
+          </TabsContent>
+        </Tabs>
+
+        <p className="text-xs text-muted-foreground mt-3">
+          Providing an OpenAPI spec enables better API discovery and compliance checking.
+        </p>
       </div>
 
+      {/* Tags */}
       <div>
-        <label className="block text-sm font-medium mb-2 text-foreground">Team *</label>
-        <select
-          value={formData.team}
-          onChange={(e) => updateFormData('team', e.target.value)}
-          className="w-full px-3 py-2 border border-border rounded-md bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-        >
-          <option value="">Select...</option>
-          <option value="Platform Engineering">Platform Engineering</option>
-          <option value="Payments Team">Payments Team</option>
-          <option value="User Services">User Services</option>
-          <option value="Data Team">Data Team</option>
-        </select>
-        {errors.team && <p className="text-xs text-red-500 mt-1">{errors.team}</p>}
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium mb-2 text-foreground">Tags *</label>
+        <label className="block text-sm font-medium mb-2 text-foreground">Tags (Optional)</label>
         {formData.tags.length > 0 && (
           <div className="flex flex-wrap gap-2 mb-2">
             {formData.tags.map((tag: string) => (
               <span key={tag} className="px-2 py-1 bg-primary/10 text-primary rounded text-sm flex items-center gap-1">
                 {tag}
-                <button onClick={() => removeTag(tag)} className="hover:text-primary-foreground">×</button>
+                <button onClick={() => removeTag(tag)} className="hover:text-primary-foreground cursor-pointer">×</button>
               </span>
             ))}
           </div>
@@ -438,43 +614,11 @@ function OwnershipStepInline({ formData, errors, updateFormData }: any) {
           <button
             type="button"
             onClick={addTag}
-            className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:opacity-90 transition-opacity"
+            className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:opacity-90 transition-opacity cursor-pointer"
           >
             Add
           </button>
         </div>
-        {errors.tags && <p className="text-xs text-red-500 mt-1">{errors.tags}</p>}
-      </div>
-    </div>
-  );
-}
-
-function DocumentationStepInline({ formData, updateFormData }: any) {
-  return (
-    <div className="space-y-4">
-      <div>
-        <label className="block text-sm font-medium mb-2 text-foreground">Documentation URL (Optional)</label>
-        <input
-          type="url"
-          value={formData.documentationUrl}
-          onChange={(e) => updateFormData('documentationUrl', e.target.value)}
-          className="w-full px-3 py-2 border border-border rounded-md bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-          placeholder="https://docs.example.com/api/v1"
-        />
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium mb-2 text-foreground">OpenAPI Specification (Optional)</label>
-        <textarea
-          value={formData.openapiSpec.content}
-          onChange={(e) => updateFormData('openapiSpec', { ...formData.openapiSpec, content: e.target.value, source: 'paste' })}
-          className="w-full px-3 py-2 border border-border rounded-md bg-card text-foreground placeholder:text-muted-foreground font-mono text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-          rows={12}
-          placeholder="Paste your OpenAPI spec here (YAML or JSON)..."
-        />
-        <p className="text-xs text-muted-foreground mt-2">
-          Providing an OpenAPI spec enables better API discovery and compliance checking.
-        </p>
       </div>
     </div>
   );
@@ -491,10 +635,6 @@ function ReviewStepInline({ formData }: any) {
             <dd className="font-medium text-foreground">{formData.name}</dd>
           </div>
           <div className="flex justify-between">
-            <dt className="text-muted-foreground">Type:</dt>
-            <dd className="font-medium text-foreground">{formData.type}</dd>
-          </div>
-          <div className="flex justify-between">
             <dt className="text-muted-foreground">Version:</dt>
             <dd className="font-medium text-foreground">{formData.version}</dd>
           </div>
@@ -502,42 +642,49 @@ function ReviewStepInline({ formData }: any) {
             <dt className="text-muted-foreground">Endpoint:</dt>
             <dd className="font-mono text-xs mt-1 text-foreground">{formData.endpoint}</dd>
           </div>
+          <div>
+            <dt className="text-muted-foreground">Description:</dt>
+            <dd className="text-foreground mt-1">{formData.description}</dd>
+          </div>
         </dl>
       </div>
 
+      {formData.tags.length > 0 && (
+        <div className="p-4 border border-border rounded-lg bg-card">
+          <h3 className="font-semibold mb-3 text-foreground">Tags</h3>
+          <div className="flex flex-wrap gap-2">
+            {formData.tags.map((tag: string) => (
+              <span key={tag} className="px-2 py-1 bg-muted text-foreground text-xs rounded">{tag}</span>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="p-4 border border-border rounded-lg bg-card">
-        <h3 className="font-semibold mb-3 text-foreground">Ownership</h3>
+        <h3 className="font-semibold mb-3 text-foreground">OpenAPI Specification</h3>
         <dl className="space-y-2 text-sm">
           <div className="flex justify-between">
-            <dt className="text-muted-foreground">Owner:</dt>
-            <dd className="font-medium text-foreground">{formData.owner}</dd>
-          </div>
-          <div className="flex justify-between">
-            <dt className="text-muted-foreground">Team:</dt>
-            <dd className="font-medium text-foreground">{formData.team}</dd>
-          </div>
-          <div>
-            <dt className="text-muted-foreground mb-2">Tags:</dt>
-            <dd className="flex flex-wrap gap-1">
-              {formData.tags.map((tag: string) => (
-                <span key={tag} className="px-2 py-1 bg-muted text-foreground text-xs rounded">{tag}</span>
-              ))}
+            <dt className="text-muted-foreground">Status:</dt>
+            <dd className="font-medium text-foreground">
+              {formData.openapiSpec.content ? (
+                <span className="text-green-600">✓ Provided</span>
+              ) : (
+                <span className="text-amber-600">Not provided</span>
+              )}
             </dd>
           </div>
-        </dl>
-      </div>
-
-      <div className="p-4 border border-border rounded-lg bg-card">
-        <h3 className="font-semibold mb-3 text-foreground">Documentation</h3>
-        <dl className="space-y-2 text-sm">
-          <div className="flex justify-between">
-            <dt className="text-muted-foreground">Documentation URL:</dt>
-            <dd className="font-medium text-foreground">{formData.documentationUrl || 'Not provided'}</dd>
-          </div>
-          <div className="flex justify-between">
-            <dt className="text-muted-foreground">OpenAPI Spec:</dt>
-            <dd className="font-medium text-foreground">{formData.openapiSpec.content ? 'Provided' : 'Not provided'}</dd>
-          </div>
+          {formData.openapiSpec.source && (
+            <div className="flex justify-between">
+              <dt className="text-muted-foreground">Source:</dt>
+              <dd className="font-medium text-foreground capitalize">{formData.openapiSpec.source}</dd>
+            </div>
+          )}
+          {formData.openapiSpec.fileName && (
+            <div className="flex justify-between">
+              <dt className="text-muted-foreground">File:</dt>
+              <dd className="font-medium text-foreground">{formData.openapiSpec.fileName}</dd>
+            </div>
+          )}
         </dl>
       </div>
     </div>

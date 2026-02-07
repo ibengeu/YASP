@@ -69,7 +69,7 @@ export function CommandDeck() {
                     key={module.id}
                     onClick={() => navigate(module.path)}
                     className={cn(
-                      'flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 ease-out',
+                      'flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 ease-out cursor-pointer',
                       active
                         ? 'bg-accent text-accent-foreground scale-[1.02]'
                         : 'text-muted-foreground hover:bg-muted hover:text-foreground hover:scale-105'
@@ -81,17 +81,19 @@ export function CommandDeck() {
                   </button>
                 );
               })}
-            </div>
 
-            {/* Breadcrumbs - Show on editor page */}
-            {isEditorPage && (
-              <div className="hidden md:flex items-center gap-2 text-sm ml-2">
-                <span className="text-muted-foreground">/</span>
-                <span className="text-foreground font-medium" id="editor-breadcrumb-title">
+                {/* Breadcrumbs - Show on editor page */}
+                {isEditorPage && (
+                    <div className="hidden md:flex items-center gap-2 text-sm">
+                        <span className="text-muted-foreground">/</span>
+                        <span className="text-foreground font-medium" id="editor-breadcrumb-title">
                   {getCollectionName()}
                 </span>
-              </div>
-            )}
+                    </div>
+                )}
+            </div>
+
+
           </div>
 
           {/* Spacer to push dark mode toggle to the right */}
