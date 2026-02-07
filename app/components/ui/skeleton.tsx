@@ -106,4 +106,68 @@ function StatsCardSkeleton() {
   );
 }
 
-export { Skeleton, SpecCardSkeleton, StatsCardSkeleton };
+/**
+ * Endpoint Sidebar Skeleton
+ * Loading state for endpoint list sidebar
+ */
+function EndpointSidebarSkeleton() {
+  return (
+    <div className="w-72 border-r border-border bg-card flex flex-col shrink-0">
+      <div className="p-4 border-b border-border">
+        <Skeleton className="h-4 w-24 mb-2" />
+        <Skeleton className="h-3 w-32" />
+      </div>
+      <div className="flex-1 overflow-auto">
+        {[1, 2, 3, 4, 5].map((i) => (
+          <div key={i} className="px-4 py-3 border-b border-border">
+            <div className="flex items-center gap-2 mb-1">
+              <Skeleton className="h-5 w-16" />
+            </div>
+            <Skeleton className="h-3 w-full mb-1" />
+            <Skeleton className="h-3 w-3/4" />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Documentation Content Skeleton
+ * Loading state for docs tab content
+ */
+function DocumentationSkeleton() {
+  return (
+    <div className="flex-1 overflow-auto bg-background p-8 md:p-12">
+      <div className="max-w-4xl mx-auto">
+        {/* API Info Header */}
+        <div className="mb-12">
+          <Skeleton className="h-9 w-64 mb-3" />
+          <Skeleton className="h-4 w-full mb-2" />
+          <Skeleton className="h-4 w-5/6 mb-2" />
+          <Skeleton className="h-4 w-4/6 mb-3" />
+          <div className="flex items-center gap-3">
+            <Skeleton className="h-4 w-24" />
+            <Skeleton className="h-4 w-48" />
+          </div>
+        </div>
+
+        {/* Endpoint Skeletons */}
+        {[1, 2].map((i) => (
+          <div key={i} className="mb-16">
+            <Skeleton className="h-1 w-16 mb-4 rounded-full" />
+            <Skeleton className="h-8 w-96 mb-3" />
+            <Skeleton className="h-4 w-full mb-2" />
+            <Skeleton className="h-4 w-5/6 mb-6" />
+            <div className="flex items-center gap-3 mb-6 p-3 bg-card border border-border rounded-lg">
+              <Skeleton className="h-7 w-16" />
+              <Skeleton className="h-4 w-48" />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export { Skeleton, SpecCardSkeleton, StatsCardSkeleton, EndpointSidebarSkeleton, DocumentationSkeleton };

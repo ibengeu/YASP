@@ -1,6 +1,24 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import { createMemoryRouter, RouterProvider } from 'react-router';
 import { TryItOutDrawer } from '@/components/api-details/TryItOutDrawer';
+
+// Helper to wrap component in router for useFetcher
+function renderWithRouter(ui: React.ReactElement) {
+  const router = createMemoryRouter(
+    [
+      {
+        path: '/',
+        element: ui,
+      },
+    ],
+    {
+      initialEntries: ['/'],
+    }
+  );
+
+  return render(<RouterProvider router={router} />);
+}
 
 describe('TryItOutDrawer', () => {
   afterEach(() => {
@@ -55,7 +73,7 @@ describe('TryItOutDrawer', () => {
   };
 
   it('should not render when closed', () => {
-    render(
+    renderWithRouter(
       <TryItOutDrawer
         open={false}
         onClose={vi.fn()}
@@ -71,7 +89,7 @@ describe('TryItOutDrawer', () => {
   });
 
   it('should render when open', () => {
-    render(
+    renderWithRouter(
       <TryItOutDrawer
         open={true}
         onClose={vi.fn()}
@@ -88,7 +106,7 @@ describe('TryItOutDrawer', () => {
 
   it('should call onClose when close button is clicked', () => {
     const handleClose = vi.fn();
-    const { container } = render(
+    const { container } = renderWithRouter(
       <TryItOutDrawer
         open={true}
         onClose={handleClose}
@@ -112,7 +130,7 @@ describe('TryItOutDrawer', () => {
   });
 
   it('should render bottom drawer with resizable handle', () => {
-    const { container } = render(
+    const { container } = renderWithRouter(
       <TryItOutDrawer
         open={true}
         onClose={vi.fn()}
@@ -134,7 +152,7 @@ describe('TryItOutDrawer', () => {
   });
 
   it('should display method badge and Send button', () => {
-    render(
+    renderWithRouter(
       <TryItOutDrawer
         open={true}
         onClose={vi.fn()}
@@ -155,7 +173,7 @@ describe('TryItOutDrawer', () => {
   });
 
   it('should render endpoint explorer sidebar with endpoints', () => {
-    const { container } = render(
+    const { container } = renderWithRouter(
       <TryItOutDrawer
         open={true}
         onClose={vi.fn()}
@@ -180,7 +198,7 @@ describe('TryItOutDrawer', () => {
   });
 
   it('should render request form and Send button', () => {
-    const { container } = render(
+    const { container } = renderWithRouter(
       <TryItOutDrawer
         open={true}
         onClose={vi.fn()}

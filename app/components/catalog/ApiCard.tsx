@@ -74,7 +74,8 @@ export function ApiCard({ spec, onClick, onDelete }: ApiCardProps) {
       className={cn(
         'bg-white dark:bg-[#0a0a0a] rounded-lg border border-border',
         'hover:border-primary transition-all duration-200',
-        'p-5 cursor-pointer group relative overflow-hidden'
+        'p-5 cursor-pointer group relative overflow-hidden',
+        'flex flex-col w-full'
       )}
     >
       {/* Status and Workspace Badges */}
@@ -132,7 +133,7 @@ export function ApiCard({ spec, onClick, onDelete }: ApiCardProps) {
       )}
 
       {/* Compliance Score */}
-      <div className="border-t border-border pt-3">
+      <div className="border-t border-border pt-3 mt-auto">
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-1">
             <QualityIcon className={cn('w-4 h-4', qualityBadge.color)} />

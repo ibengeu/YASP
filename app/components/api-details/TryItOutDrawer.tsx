@@ -3,16 +3,62 @@
  * Matching reference platform functionality
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useFetcher } from 'react-router';
 import {
   X, Play, ChevronLeft, ChevronRight, Search,
   ChevronDown, Folder, FolderOpen, Copy, GripHorizontal
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { EditorView, lineNumbers } from '@codemirror/view';
+import { EditorState } from '@codemirror/state';
+import { json } from '@codemirror/lang-json';
+import { oneDark } from '@codemirror/theme-one-dark';
+import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
 import type { OperationObject } from '@/types/openapi-spec';
 
 type HTTPMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
+
+/**
+ * Generate example JSON from OpenAPI schema
+ * Mitigation for OWASP A04:2025 - Insecure Design: Provides valid example data structure
+ */
+function generateExampleFromSchema(schema: any, depth = 0): string {
+  if (depth > 5) return '{}'; // Prevent infinite recursion
+
+  if (schema.example !== undefined) {
+    return JSON.stringify(schema.example, null, 2);
+  }
+
+  if (schema.type === 'object' && schema.properties) {
+    const obj: any = {};
+    for (const [key, propSchema] of Object.entries(schema.properties)) {
+      const prop = propSchema as any;
+      if (prop.example !== undefined) {
+        obj[key] = prop.example;
+      } else if (prop.type === 'string') {
+        obj[key] = prop.enum?.[0] || prop.default || 'string';
+      } else if (prop.type === 'number' || prop.type === 'integer') {
+        obj[key] = prop.default ?? 0;
+      } else if (prop.type === 'boolean') {
+        obj[key] = prop.default ?? true;
+      } else if (prop.type === 'array') {
+        obj[key] = [];
+      } else if (prop.type === 'object') {
+        obj[key] = JSON.parse(generateExampleFromSchema(prop, depth + 1));
+      } else {
+        obj[key] = null;
+      }
+    }
+    return JSON.stringify(obj, null, 2);
+  }
+
+  if (schema.type === 'array' && schema.items) {
+    return '[]';
+  }
+
+  return '{\n  \n}';
+}
 
 interface ParamRow {
   enabled: boolean;
@@ -90,6 +136,8 @@ export function TryItOutDrawer({
   const [drawerHeight, setDrawerHeight] = useState<number>(600);
   const [isResizing, setIsResizing] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const bodyEditorRef = useRef<HTMLDivElement>(null);
+  const bodyEditorViewRef = useRef<EditorView | null>(null);
 
   // Endpoint management
   const [endpointGroups, setEndpointGroups] = useState<EndpointGroup[]>([]);
@@ -184,15 +232,128 @@ export function TryItOutDrawer({
     }
   }, [spec]);
 
+  // Initialize CodeMirror for body editor
+  useEffect(() => {
+    if (!bodyEditorRef.current || bodyEditorViewRef.current) return;
+
+    const state = EditorState.create({
+      doc: request.body,
+      extensions: [
+        json(),
+        lineNumbers(),
+        oneDark,
+        EditorView.updateListener.of((update) => {
+          if (update.docChanged) {
+            const newBody = update.state.doc.toString();
+            setRequest(prev => ({ ...prev, body: newBody }));
+          }
+        }),
+        EditorView.theme({
+          '&': {
+            height: '100%',
+            fontSize: '13px',
+          },
+          '.cm-scroller': {
+            overflow: 'auto',
+            fontFamily: 'ui-monospace, monospace',
+          },
+        }),
+      ],
+    });
+
+    bodyEditorViewRef.current = new EditorView({
+      state,
+      parent: bodyEditorRef.current,
+    });
+
+    return () => {
+      bodyEditorViewRef.current?.destroy();
+      bodyEditorViewRef.current = null;
+    };
+  }, []);
+
+  // Update editor content when request body changes externally
+  useEffect(() => {
+    if (!bodyEditorViewRef.current) return;
+
+    const currentDoc = bodyEditorViewRef.current.state.doc.toString();
+    if (currentDoc !== request.body) {
+      bodyEditorViewRef.current.dispatch({
+        changes: {
+          from: 0,
+          to: currentDoc.length,
+          insert: request.body,
+        },
+      });
+    }
+  }, [selectedEndpoint]); // Only update when endpoint changes
+
   // Update request when endpoint changes
   useEffect(() => {
     if (!selectedEndpoint) return;
 
     const fullUrl = `${baseUrl}${selectedEndpoint.path}`;
+
+    // Extract parameters from operation
+    const parameters = (selectedEndpoint.operation?.parameters || []) as any[];
+    const paramRows: ParamRow[] = parameters.map((param) => ({
+      enabled: param.required || false,
+      key: param.name,
+      value: param.schema?.default || '',
+      description: param.description,
+    }));
+
+    // Add empty row for manual input
+    paramRows.push({ enabled: false, key: '', value: '', description: undefined });
+
+    // Generate example body from requestBody schema
+    // Support multiple content types: application/json, text/plain, application/x-www-form-urlencoded, etc.
+    let exampleBody = '{\n  \n}';
+    if (selectedEndpoint.operation?.requestBody) {
+      const requestBody = selectedEndpoint.operation.requestBody as any;
+      const content = requestBody.content || {};
+
+      // Priority: JSON > Form URL Encoded > Text > First available
+      const jsonContent = content['application/json'];
+      const formContent = content['application/x-www-form-urlencoded'];
+      const textContent = content['text/plain'];
+      const firstContentType = Object.keys(content)[0];
+
+      if (jsonContent) {
+        if (jsonContent.schema) {
+          exampleBody = generateExampleFromSchema(jsonContent.schema);
+        } else if (jsonContent.example) {
+          exampleBody = JSON.stringify(jsonContent.example, null, 2);
+        }
+      } else if (formContent) {
+        // Generate URL-encoded format
+        if (formContent.schema?.properties) {
+          const params = Object.keys(formContent.schema.properties)
+            .map(key => `${key}=value`)
+            .join('&');
+          exampleBody = params || 'key=value';
+        } else {
+          exampleBody = 'key=value&key2=value2';
+        }
+      } else if (textContent) {
+        exampleBody = textContent.example || 'Plain text content';
+      } else if (firstContentType && content[firstContentType]) {
+        // Fallback to first available content type
+        const firstContent = content[firstContentType];
+        if (firstContent.example) {
+          exampleBody = typeof firstContent.example === 'string'
+            ? firstContent.example
+            : JSON.stringify(firstContent.example, null, 2);
+        }
+      }
+    }
+
     setRequest(prev => ({
       ...prev,
       method: selectedEndpoint.method,
       url: fullUrl,
+      params: paramRows,
+      body: exampleBody,
     }));
 
     // Switch tab based on method
@@ -498,14 +659,22 @@ export function TryItOutDrawer({
             </div>
 
             {/* Request/Response Split */}
-            <div className="flex-1 flex flex-col lg:flex-row min-h-0 overflow-hidden">
+            <ResizablePanelGroup
+              direction="horizontal"
+              className="flex-1 min-h-0 overflow-hidden"
+            >
               {/* Request Config */}
-              <div className="flex-1 flex flex-col border-b lg:border-b-0 lg:border-r border-border min-h-[300px] lg:min-h-0">
+              <ResizablePanel
+                defaultSize={60}
+                minSize={30}
+                className="flex flex-col"
+              >
                 {/* Tabs */}
                 <div className="flex items-center gap-6 px-4 border-b border-border h-10 shrink-0">
                   {['params', 'auth', 'headers', 'body'].map((tab) => (
                     <button
                       key={tab}
+                      data-testid={`tab-${tab}`}
                       onClick={() => setActiveTab(tab as any)}
                       className={`h-full text-xs font-medium px-1 transition-colors capitalize ${
                         activeTab === tab
@@ -521,27 +690,257 @@ export function TryItOutDrawer({
                 {/* Tab Content */}
                 <div className="flex-1 overflow-y-auto p-4">
                   {activeTab === 'params' && (
-                    <div className="text-sm text-muted-foreground">Query parameters configuration coming soon...</div>
+                    <div className="space-y-3">
+                      <div className="text-xs text-muted-foreground mb-2">
+                        Query and path parameters for this endpoint
+                      </div>
+                      <div className="border border-border rounded-md overflow-hidden">
+                        <table className="w-full text-xs">
+                          <thead className="bg-muted">
+                            <tr>
+                              <th className="w-10 p-2 text-left font-medium"></th>
+                              <th className="p-2 text-left font-medium">Key</th>
+                              <th className="p-2 text-left font-medium">Value</th>
+                              <th className="p-2 text-left font-medium">Description</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {request.params.map((param, index) => (
+                              <tr key={index} className="border-t border-border hover:bg-muted/50">
+                                <td className="p-2">
+                                  <input
+                                    type="checkbox"
+                                    checked={param.enabled}
+                                    onChange={(e) => {
+                                      const newParams = [...request.params];
+                                      newParams[index].enabled = e.target.checked;
+                                      setRequest({ ...request, params: newParams });
+                                    }}
+                                    className="w-4 h-4 rounded border-border cursor-pointer"
+                                  />
+                                </td>
+                                <td className="p-2">
+                                  <input
+                                    type="text"
+                                    value={param.key}
+                                    onChange={(e) => {
+                                      const newParams = [...request.params];
+                                      newParams[index].key = e.target.value;
+                                      // Add new empty row if this was the last row and now has content
+                                      if (index === request.params.length - 1 && e.target.value) {
+                                        newParams.push({ enabled: false, key: '', value: '', description: undefined });
+                                      }
+                                      setRequest({ ...request, params: newParams });
+                                    }}
+                                    placeholder="Parameter name"
+                                    className="w-full bg-background border border-border rounded px-2 py-1 text-xs focus:outline-none focus:border-primary"
+                                  />
+                                </td>
+                                <td className="p-2">
+                                  <input
+                                    type="text"
+                                    value={param.value}
+                                    onChange={(e) => {
+                                      const newParams = [...request.params];
+                                      newParams[index].value = e.target.value;
+                                      setRequest({ ...request, params: newParams });
+                                    }}
+                                    placeholder="Value"
+                                    className="w-full bg-background border border-border rounded px-2 py-1 text-xs focus:outline-none focus:border-primary"
+                                  />
+                                </td>
+                                <td className="p-2">
+                                  <span className="text-muted-foreground text-xs truncate block">
+                                    {param.description || '-'}
+                                  </span>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
                   )}
                   {activeTab === 'auth' && (
-                    <div className="text-sm text-muted-foreground">Authorization configuration coming soon...</div>
+                    <div className="space-y-4">
+                      <div>
+                        <label className="text-xs font-medium text-foreground mb-2 block">Auth Type</label>
+                        <select
+                          value={request.auth.type}
+                          onChange={(e) => setRequest({
+                            ...request,
+                            auth: { ...request.auth, type: e.target.value as any }
+                          })}
+                          className="w-full bg-background border border-border rounded px-3 py-2 text-sm focus:outline-none focus:border-primary"
+                        >
+                          <option value="none">No Auth</option>
+                          <option value="api-key">API Key</option>
+                          <option value="bearer">Bearer Token</option>
+                          <option value="basic">Basic Auth</option>
+                        </select>
+                      </div>
+
+                      {request.auth.type === 'api-key' && (
+                        <div>
+                          <label className="text-xs font-medium text-foreground mb-2 block">API Key</label>
+                          <input
+                            type="text"
+                            value={request.auth.apiKey || ''}
+                            onChange={(e) => setRequest({
+                              ...request,
+                              auth: { ...request.auth, apiKey: e.target.value }
+                            })}
+                            placeholder="Enter your API key"
+                            className="w-full bg-background border border-border rounded px-3 py-2 text-sm focus:outline-none focus:border-primary"
+                          />
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Will be sent as X-API-Key header
+                          </p>
+                        </div>
+                      )}
+
+                      {request.auth.type === 'bearer' && (
+                        <div>
+                          <label className="text-xs font-medium text-foreground mb-2 block">Token</label>
+                          <input
+                            type="text"
+                            value={request.auth.token || ''}
+                            onChange={(e) => setRequest({
+                              ...request,
+                              auth: { ...request.auth, token: e.target.value }
+                            })}
+                            placeholder="Enter bearer token"
+                            className="w-full bg-background border border-border rounded px-3 py-2 text-sm focus:outline-none focus:border-primary"
+                          />
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Will be sent as Authorization: Bearer {'{token}'}
+                          </p>
+                        </div>
+                      )}
+
+                      {request.auth.type === 'basic' && (
+                        <div className="space-y-3">
+                          <div>
+                            <label className="text-xs font-medium text-foreground mb-2 block">Username</label>
+                            <input
+                              type="text"
+                              value={request.auth.username || ''}
+                              onChange={(e) => setRequest({
+                                ...request,
+                                auth: { ...request.auth, username: e.target.value }
+                              })}
+                              placeholder="Enter username"
+                              className="w-full bg-background border border-border rounded px-3 py-2 text-sm focus:outline-none focus:border-primary"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-xs font-medium text-foreground mb-2 block">Password</label>
+                            <input
+                              type="password"
+                              value={request.auth.password || ''}
+                              onChange={(e) => setRequest({
+                                ...request,
+                                auth: { ...request.auth, password: e.target.value }
+                              })}
+                              placeholder="Enter password"
+                              className="w-full bg-background border border-border rounded px-3 py-2 text-sm focus:outline-none focus:border-primary"
+                            />
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            Will be sent as Authorization: Basic {'{base64(username:password)}'}
+                          </p>
+                        </div>
+                      )}
+
+                      {request.auth.type === 'none' && (
+                        <div className="text-sm text-muted-foreground">
+                          No authentication will be used for this request.
+                        </div>
+                      )}
+                    </div>
                   )}
                   {activeTab === 'headers' && (
-                    <div className="text-sm text-muted-foreground">Headers configuration coming soon...</div>
+                    <div className="space-y-3">
+                      <div className="text-xs text-muted-foreground mb-2">
+                        HTTP headers to include with the request
+                      </div>
+                      <div className="border border-border rounded-md overflow-hidden">
+                        <table className="w-full text-xs">
+                          <thead className="bg-muted">
+                            <tr>
+                              <th className="w-10 p-2 text-left font-medium"></th>
+                              <th className="p-2 text-left font-medium">Header</th>
+                              <th className="p-2 text-left font-medium">Value</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {request.headers.map((header, index) => (
+                              <tr key={index} className="border-t border-border hover:bg-muted/50">
+                                <td className="p-2">
+                                  <input
+                                    type="checkbox"
+                                    checked={header.enabled}
+                                    onChange={(e) => {
+                                      const newHeaders = [...request.headers];
+                                      newHeaders[index].enabled = e.target.checked;
+                                      setRequest({ ...request, headers: newHeaders });
+                                    }}
+                                    className="w-4 h-4 rounded border-border cursor-pointer"
+                                  />
+                                </td>
+                                <td className="p-2">
+                                  <input
+                                    type="text"
+                                    value={header.key}
+                                    onChange={(e) => {
+                                      const newHeaders = [...request.headers];
+                                      newHeaders[index].key = e.target.value;
+                                      // Add new empty row if this was the last row and now has content
+                                      if (index === request.headers.length - 1 && e.target.value) {
+                                        newHeaders.push({ enabled: false, key: '', value: '' });
+                                      }
+                                      setRequest({ ...request, headers: newHeaders });
+                                    }}
+                                    placeholder="Header name"
+                                    className="w-full bg-background border border-border rounded px-2 py-1 text-xs focus:outline-none focus:border-primary"
+                                  />
+                                </td>
+                                <td className="p-2">
+                                  <input
+                                    type="text"
+                                    value={header.value}
+                                    onChange={(e) => {
+                                      const newHeaders = [...request.headers];
+                                      newHeaders[index].value = e.target.value;
+                                      setRequest({ ...request, headers: newHeaders });
+                                    }}
+                                    placeholder="Header value"
+                                    className="w-full bg-background border border-border rounded px-2 py-1 text-xs focus:outline-none focus:border-primary"
+                                  />
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
                   )}
                   {activeTab === 'body' && (
-                    <textarea
-                      value={request.body}
-                      onChange={(e) => setRequest({ ...request, body: e.target.value })}
-                      className="w-full h-full min-h-[200px] bg-muted border border-border rounded-md p-3 text-sm font-mono text-foreground focus:outline-none focus:ring-2 focus:ring-primary resize-none"
-                      placeholder="Request body (JSON)"
-                    />
+                    <div className="h-full min-h-[200px] border border-border rounded-md overflow-hidden">
+                      <div ref={bodyEditorRef} className="h-full" />
+                    </div>
                   )}
                 </div>
-              </div>
+              </ResizablePanel>
+
+              <ResizableHandle withHandle className="hover:bg-primary transition-colors" />
 
               {/* Response */}
-              <div className="flex-1 flex flex-col min-h-[300px] lg:min-h-0">
+              <ResizablePanel
+                defaultSize={40}
+                minSize={20}
+                className="flex flex-col"
+              >
                 <div className="flex items-center justify-between px-4 py-2 border-b border-border shrink-0">
                   <span className="text-xs font-medium text-foreground">Response</span>
                   {response && (
@@ -566,8 +965,8 @@ export function TryItOutDrawer({
                     </div>
                   )}
                 </div>
-              </div>
-            </div>
+              </ResizablePanel>
+            </ResizablePanelGroup>
           </div>
         </div>
       </div>

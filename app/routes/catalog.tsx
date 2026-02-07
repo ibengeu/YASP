@@ -6,7 +6,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router';
 import { toast } from 'sonner';
-import { Plus, Upload, Search } from 'lucide-react';
+import { Plus, Upload, Search, Trash2 } from 'lucide-react';
 import { PageHeader } from '@/components/navigation/PageHeader';
 import { ApiCard } from '@/components/catalog/ApiCard';
 import { GenerateSpecDialog } from '@/features/ai-catalyst/components/GenerateSpecDialog';
@@ -177,14 +177,14 @@ paths:
           <div className="flex items-center gap-2">
             <button
               onClick={() => setShowImportDialog(true)}
-              className="px-3 py-2 text-sm font-medium text-foreground bg-card border border-border rounded-md hover:bg-muted transition-colors flex items-center gap-2"
+              className="px-3 py-2 text-sm font-medium text-foreground bg-card border border-border rounded-md hover:bg-muted transition-colors flex items-center gap-2 cursor-pointer"
             >
               <Upload className="w-4 h-4" />
               Import
             </button>
             <button
               onClick={() => setShowRegisterDrawer(true)}
-              className="px-3 py-2 text-sm font-medium text-primary-foreground bg-primary rounded-md hover:opacity-90 transition-opacity flex items-center gap-2"
+              className="px-3 py-2 text-sm font-medium text-primary-foreground bg-primary rounded-md hover:opacity-90 transition-opacity flex items-center gap-2 cursor-pointer"
             >
               <Plus className="w-4 h-4" />
               Register New API
@@ -248,30 +248,160 @@ paths:
             {!searchQuery && statusFilter === 'all' && typeFilter === 'all' && (
               <button
                 onClick={() => setShowGenerateDialog(true)}
-                className="px-4 py-2 text-sm font-medium text-primary-foreground bg-primary rounded-md hover:opacity-90 transition-opacity"
+                className="px-4 py-2 text-sm font-medium text-primary-foreground bg-primary rounded-md hover:opacity-90 transition-opacity cursor-pointer"
               >
                 Create Your First API
               </button>
             )}
           </div>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {filteredSpecs.map((spec, index) => (
-              <div
-                key={spec.id}
-                ref={(el) => {
-                  cardsRef.current[index] = el;
-                }}
-                style={{ opacity: 0 }}
-              >
-                <ApiCard
-                  spec={spec}
-                  onClick={() => navigate(`/editor/${spec.id}`)}
-                  onDelete={handleDelete}
-                />
+          <>
+            {/* Desktop: Table View (lg and above) */}
+            <div className="hidden lg:block">
+              <div className="bg-white dark:bg-[#0a0a0a] rounded-lg border border-border overflow-hidden">
+                <table className="w-full">
+                  <thead className="bg-muted border-b border-border">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-semibold text-foreground uppercase tracking-wider">
+                        Status
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-semibold text-foreground uppercase tracking-wider">
+                        Name
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-semibold text-foreground uppercase tracking-wider">
+                        Version
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-semibold text-foreground uppercase tracking-wider">
+                        Type
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-semibold text-foreground uppercase tracking-wider">
+                        Quality
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-semibold text-foreground uppercase tracking-wider">
+                        Updated
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-semibold text-foreground uppercase tracking-wider">
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {filteredSpecs.map((spec, index) => {
+                      const score = spec.metadata.score || 0;
+                      const statusBadge = spec.metadata.syncStatus === 'synced'
+                        ? { label: 'Active', color: 'bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20' }
+                        : spec.content.includes('deprecated: true')
+                        ? { label: 'Deprecated', color: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20' }
+                        : { label: 'Draft', color: 'bg-gray-500/10 text-gray-600 dark:text-gray-400 border-gray-500/20' };
+
+                      return (
+                        <tr
+                          key={spec.id}
+                          ref={(el) => {
+                            cardsRef.current[index] = el;
+                          }}
+                          className="hover:bg-muted/50 cursor-pointer transition-colors animate-in fade-in duration-300"
+                          style={{ animationDelay: `${index * 50}ms` }}
+                          onClick={() => navigate(`/editor/${spec.id}`)}
+                        >
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className={`px-2 py-0.5 rounded-full text-xs font-medium border ${statusBadge.color}`}>
+                              {statusBadge.label}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="text-sm font-semibold text-foreground">
+                              {spec.title}
+                            </div>
+                            {spec.description && (
+                              <div className="text-xs text-muted-foreground truncate max-w-md">
+                                {spec.description}
+                              </div>
+                            )}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">
+                            {spec.version}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className="px-2 py-0.5 rounded-full text-xs font-medium border bg-gray-500/10 text-gray-600 dark:text-gray-400 border-gray-500/20">
+                              {spec.metadata.workspaceType}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="flex items-center gap-2">
+                              <div className="bg-muted rounded-full h-1.5 w-20 overflow-hidden">
+                                <div
+                                  className={`h-full transition-all ${
+                                    score >= 80 ? 'bg-green-500' : score >= 60 ? 'bg-amber-500' : 'bg-red-500'
+                                  }`}
+                                  style={{ width: `${score}%` }}
+                                />
+                              </div>
+                              <span className="text-xs font-semibold text-foreground">{score}%</span>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">
+                            {new Date(spec.updated_at).toLocaleDateString('en-US', {
+                              month: 'short',
+                              day: 'numeric',
+                              year: 'numeric',
+                            })}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDelete(spec.id);
+                              }}
+                              className="p-2 text-muted-foreground hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-md transition-colors"
+                              aria-label="Delete specification"
+                              title="Delete"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
               </div>
-            ))}
-          </div>
+            </div>
+
+            {/* Medium Devices: 2-Column Card Grid (md to lg) */}
+            <div className="hidden md:grid lg:hidden grid-cols-2 gap-4">
+              {filteredSpecs.map((spec, index) => (
+                <div
+                  key={spec.id}
+                  className="animate-in fade-in duration-300"
+                  style={{ animationDelay: `${index * 50}ms` }}
+                >
+                  <ApiCard
+                    spec={spec}
+                    onClick={() => navigate(`/editor/${spec.id}`)}
+                    onDelete={handleDelete}
+                  />
+                </div>
+              ))}
+            </div>
+
+            {/* Mobile: Single Column Cards (below md) */}
+            <div className="md:hidden flex flex-col gap-4">
+              {filteredSpecs.map((spec, index) => (
+                <div
+                  key={spec.id}
+                  className="animate-in fade-in duration-300"
+                  style={{ animationDelay: `${index * 50}ms` }}
+                >
+                  <ApiCard
+                    spec={spec}
+                    onClick={() => navigate(`/editor/${spec.id}`)}
+                    onDelete={handleDelete}
+                  />
+                </div>
+              ))}
+            </div>
+          </>
         )}
       </div>
 

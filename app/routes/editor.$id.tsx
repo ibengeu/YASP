@@ -1,13 +1,12 @@
 /**
  * Spec Editor Route - Redesigned to match reference platform
- * Features: Editor/Docs tabs, Endpoint sidebar (both tabs), Diagnostics panel, Maximize mode
+ * Features: Editor/Docs tabs, Endpoint sidebar (both tabs), Maximize mode
  */
 
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, useFetcher } from 'react-router';
 import {
-  Save, AlertCircle, Maximize2, Minimize2,
-  TerminalSquare, ChevronDown, ChevronUp, Play
+  Save, AlertCircle, Maximize2, Minimize2, Play
 } from 'lucide-react';
 import { toast } from 'sonner';
 import ReactMarkdown from 'react-markdown';
@@ -16,12 +15,10 @@ import { animate } from 'animejs';
 import { CodeEditor, type CodeEditorRef } from '@/features/editor/components/CodeEditor';
 import { useEditorStore } from '@/features/editor/store/editor.store';
 import { TryItOutDrawer } from '@/components/api-details/TryItOutDrawer';
+import { FloatingActionBar } from '@/components/editor/FloatingActionBar';
 import { idbStorage } from '@/core/storage/idb-storage';
-import { SpectralService } from '@/features/governance/services/spectral.service';
-import type { ISpectralDiagnostic } from '@/core/events/event-types';
 import type { PathItemObject, OperationObject, ServerObject } from '@/types/openapi-spec';
-import type { QuickFixResponse } from '@/features/ai-catalyst/services/openrouter-provider';
-import { QuickFixDialog } from '@/features/governance/components/QuickFixDialog';
+import { EndpointSidebarSkeleton, DocumentationSkeleton } from '@/components/ui/skeleton';
 
 // Parsed OpenAPI spec structure
 interface ParsedOpenAPISpec {
@@ -36,18 +33,15 @@ interface ParsedOpenAPISpec {
   components?: any;
 }
 
-const spectralService = new SpectralService();
-
 export default function SpecEditor() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const quickFixFetcher = useFetcher();
   const content = useEditorStore((state) => state.content);
   const setEditorContent = useEditorStore((state) => state.setContent);
   const editorRef = useRef<CodeEditorRef>(null);
   const [title, setTitle] = useState('');
-  const [diagnostics, setDiagnostics] = useState<ISpectralDiagnostic[]>([]);
-  const [score, setScore] = useState(100);
+  const [originalTitle, setOriginalTitle] = useState('');
+  const [originalContent, setOriginalContent] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [activeTab, setActiveTab] = useState<'editor' | 'docs'>('docs');
   const [parsedSpec, setParsedSpec] = useState<ParsedOpenAPISpec | null>(null);
@@ -58,19 +52,10 @@ export default function SpecEditor() {
   } | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isMaximized, setIsMaximized] = useState(false);
-  const [isDiagnosticsCollapsed, setIsDiagnosticsCollapsed] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [quickFixDialog, setQuickFixDialog] = useState<{
-    open: boolean;
-    diagnostic: ISpectralDiagnostic | null;
-    quickFix: QuickFixResponse | null;
-    isLoading: boolean;
-  }>({
-    open: false,
-    diagnostic: null,
-    quickFix: null,
-    isLoading: false,
-  });
+
+  // Track if there are unsaved changes
+  const hasChanges = content !== originalContent || title !== originalTitle;
 
   // Refs for anime.js
   const contentRef = useRef<HTMLDivElement>(null);
@@ -113,12 +98,18 @@ paths:
                 type: object
 `;
         setEditorContent(template, 'code');
+        setOriginalContent(template);
         setTitle('Untitled Spec');
+        setOriginalTitle('Untitled Spec');
       } else {
         const spec = await idbStorage.getSpec(id!);
         if (spec) {
-          setEditorContent(spec.content || '', 'code');
-          setTitle(spec.title || 'Untitled');
+          const specContent = spec.content || '';
+          const specTitle = spec.title || 'Untitled';
+          setEditorContent(specContent, 'code');
+          setOriginalContent(specContent);
+          setTitle(specTitle);
+          setOriginalTitle(specTitle);
         }
       }
       setIsLoading(false);
@@ -133,11 +124,6 @@ paths:
 
     const validateAndParse = async () => {
       try {
-        // Validate with Spectral
-        const result = await spectralService.lintSpec(content);
-        setDiagnostics(result.diagnostics);
-        setScore(result.score);
-
         // Parse YAML to extract endpoints
         const yaml = await import('yaml');
         const parsed = yaml.parse(content) as ParsedOpenAPISpec;
@@ -226,6 +212,11 @@ paths:
             score,
           },
         });
+
+        // Update original values after successful save
+        setOriginalContent(content);
+        setOriginalTitle(title);
+
         toast.success('Specification saved');
       }
     } catch (error) {
@@ -234,13 +225,6 @@ paths:
     } finally {
       setIsSaving(false);
     }
-  };
-
-  const handleJumpToIssue = (diagnostic: ISpectralDiagnostic) => {
-    // Jump to line in editor
-    setActiveTab('editor');
-    // TODO: Scroll editor to line
-    console.log('Jump to', diagnostic);
   };
 
   const scrollToEndpoint = (path: string, method: string) => {
@@ -302,122 +286,6 @@ paths:
     console.log('Could not find endpoint in content:', path, method);
   };
 
-  // Quick Fix handler
-  const handleQuickFix = async (diagnostic: ISpectralDiagnostic) => {
-    setQuickFixDialog({
-      open: true,
-      diagnostic,
-      quickFix: null,
-      isLoading: true,
-    });
-
-    // Parse spec to get current value at diagnostic path
-    const yaml = await import('yaml');
-    const parsed = yaml.parse(content);
-
-    // Navigate to the error path to get current value
-    let currentValue = parsed;
-    for (const segment of diagnostic.path) {
-      currentValue = currentValue?.[segment];
-    }
-
-    // Submit to React Router action
-    const requestData = JSON.stringify({
-      diagnostic,
-      specContent: content,
-      context: {
-        path: diagnostic.path,
-        currentValue,
-      },
-    });
-
-    quickFixFetcher.submit(requestData, {
-      method: 'POST',
-      action: '/api/quick-fix',
-      encType: 'application/json',
-    });
-  };
-
-  // Handle quick fix fetcher response
-  useEffect(() => {
-    if (quickFixFetcher.state === 'idle' && quickFixFetcher.data && quickFixDialog.open) {
-      if (quickFixFetcher.data.success) {
-        setQuickFixDialog(prev => ({
-          ...prev,
-          quickFix: quickFixFetcher.data.data,
-          isLoading: false,
-        }));
-      } else {
-        const errorMessage = quickFixFetcher.data.error || 'Failed to generate quick fix';
-        toast.error(errorMessage);
-        setQuickFixDialog({ open: false, diagnostic: null, quickFix: null, isLoading: false });
-      }
-    }
-  }, [quickFixFetcher.state, quickFixFetcher.data, quickFixDialog.open]);
-
-  const handleAcceptFix = async () => {
-    if (!quickFixDialog.quickFix || !quickFixDialog.diagnostic) return;
-
-    try {
-      // Apply the fix by replacing the original code with fixed code
-      const newContent = content.replace(
-        quickFixDialog.quickFix.originalCode,
-        quickFixDialog.quickFix.fixedCode
-      );
-
-      // Update content - this will trigger validation and re-parse
-      setEditorContent(newContent, 'code');
-
-      // Force immediate re-validation to update diagnostics
-      // This ensures diagnostics panel updates immediately
-      const result = await spectralService.lintSpec(newContent);
-      setDiagnostics(result.diagnostics);
-      setScore(result.score);
-
-      // Re-parse spec to update sidebar (handle both YAML and JSON)
-      let parsed: ParsedOpenAPISpec;
-      if (detectedLanguage === 'json') {
-        parsed = JSON.parse(newContent);
-      } else {
-        const yaml = await import('yaml');
-        parsed = yaml.parse(newContent);
-      }
-      setParsedSpec(parsed);
-
-      // Verify selected endpoint still exists, reset if needed
-      if (selectedEndpoint && parsed.paths) {
-        const pathExists = parsed.paths[selectedEndpoint.path];
-        if (!pathExists || !pathExists[selectedEndpoint.method as keyof PathItemObject]) {
-          // Selected endpoint no longer exists, select first available
-          const firstPath = Object.keys(parsed.paths)[0];
-          if (firstPath) {
-            const pathItem = parsed.paths[firstPath] as PathItemObject;
-            const firstMethod = ['get', 'post', 'put', 'delete', 'patch'].find(
-              (m) => pathItem[m as keyof PathItemObject]
-            );
-            if (firstMethod) {
-              setSelectedEndpoint({
-                path: firstPath,
-                method: firstMethod,
-                operation: pathItem[firstMethod as keyof PathItemObject] as OperationObject,
-              });
-            }
-          }
-        }
-      }
-
-      toast.success('Fix applied successfully');
-      setQuickFixDialog({ open: false, diagnostic: null, quickFix: null, isLoading: false });
-    } catch (error) {
-      console.error('Failed to apply fix:', error);
-      toast.error('Failed to apply fix');
-    }
-  };
-
-  const errorCount = diagnostics.filter(d => d.severity === 0).length;
-  const warningCount = diagnostics.filter(d => d.severity === 1).length;
-  const totalProblems = errorCount + warningCount;
-
   // Method color mapping
   const getMethodColor = (method: string) => {
     const colors: Record<string, { bg: string; text: string; border: string }> = {
@@ -430,107 +298,23 @@ paths:
     return colors[method.toLowerCase()] || colors.get;
   };
 
+  // Update breadcrumb in CommandDeck
+  useEffect(() => {
+    const breadcrumbEl = document.getElementById('editor-breadcrumb-title');
+    if (breadcrumbEl && title) {
+      breadcrumbEl.textContent = title;
+    }
+  }, [title]);
+
   return (
-    <div className={`flex flex-col h-screen overflow-hidden bg-background text-foreground transition-all duration-300 ease-out ${isMaximized ? 'fixed inset-0 z-50' : ''}`}>
-      {/* Header */}
-      <div className="border-b border-border bg-card shrink-0">
-        {/* Top Row: Breadcrumb, Tab Switcher, and Actions */}
-        <div className="relative flex h-14 items-center justify-between px-6">
-          {/* Left: Breadcrumb */}
-          <div className="flex items-center gap-3">
-            {!isMaximized && (
-              <>
-                <button
-                  onClick={() => navigate('/catalog')}
-                  className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  ← <span className="hidden sm:inline">Catalog</span>
-                </button>
-                <div className="h-4 w-[1px] bg-border rotate-12" />
-              </>
-            )}
-            <div className="flex items-center gap-3">
-              <input
-                type="text"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                className="border-none bg-transparent text-base font-medium text-foreground outline-none placeholder:text-muted-foreground"
-                placeholder="Untitled Spec"
-              />
-            </div>
-          </div>
+    <div className={`flex flex-col ${isMaximized ? 'fixed inset-0 z-50 h-screen' : 'h-[calc(100vh-4rem)]'} overflow-hidden bg-background text-foreground transition-all duration-300 ease-out`}>
 
-          {/* Center: Tab Switcher */}
-          <div className="absolute left-1/2 -translate-x-1/2 hidden lg:flex">
-            <div className="flex p-1 bg-muted border border-border rounded-lg shadow-inner">
-              <button
-                onClick={() => setActiveTab('docs')}
-                className={`px-4 py-1.5 rounded-md transition-all duration-200 ease-out text-sm font-medium ${
-                  activeTab === 'docs'
-                    ? 'bg-card text-foreground shadow-sm scale-[1.02]'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-card/50'
-                }`}
-              >
-                Documentation
-              </button>
-              <button
-                onClick={() => setActiveTab('editor')}
-                className={`px-4 py-1.5 rounded-md transition-all duration-200 ease-out text-sm font-medium ${
-                  activeTab === 'editor'
-                    ? 'bg-card text-foreground shadow-sm scale-[1.02]'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-card/50'
-                }`}
-              >
-                Editor
-              </button>
-            </div>
-          </div>
-
-          {/* Right: Actions */}
-          <div className="flex items-center gap-2">
-            {/* Maximize Button */}
-            <button
-              onClick={() => setIsMaximized(!isMaximized)}
-              className="p-2 text-muted-foreground hover:text-foreground transition-colors rounded-md hover:bg-muted"
-              title={isMaximized ? 'Minimize' : 'Maximize'}
-            >
-              {isMaximized ? (
-                <Minimize2 className="w-4 h-4" />
-              ) : (
-                <Maximize2 className="w-4 h-4" />
-              )}
-            </button>
-
-            {/* Try It Out Button (Documentation tab only) */}
-            {activeTab === 'docs' && selectedEndpoint && (
-              <button
-                onClick={() => setIsDrawerOpen(true)}
-                className="px-3 py-2 text-sm font-medium text-purple-400 bg-purple-500/10 border border-purple-500/30 rounded-lg hover:bg-purple-500/20 transition-colors flex items-center gap-2"
-              >
-                <Play className="w-4 h-4" />
-                Try It Out
-              </button>
-            )}
-
-            {/* Save Button (Editor tab only) */}
-            {activeTab === 'editor' && (
-              <button
-                onClick={handleSave}
-                disabled={isSaving}
-                className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-sm font-medium rounded-md hover:opacity-90 transition-all shadow-[0_0_15px_rgba(147,51,234,0.1)] disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <Save className="w-4 h-4" />
-                {isSaving ? 'Saving...' : 'Save Changes'}
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Main Content Area with Sidebar */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* Endpoint List Sidebar (Always visible when there are endpoints) */}
-        {parsedSpec?.paths && Object.keys(parsedSpec.paths).length > 0 && (
+      {/* Main Content Area with Sidebar - This should be flex-1 and contain sidebar + content */}
+      <div className="flex-1 flex overflow-hidden min-h-0">
+        {/* Endpoint List Sidebar - Show skeleton while loading, then show endpoints or hide if none */}
+        {isLoading ? (
+          <EndpointSidebarSkeleton />
+        ) : parsedSpec?.paths && Object.keys(parsedSpec.paths).length > 0 ? (
           <div className="w-72 border-r border-border bg-card flex flex-col shrink-0">
             <div className="p-4 border-b border-border">
               <h3 className="text-sm font-semibold text-card-foreground mb-1">Endpoints</h3>
@@ -549,6 +333,7 @@ paths:
                   .map(([method, operation]: [string, any]) => {
                     const op = operation as OperationObject;
                     const colors = getMethodColor(method);
+                    const isSelected = selectedEndpoint?.path === path && selectedEndpoint?.method === method;
 
                     return (
                       <button
@@ -565,17 +350,25 @@ paths:
                             scrollToYamlLine(path, method);
                           }
                         }}
-                        className="w-full text-left px-4 py-3 hover:bg-muted border-b border-border transition-colors group"
+                        className={`w-full text-left px-4 py-3 border-b border-border transition-colors group cursor-pointer ${
+                          isSelected
+                            ? 'bg-accent border-l-4 border-l-primary'
+                            : 'hover:bg-muted border-l-4 border-l-transparent'
+                        }`}
                       >
                         <div className="flex items-center gap-2 mb-1">
                           <span className={`px-2 py-0.5 rounded text-xs font-bold uppercase ${colors.bg} ${colors.text} border ${colors.border}`}>
                             {method}
                           </span>
                         </div>
-                        <div className="text-xs font-mono text-muted-foreground mb-1 group-hover:text-foreground transition-colors">
+                        <div className={`text-xs font-mono mb-1 transition-colors ${
+                          isSelected ? 'text-foreground font-semibold' : 'text-muted-foreground group-hover:text-foreground'
+                        }`}>
                           {path}
                         </div>
-                        <div className="text-xs text-muted-foreground group-hover:text-foreground transition-colors line-clamp-1">
+                        <div className={`text-xs transition-colors line-clamp-1 ${
+                          isSelected ? 'text-foreground' : 'text-muted-foreground group-hover:text-foreground'
+                        }`}>
                           {op.summary || 'No summary'}
                         </div>
                       </button>
@@ -584,32 +377,36 @@ paths:
               })}
             </div>
           </div>
-        )}
+        ) : null}
 
-        {/* Content Area */}
-        <div className="flex-1 flex flex-col overflow-hidden">
-          {/* Loading State */}
+        {/* Content Area - This contains tabs content, NOT diagnostics */}
+        <div className="flex-1 flex flex-col overflow-hidden min-h-0">
+          {/* Loading State - Show skeleton loaders instead of spinner */}
           {isLoading ? (
-            <div className="flex-1 flex items-center justify-center bg-background">
-              <div className="text-center space-y-4">
-                <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent"></div>
-                <p className="text-sm text-muted-foreground">Loading API specification...</p>
+            activeTab === 'docs' ? (
+              <DocumentationSkeleton />
+            ) : (
+              <div className="flex-1 flex items-center justify-center bg-background">
+                <div className="text-center space-y-4">
+                  <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent"></div>
+                  <p className="text-sm text-muted-foreground">Loading API specification...</p>
+                </div>
               </div>
-            </div>
+            )
           ) : (
             <>
               {/* Editor Tab */}
               {activeTab === 'editor' && (
-                <div ref={contentRef} className="flex-1 flex flex-col overflow-hidden" style={{ opacity: 0 }}>
+                <div ref={contentRef} className="flex-1 flex flex-col overflow-hidden min-h-0" style={{ opacity: 0 }}>
                   <CodeEditor ref={editorRef} language={detectedLanguage} />
                 </div>
               )}
 
               {/* Documentation Tab */}
               {activeTab === 'docs' && (
-                <div ref={contentRef} className="flex-1 overflow-auto bg-background p-8 md:p-12" style={{ opacity: 0 }}>
+                <div ref={contentRef} className="flex-1 overflow-auto bg-background p-8 md:p-12 min-h-0" style={{ opacity: 0 }}>
                   <div className="max-w-4xl mx-auto">
-                {parsedSpec && parsedSpec.paths ? (
+                {parsedSpec && parsedSpec.paths && Object.keys(parsedSpec.paths).length > 0 ? (
                   <>
                     {/* API Info Header */}
                     <div className="mb-12">
@@ -785,82 +582,9 @@ paths:
           )}
             </>
           )}
-
-          {/* Diagnostics Panel (collapsible) */}
-          {diagnostics.length > 0 && (
-            <div className={`border-t border-border bg-muted/30 backdrop-blur-sm flex flex-col shrink-0 ${isDiagnosticsCollapsed ? 'h-auto' : 'h-64'}`}>
-              {/* Header */}
-              <div
-                className="flex items-center justify-between px-4 py-2.5 bg-card border-b border-border cursor-pointer hover:bg-muted/50 transition-colors"
-                onClick={() => setIsDiagnosticsCollapsed(!isDiagnosticsCollapsed)}
-              >
-                <div className="flex items-center gap-3">
-                  <div className="flex items-center gap-2 text-foreground text-sm font-medium">
-                    <TerminalSquare className="w-4 h-4 text-muted-foreground" />
-                    Diagnostics
-                  </div>
-                  <span className="px-2 py-0.5 rounded bg-destructive/10 text-destructive text-xs font-medium border border-destructive/20">
-                    {totalProblems} Problem{totalProblems > 1 ? 's' : ''}
-                  </span>
-                </div>
-                <button className="text-muted-foreground hover:text-foreground transition-colors">
-                  {isDiagnosticsCollapsed ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                </button>
-              </div>
-
-              {/* Content */}
-              {!isDiagnosticsCollapsed && (
-                <div className="flex-1 overflow-auto px-4 py-3">
-                  <div className="space-y-0 divide-y divide-border">
-                    {diagnostics.map((diagnostic, idx) => (
-                      <div
-                        key={idx}
-                        className={`py-3 -mx-4 px-4 transition-colors cursor-pointer group ${
-                          diagnostic.severity === 0
-                            ? 'bg-red-500/[0.08] hover:bg-red-500/[0.12] border-l-4 border-l-red-500'
-                            : 'hover:bg-muted/30'
-                        }`}
-                        onClick={() => handleJumpToIssue(diagnostic)}
-                      >
-                        <div className="flex items-start gap-3">
-                          <AlertCircle className={`w-4 h-4 mt-0.5 shrink-0 ${
-                            diagnostic.severity === 0 ? 'text-destructive' : 'text-warning'
-                          }`} />
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-1">
-                              <span className={`px-1.5 py-0.5 rounded text-xs font-medium uppercase ${
-                                diagnostic.severity === 0
-                                  ? 'bg-destructive/10 text-destructive border border-destructive/20'
-                                  : 'bg-warning/10 text-warning border border-warning/20'
-                              }`}>
-                                {diagnostic.severity === 0 ? 'Error' : 'Warning'}
-                              </span>
-                              <span className="text-xs text-muted-foreground">{diagnostic.code}</span>
-                            </div>
-                            <p className="text-sm text-foreground mb-1.5">{diagnostic.message}</p>
-                            <p className="text-xs text-muted-foreground mb-2">{diagnostic.path?.join('.') || 'Root'}</p>
-                            <div className="flex items-center gap-3">
-                              <span className="px-2 py-0.5 rounded bg-card border border-border text-xs font-mono text-muted-foreground">
-                                Line {diagnostic.range?.start.line ?? '?'}, Col {diagnostic.range?.start.character ?? '?'}
-                              </span>
-                              <button
-                                onClick={() => handleQuickFix(diagnostic)}
-                                className="text-xs text-primary hover:underline opacity-0 group-hover:opacity-100 transition-opacity"
-                              >
-                                Quick Fix
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
         </div>
       </div>
+
 
       {/* Try It Out Drawer */}
       {selectedEndpoint && (
@@ -875,15 +599,18 @@ paths:
         />
       )}
 
-      {/* Quick Fix Dialog */}
-      <QuickFixDialog
-        open={quickFixDialog.open}
-        onClose={() => setQuickFixDialog({ open: false, diagnostic: null, quickFix: null, isLoading: false })}
-        diagnostic={quickFixDialog.diagnostic!}
-        quickFix={quickFixDialog.quickFix}
-        isLoading={quickFixDialog.isLoading}
-        onAccept={handleAcceptFix}
+      {/* Floating Action Bar - Mobile-first design, visible on all screen sizes */}
+      <FloatingActionBar
+        activeTab={activeTab}
+        isMaximized={isMaximized}
+        isSaving={isSaving}
+        hasChanges={hasChanges}
+        onTabChange={(tab) => setActiveTab(tab)}
+        onToggleMaximize={() => setIsMaximized(!isMaximized)}
+        onSave={handleSave}
+        onTryItOut={() => setIsDrawerOpen(true)}
       />
+
     </div>
   );
 }

@@ -1,29 +1,15 @@
-import { Shield, Moon, Sun, LayoutDashboard, Library, FileCheck } from 'lucide-react';
+import { Shield, Moon, Sun, Library } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router';
 import { useThemeStore } from '@/stores/theme-store';
 import { cn } from '@/lib/utils';
 
 const navModules = [
   {
-    id: 'dashboard',
-    label: 'Dashboard',
-    path: '/',
-    icon: LayoutDashboard,
-    description: 'API governance metrics and insights',
-  },
-  {
     id: 'catalog',
     label: 'API Catalog',
     path: '/catalog',
     icon: Library,
     description: 'Browse and manage API specifications',
-  },
-  {
-    id: 'policies',
-    label: 'Policy Management',
-    path: '/quality-rules',
-    icon: FileCheck,
-    description: 'Configure governance policies',
   },
 ];
 
@@ -32,7 +18,8 @@ const navModules = [
  * Features:
  * - Fixed header with z-index management
  * - Logo with Shield icon (YASP branding)
- * - Three modules: Dashboard, API Catalog, Policy Management
+ * - API Catalog navigation
+ * - Breadcrumbs for current page (e.g., API Catalog / Collection Name)
  * - Dark mode toggle button
  * - Active state indicators
  */
@@ -42,10 +29,17 @@ export function CommandDeck() {
   const { darkMode, toggleDarkMode } = useThemeStore();
 
   const isActive = (path: string) => {
-    if (path === '/') {
-      return location.pathname === '/';
-    }
     return location.pathname.startsWith(path);
+  };
+
+  // Determine if we should show breadcrumbs (on editor page)
+  const isEditorPage = location.pathname.startsWith('/editor/');
+
+  // Get collection name from URL or state (you'll need to pass this via state or context)
+  // For now, we'll show a placeholder
+  const getCollectionName = () => {
+    // This will be updated when the editor passes the spec title
+    return 'Collection';
   };
 
   return (
@@ -88,6 +82,16 @@ export function CommandDeck() {
                 );
               })}
             </div>
+
+            {/* Breadcrumbs - Show on editor page */}
+            {isEditorPage && (
+              <div className="hidden md:flex items-center gap-2 text-sm ml-2">
+                <span className="text-muted-foreground">/</span>
+                <span className="text-foreground font-medium" id="editor-breadcrumb-title">
+                  {getCollectionName()}
+                </span>
+              </div>
+            )}
           </div>
 
           {/* Spacer to push dark mode toggle to the right */}

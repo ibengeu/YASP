@@ -13,17 +13,6 @@ export default function DashboardLayout() {
 
   const navigation = [
     {
-      name: 'Overview',
-      href: '/',
-      icon: (
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          d="M4 5a1 1 0 011-1h4a1 1 0 011 1v7a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM14 5a1 1 0 011-1h4a1 1 0 011 1v7a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM4 16a1 1 0 011-1h4a1 1 0 011 1v3a1 1 0 01-1 1H5a1 1 0 01-1-1v-3zM14 16a1 1 0 011-1h4a1 1 0 011 1v3a1 1 0 01-1 1h-4a1 1 0 01-1-1v-3z"
-        />
-      ),
-    },
-    {
       name: 'API Catalog',
       href: '/catalog',
       icon: (
@@ -34,41 +23,28 @@ export default function DashboardLayout() {
         />
       ),
     },
-    {
-      name: 'Compliance Rules',
-      href: '/quality-rules',
-      icon: (
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
-        />
-      ),
-    },
   ];
 
   const isActive = (href: string) => {
-    if (href === '/') return location.pathname === '/';
     return location.pathname.startsWith(href);
   };
 
   const getBreadcrumbPage = () => {
-    if (location.pathname === '/') return 'Overview';
     if (location.pathname.startsWith('/catalog')) return 'API Catalog';
-    if (location.pathname.startsWith('/quality-rules')) return 'Compliance Rules';
-    return 'Overview';
+    if (location.pathname.startsWith('/editor')) return 'Editor';
+    return 'API Catalog';
   };
 
   return (
-    <div className="flex h-screen overflow-hidden selection:bg-white/20 selection:text-white bg-[#050505] text-[#EEEEEE]">
+    <div className="flex h-screen overflow-hidden selection:bg-primary/20 selection:text-foreground bg-background text-foreground">
       {/* Sidebar */}
-      <aside className={`border-r border-white/5 flex flex-col justify-between shrink-0 bg-[#080808] hidden md:flex transition-all duration-300 ${sidebarCollapsed ? 'w-16' : 'w-64'}`}>
+      <aside className={`border-r border-border flex flex-col justify-between shrink-0 bg-card hidden md:flex transition-all duration-300 ${sidebarCollapsed ? 'w-16' : 'w-64'}`}>
         <div className="p-6">
           {/* Logo & Collapse Button */}
           <div className="mb-10">
             <Link to="/" className={`flex items-center gap-3 mb-4 ${sidebarCollapsed ? 'justify-center' : ''}`}>
-              <div className="w-6 h-6 bg-white rounded-md flex items-center justify-center text-black shrink-0">
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <div className="w-7 h-7 bg-primary rounded-lg flex items-center justify-center text-primary-foreground shrink-0 shadow-sm">
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -76,18 +52,17 @@ export default function DashboardLayout() {
                   />
                 </svg>
               </div>
-              {!sidebarCollapsed && <span className="text-sm font-medium tracking-tighter text-white">YASP</span>}
+              {!sidebarCollapsed && <span className="text-sm font-semibold tracking-tight text-foreground">YASP</span>}
             </Link>
             <button
               onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-              className={`w-full flex items-center gap-2 px-2 py-1.5 text-xs text-[#666] hover:text-white hover:bg-white/5 rounded transition-colors ${sidebarCollapsed ? 'justify-center' : ''}`}
+              className={`w-full flex items-center gap-2 px-2 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors ${sidebarCollapsed ? 'justify-center' : ''}`}
               title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
             >
-              <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  strokeWidth={2}
                   d={sidebarCollapsed ? "M13 5l7 7-7 7M5 5l7 7-7 7" : "M11 19l-7-7 7-7m8 14l-7-7 7-7"}
                 />
               </svg>
@@ -103,15 +78,22 @@ export default function DashboardLayout() {
                 <Link
                   key={item.name}
                   to={item.href}
-                  className={`w-full group flex items-center gap-3 px-3 py-2 text-sm rounded-md transition-all ${
+                  className={`w-full group flex items-center gap-3 px-3 py-2 text-sm rounded-md transition-all relative ${
                     active
-                      ? 'text-white bg-white/5 border border-white/5 font-medium'
-                      : 'text-[#888] hover:text-white hover:bg-white/5'
+                      ? 'text-foreground font-medium bg-accent'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-muted'
                   } ${sidebarCollapsed ? 'justify-center' : ''}`}
                   title={sidebarCollapsed ? item.name : undefined}
                 >
+                  {/* Active indicator dot */}
+                  {active && (
+                    <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 rounded-r-full bg-primary" />
+                  )}
+
                   <svg
-                    className={`w-[18px] h-[18px] shrink-0 ${active ? 'text-white' : 'text-[#666] group-hover:text-white'}`}
+                    className={`w-[18px] h-[18px] shrink-0 transition-colors ${
+                      active ? 'text-foreground' : 'text-muted-foreground group-hover:text-foreground'
+                    }`}
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
@@ -127,15 +109,15 @@ export default function DashboardLayout() {
         </div>
 
         {/* User Profile */}
-        <div className="p-4 border-t border-white/5">
-          <div className={`flex items-center gap-3 p-2 rounded-md text-left ${sidebarCollapsed ? 'justify-center' : ''}`}>
-            <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-gray-700 to-gray-600 border border-white/10 flex items-center justify-center text-xs font-medium text-white shrink-0">
+        <div className="p-4 border-t border-border">
+          <div className={`flex items-center gap-3 p-2 rounded-md text-left hover:bg-muted transition-colors cursor-pointer ${sidebarCollapsed ? 'justify-center' : ''}`}>
+            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-primary/80 border border-border flex items-center justify-center text-xs font-semibold text-primary-foreground shrink-0">
               YS
             </div>
             {!sidebarCollapsed && (
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-white truncate">YASP User</p>
-                <p className="text-xs text-[#666] truncate">Local Environment</p>
+                <p className="text-sm font-medium text-foreground truncate">YASP User</p>
+                <p className="text-xs text-muted-foreground truncate">Local Environment</p>
               </div>
             )}
           </div>
@@ -143,32 +125,37 @@ export default function DashboardLayout() {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 flex flex-col min-w-0 h-full overflow-y-auto">
-        {/* Header */}
-        <header className="sticky top-0 z-30 flex items-center justify-between px-8 py-5 border-b border-white/5 bg-[#0A0A0A]/70 backdrop-blur-xl">
+      <main className="flex-1 flex flex-col min-w-0 h-full overflow-y-auto bg-background">
+        {/* Header - Modern minimalist design */}
+        <header className="sticky top-0 z-30 flex items-center justify-between px-6 py-4 border-b border-border bg-card/80 backdrop-blur-xl">
           <div className="flex items-center gap-4">
-            <nav className="flex items-center text-sm text-[#666]">
-              <span className="hover:text-[#888] transition-colors cursor-pointer">Organization</span>
-              <svg className="mx-2 opacity-50 w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            {/* Breadcrumb with refined typography */}
+            <nav className="flex items-center text-sm text-muted-foreground">
+              <span className="hover:text-foreground transition-colors cursor-pointer">Organization</span>
+              <svg className="mx-2 w-3 h-3 opacity-40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
               </svg>
-              <span className="text-white font-medium">{getBreadcrumbPage()}</span>
+              <div className="flex items-center gap-2">
+                {/* Active page indicator dot */}
+                <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+                <span className="text-foreground font-semibold">{getBreadcrumbPage()}</span>
+              </div>
             </nav>
           </div>
 
-          <div className="flex items-center gap-4">
-            {/* Search */}
+          <div className="flex items-center gap-3">
+            {/* Search - refined styling */}
             <div className="relative group">
               <svg
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-[#444] group-focus-within:text-white transition-colors w-4 h-4"
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-foreground transition-colors w-4 h-4"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
+                strokeWidth={2}
               >
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  strokeWidth={2}
                   d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
                 />
               </svg>
@@ -177,10 +164,10 @@ export default function DashboardLayout() {
                 placeholder="Search specifications..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="bg-[#111] border border-white/10 text-sm text-white rounded-full pl-9 pr-4 py-1.5 w-64 focus:outline-none focus:border-white/20 focus:ring-1 focus:ring-white/20 transition-all placeholder:text-[#444]"
+                className="bg-muted/50 border border-border text-sm text-foreground rounded-full pl-9 pr-14 py-2 w-64 focus:outline-none focus:border-ring focus:ring-2 focus:ring-ring/20 transition-all placeholder:text-muted-foreground"
               />
               <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1">
-                <kbd className="hidden sm:inline-block border border-[#333] rounded px-1.5 py-0.5 text-[10px] font-sans text-[#666] leading-none">
+                <kbd className="hidden sm:inline-block border border-border bg-background rounded px-1.5 py-0.5 text-[10px] font-sans text-muted-foreground leading-none">
                   ⌘K
                 </kbd>
               </div>

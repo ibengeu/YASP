@@ -13,9 +13,6 @@ export default [
   // API Catalog - Browse and manage specifications
   route("catalog", "routes/catalog.tsx"),
 
-  // Policy Management - Configure governance rules
-  route("quality-rules", "routes/quality-rules.tsx"),
-
   // Spec Editor - Edit and test API specifications
   route("editor/:id", "routes/editor.$id.tsx"),
 
