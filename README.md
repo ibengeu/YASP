@@ -189,15 +189,6 @@ bun run test:run && bun run test:e2e
 - All user inputs must be validated and sanitized
 - Follow existing patterns (feature modules, Radix UI components, Zustand stores)
 
-## Roadmap
-
-- [ ] Cloud sync and multi-device persistence
-- [ ] Team workspaces with real-time collaboration
-- [ ] API versioning and changelog diffing
-- [ ] Custom linting rulesets
-- [ ] Export to Postman, Insomnia, cURL
-- [ ] SDK and server stub generation
-
 ## License
 
 This project is not yet licensed. All rights reserved.
