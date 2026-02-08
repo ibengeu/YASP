@@ -109,7 +109,7 @@ export default function CatalogPage() {
   }, [isLoading, filteredSpecs.length]);
 
   return (
-    <div ref={pageRef} className="bg-[#FAFBFC] dark:bg-[#0E1420] min-h-screen" style={{ opacity: 0 }}>
+    <div ref={pageRef} className="bg-background min-h-screen" style={{ opacity: 0 }}>
       <PageHeader
         title="API Catalog"
         description={`Browse and manage ${specs.length} registered ${specs.length === 1 ? 'API' : 'APIs'}`}
@@ -170,7 +170,7 @@ export default function CatalogPage() {
             <div className="inline-block h-6 w-6 animate-spin rounded-full border-2 border-solid border-border border-r-primary"></div>
           </div>
         ) : filteredSpecs.length === 0 ? (
-          <div className="p-12 text-center bg-white dark:bg-[#0a0a0a] rounded-lg border border-border">
+          <div className="p-12 text-center bg-card dark:bg-card rounded-lg border border-border">
             <div className="text-muted-foreground mb-4">
               {searchQuery || statusFilter !== 'all' || typeFilter !== 'all'
                 ? 'No APIs match your filters. Try adjusting your search or filter criteria.'
@@ -189,7 +189,7 @@ export default function CatalogPage() {
           <>
             {/* Desktop: Table View (lg and above) */}
             <div className="hidden lg:block">
-              <div className="bg-white dark:bg-[#0a0a0a] rounded-lg border border-border overflow-hidden">
+              <div className="bg-card dark:bg-card rounded-lg border border-border overflow-hidden">
                 <table className="w-full">
                   <thead className="bg-muted border-b border-border">
                     <tr>

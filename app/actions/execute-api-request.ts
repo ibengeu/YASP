@@ -10,6 +10,7 @@
  */
 
 import { validateProxyUrl } from '@/features/api-explorer/utils/proxy-validator';
+import { REQUEST_TIMEOUT_MS } from '@/lib/constants';
 
 export interface ApiRequestData {
   method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
@@ -68,7 +69,7 @@ export async function executeApiRequest(request: ApiRequestData): Promise<ApiRes
       body: request.body && ['POST', 'PUT', 'PATCH'].includes(request.method)
         ? request.body
         : undefined,
-      signal: AbortSignal.timeout(30000), // 30 second timeout
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
     });
 
     const time = Date.now() - startTime;

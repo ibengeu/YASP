@@ -1,4 +1,5 @@
 import DOMPurify from 'dompurify';
+import { VALIDATION_LIMITS } from '@/lib/constants';
 
 /**
  * Security-focused sanitization utilities for YASP
@@ -58,8 +59,8 @@ export const sanitizeMarkdown = (markdown: string): string => {
     .replace(/\s(on\w+|style|srcdoc|sandbox)=[^>\s]*/gi, '');
 
   // Limit length to prevent DoS
-  if (sanitized.length > 10000) {
-    sanitized = sanitized.substring(0, 10000) + '... (content truncated for security)';
+  if (sanitized.length > VALIDATION_LIMITS.markdownMaxLength) {
+    sanitized = sanitized.substring(0, VALIDATION_LIMITS.markdownMaxLength) + '... (content truncated for security)';
   }
 
   return sanitized;
@@ -89,8 +90,8 @@ export const sanitizeText = (text: string): string => {
     });
 
   // Limit length
-  if (sanitized.length > 500) {
-    return sanitized.substring(0, 500) + '...';
+  if (sanitized.length > VALIDATION_LIMITS.textMaxLength) {
+    return sanitized.substring(0, VALIDATION_LIMITS.textMaxLength) + '...';
   }
 
   return sanitized;

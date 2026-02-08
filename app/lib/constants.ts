@@ -70,3 +70,51 @@ export const DEFAULT_USER_PROFILE = {
   name: 'YASP User',
   subtitle: 'Local Environment',
 } as const;
+
+/** Request timeout in milliseconds */
+export const REQUEST_TIMEOUT_MS = 30_000;
+
+/** File size limits in bytes */
+export const FILE_SIZE_LIMITS = {
+  specUpload: 5 * 1024 * 1024,
+  maxInput: 10 * 1024 * 1024,
+} as const;
+
+/** Status badge configurations for API catalog */
+export const API_STATUS_BADGES = {
+  active: { label: 'Active', color: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20' },
+  deprecated: { label: 'Deprecated', color: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20' },
+  draft: { label: 'Draft', color: 'bg-muted text-muted-foreground border-border' },
+} as const;
+
+/** CodeMirror one-dark theme colors */
+export const EDITOR_THEME = {
+  background: '#282c34',
+  gutterBackground: '#21252b',
+  gutterForeground: '#636d83',
+} as const;
+
+/** Cloud metadata hosts blocked for SSRF prevention */
+export const BLOCKED_METADATA_HOSTS = [
+  '169.254.169.254',
+  'metadata.google.internal',
+  'metadata.azure.com',
+] as const;
+
+/** Input validation limits */
+export const VALIDATION_LIMITS = {
+  markdownMaxLength: 10_000,
+  textMaxLength: 500,
+  titleMin: 3,
+  titleMax: 100,
+  tagMax: 20,
+  descriptionMax: 500,
+  versionMax: 20,
+  serverUrlMax: 50,
+} as const;
+
+/** Workspace type filter options */
+export const WORKSPACE_TYPES = ['personal', 'team', 'partner', 'public'] as const;
+
+/** Accepted spec file extensions */
+export const ACCEPTED_SPEC_EXTENSIONS = /\.(yaml|yml|json)$/i;

@@ -1,3 +1,5 @@
+import { BLOCKED_METADATA_HOSTS, FILE_SIZE_LIMITS } from '@/lib/constants';
+
 /**
  * Input Validation Service
  * Validates user inputs and prevents injection attacks
@@ -40,13 +42,7 @@ export function validateApiUrl(url: string): { valid: boolean; error?: string } 
     }
 
     // Block common cloud metadata endpoints
-    const blockedHosts = [
-      '169.254.169.254', // AWS/Azure/GCP metadata
-      'metadata.google.internal', // GCP
-      'metadata.azure.com', // Azure
-    ];
-
-    if (blockedHosts.includes(hostname)) {
+    if (BLOCKED_METADATA_HOSTS.includes(hostname as any)) {
       return { valid: false, error: 'Access to cloud metadata endpoints is not allowed' };
     }
 
@@ -111,7 +107,7 @@ export function validateApiUrl(url: string): { valid: boolean; error?: string } 
  * - Enforce max file size limits to prevent memory exhaustion
  */
 export function validateSpecContent(content: string): { valid: boolean; error?: string } {
-  const MAX_SIZE = 10 * 1024 * 1024; // 10MB
+  const MAX_SIZE = FILE_SIZE_LIMITS.maxInput;
   const byteSize = new Blob([content]).size;
 
   if (byteSize > MAX_SIZE) {

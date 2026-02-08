@@ -22,6 +22,7 @@ import { autocompletion, completionKeymap } from '@codemirror/autocomplete';
 import { lintKeymap } from '@codemirror/lint';
 import { oneDark } from '@codemirror/theme-one-dark';
 import { useEditorStore } from '../store/editor.store';
+import { EDITOR_THEME } from '@/lib/constants';
 
 export interface CodeEditorProps {
   language?: 'yaml' | 'json';
@@ -137,8 +138,8 @@ export const CodeEditor = forwardRef<CodeEditorRef, CodeEditorProps>(function Co
             padding: '16px 0',
           },
           '.cm-gutters': {
-            backgroundColor: '#21252b',
-            color: '#636d83',
+            backgroundColor: EDITOR_THEME.gutterBackground,
+            color: EDITOR_THEME.gutterForeground,
             border: 'none',
           },
           '.cm-lineNumbers .cm-gutterElement': {
@@ -188,8 +189,8 @@ export const CodeEditor = forwardRef<CodeEditorRef, CodeEditorProps>(function Co
   return (
     <div
       ref={editorRef}
-      className="h-full w-full overflow-auto bg-[#282c34]"
-      style={{ height }}
+      className="h-full w-full overflow-auto"
+      style={{ backgroundColor: EDITOR_THEME.background, height }}
     />
   );
 });
