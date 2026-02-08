@@ -173,34 +173,8 @@ body {
     letter-spacing: var(--tracking-normal);
 }
 
-/* Input/Textarea Dark Mode Fix */
-input[type="text"],
-input[type="email"],
-input[type="password"],
-input[type="search"],
-input[type="url"],
-textarea,
-select {
-    background-color: var(--input);
-    color: var(--foreground);
-    border-color: var(--border);
-}
-
-input[type="text"]:focus,
-input[type="email"]:focus,
-input[type="password"]:focus,
-input[type="search"]:focus,
-input[type="url"]:focus,
-textarea:focus,
-select:focus {
-    background-color: var(--background);
-    border-color: var(--ring);
-    outline: none;
-    ring: 2px;
-    ring-color: var(--ring);
-}
-
-/* Placeholder text color */
+/* Placeholder text color — shadcn components handle their own styles,
+   this only applies to unstyled native inputs outside of shadcn */
 input::placeholder,
 textarea::placeholder {
     color: var(--muted-foreground);
