@@ -118,3 +118,15 @@ export const WORKSPACE_TYPES = ['personal', 'team', 'partner', 'public'] as cons
 
 /** Accepted spec file extensions */
 export const ACCEPTED_SPEC_EXTENSIONS = /\.(yaml|yml|json)$/i;
+
+/** Workflow feature limits */
+export const WORKFLOW_LIMITS = {
+  maxSteps: 20,
+  maxExtractions: 10,
+  maxVariableNameLength: 50,
+  maxJsonPathLength: 500,
+  maxWorkflowNameLength: 100,
+} as const;
+
+/** Regex pattern for {{variable}} template syntax */
+export const WORKFLOW_VARIABLE_PATTERN = /\{\{(\w+)\}\}/g;

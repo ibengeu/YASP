@@ -8,7 +8,7 @@ import {useState, useEffect, useRef} from 'react';
 import {useFetcher, useNavigate} from 'react-router';
 import {
     X, Play, ChevronLeft, ChevronRight,
-    AlertTriangle, Copy, FileEdit, BookOpen,
+    AlertTriangle, Copy, FileEdit, BookOpen, GitBranch,
 } from 'lucide-react';
 import {toast} from 'sonner';
 import {EditorView, lineNumbers} from '@codemirror/view';
@@ -635,6 +635,17 @@ export function ApiDetailDrawer({open, onClose, specId}: ApiDetailDrawerProps) {
                                 </SelectContent>
                             </Select>
                         )}
+
+                        {/* Workflows button */}
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => navigate(`/workflows/${specId}`)}
+                            className="text-xs"
+                        >
+                            <GitBranch className="w-3.5 h-3.5 text-foreground"/>
+                            Workflows
+                        </Button>
 
                         {/* Edit button */}
                         <Button

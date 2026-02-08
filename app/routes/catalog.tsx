@@ -56,6 +56,8 @@ export default function CatalogPage() {
 
   const handleDelete = async (id: string) => {
     try {
+      // Cascade delete associated workflows
+      await idbStorage.deleteWorkflowsBySpecId(id);
       await idbStorage.deleteSpec(id);
       toast.success('API deleted successfully');
       loadSpecs();

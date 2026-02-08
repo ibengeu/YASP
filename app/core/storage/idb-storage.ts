@@ -11,9 +11,10 @@ import type {
   SecretEntry,
   SettingEntry,
 } from './storage-schema';
+import type { WorkflowDocument } from '@/features/workflows/types/workflow.types';
 
 const DB_NAME = 'yasp_db_v1';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 export class IDBStorage {
   private db: IDBDatabase | null = null;
@@ -64,6 +65,16 @@ export class IDBStorage {
         // Create secrets store (encrypted API keys)
         if (!db.objectStoreNames.contains('secrets')) {
           db.createObjectStore('secrets', { keyPath: 'key_id' });
+        }
+
+        // Create workflows store (v2 migration)
+        if (!db.objectStoreNames.contains('workflows')) {
+          const workflowsStore = db.createObjectStore('workflows', {
+            keyPath: 'id',
+            autoIncrement: false,
+          });
+          workflowsStore.createIndex('specId', 'specId', { unique: false });
+          workflowsStore.createIndex('updated_at', 'updated_at', { unique: false });
         }
       };
     });
@@ -267,6 +278,105 @@ export class IDBStorage {
       request.onsuccess = () => resolve();
       request.onerror = () => reject(new Error(`Failed to delete secret: ${request.error?.message}`));
     });
+  }
+
+  /**
+   * === Workflows Store Operations ===
+   */
+
+  async createWorkflow(workflow: Omit<WorkflowDocument, 'id' | 'created_at' | 'updated_at'>): Promise<WorkflowDocument> {
+    const db = await this.init();
+    const id = crypto.randomUUID();
+    const now = new Date().toISOString();
+
+    const document: WorkflowDocument = {
+      ...workflow,
+      id,
+      created_at: now,
+      updated_at: now,
+    };
+
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(['workflows'], 'readwrite');
+      const store = tx.objectStore('workflows');
+      const request = store.add(document);
+
+      request.onsuccess = () => resolve(document);
+      request.onerror = () => reject(new Error(`Failed to create workflow: ${request.error?.message}`));
+    });
+  }
+
+  async getWorkflow(id: string): Promise<WorkflowDocument | null> {
+    const db = await this.init();
+
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(['workflows'], 'readonly');
+      const store = tx.objectStore('workflows');
+      const request = store.get(id);
+
+      request.onsuccess = () => resolve(request.result || null);
+      request.onerror = () => reject(new Error(`Failed to get workflow: ${request.error?.message}`));
+    });
+  }
+
+  async getWorkflowsBySpecId(specId: string): Promise<WorkflowDocument[]> {
+    const db = await this.init();
+
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(['workflows'], 'readonly');
+      const store = tx.objectStore('workflows');
+      const index = store.index('specId');
+      const request = index.getAll(specId);
+
+      request.onsuccess = () => resolve(request.result || []);
+      request.onerror = () => reject(new Error(`Failed to get workflows for spec: ${request.error?.message}`));
+    });
+  }
+
+  async updateWorkflow(id: string, updates: Partial<Omit<WorkflowDocument, 'id' | 'created_at'>>): Promise<WorkflowDocument> {
+    const db = await this.init();
+    const existing = await this.getWorkflow(id);
+
+    if (!existing) {
+      throw new Error(`Workflow with id ${id} not found`);
+    }
+
+    const updated: WorkflowDocument = {
+      ...existing,
+      ...updates,
+      id,
+      created_at: existing.created_at,
+      updated_at: new Date().toISOString(),
+    };
+
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(['workflows'], 'readwrite');
+      const store = tx.objectStore('workflows');
+      const request = store.put(updated);
+
+      request.onsuccess = () => resolve(updated);
+      request.onerror = () => reject(new Error(`Failed to update workflow: ${request.error?.message}`));
+    });
+  }
+
+  async deleteWorkflow(id: string): Promise<void> {
+    const db = await this.init();
+
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(['workflows'], 'readwrite');
+      const store = tx.objectStore('workflows');
+      const request = store.delete(id);
+
+      request.onsuccess = () => resolve();
+      request.onerror = () => reject(new Error(`Failed to delete workflow: ${request.error?.message}`));
+    });
+  }
+
+  async deleteWorkflowsBySpecId(specId: string): Promise<void> {
+    const workflows = await this.getWorkflowsBySpecId(specId);
+    for (const workflow of workflows) {
+      await this.deleteWorkflow(workflow.id);
+    }
   }
 
   /**

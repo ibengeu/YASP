@@ -6,6 +6,7 @@
  */
 
 import type { ServerConfig, AuthConfig } from '@/features/registration/utils/spec-inference';
+import type { WorkflowDocument } from '@/features/workflows/types/workflow.types';
 
 /**
  * OpenAPI Specification Document
@@ -83,4 +84,5 @@ export interface StorageSchema {
   specs: OpenApiDocument;
   settings: SettingEntry;
   secrets: SecretEntry;
+  workflows: WorkflowDocument;
 }

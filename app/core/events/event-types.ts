@@ -92,6 +92,14 @@ export const EventNames = {
 
   // Editor events
   EDITOR_MODE_SWITCH: 'editor:mode-switch',
+
+  // Workflow events
+  WORKFLOW_CREATED: 'workflow:created',
+  WORKFLOW_UPDATED: 'workflow:updated',
+  WORKFLOW_DELETED: 'workflow:deleted',
+  WORKFLOW_EXECUTION_STARTED: 'workflow:execution-started',
+  WORKFLOW_STEP_COMPLETED: 'workflow:step-completed',
+  WORKFLOW_EXECUTION_COMPLETED: 'workflow:execution-completed',
 } as const;
 
 export type EventName = typeof EventNames[keyof typeof EventNames];

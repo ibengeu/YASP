@@ -1,4 +1,5 @@
-import { Shield, Clock, Tag, CheckCircle, AlertCircle, XCircle } from 'lucide-react';
+import { useNavigate } from 'react-router';
+import { Shield, Clock, Tag, CheckCircle, AlertCircle, XCircle, GitBranch } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { OpenApiDocument } from '@/core/storage/storage-schema';
 import { SCORE_THRESHOLDS, getQualityLabel, getScoreColor, getWorkspaceColor, API_STATUS_BADGES } from '@/lib/constants';
@@ -25,6 +26,7 @@ interface ApiCardProps {
  * - Mitigation for OWASP A07:2025 – Injection: Content is sanitized before display
  */
 export function ApiCard({ spec, onClick, onDelete }: ApiCardProps) {
+  const navigate = useNavigate();
   const score = spec.metadata.score || 0;
 
   // Determine status badge
@@ -144,18 +146,30 @@ export function ApiCard({ spec, onClick, onDelete }: ApiCardProps) {
         </div>
       )}
 
-      {/* Delete Action (optional) */}
-      {onDelete && (
+      {/* Action buttons */}
+      <div className="absolute top-3 right-3 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
         <button
           onClick={(e) => {
             e.stopPropagation();
-            onDelete(spec.id);
+            navigate(`/workflows/${spec.id}`);
           }}
-          className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive"
+          className="p-1 rounded hover:bg-primary/10 text-muted-foreground hover:text-primary"
+          title="Workflows"
         >
-          <XCircle className="w-4 h-4" />
+          <GitBranch className="w-4 h-4" />
         </button>
-      )}
+        {onDelete && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete(spec.id);
+            }}
+            className="p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive"
+          >
+            <XCircle className="w-4 h-4" />
+          </button>
+        )}
+      </div>
     </div>
   );
 }

@@ -34,6 +34,7 @@
         "cmdk": "^1.1.1",
         "dompurify": "^3.3.1",
         "isbot": "^5",
+        "jsonpath-plus": "^10.3.0",
         "lucide-react": "^0.536.0",
         "next-themes": "^0.4.6",
         "radix-ui": "^1.4.3",
