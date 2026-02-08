@@ -196,9 +196,9 @@ export function EndpointSidebar({
                 className="w-full flex items-center gap-2 px-3 py-2 hover:bg-muted/50 text-xs font-medium text-foreground"
               >
                 {expandedGroups.has(group.tag) ? (
-                  <FolderOpen className="w-4 h-4" />
+                  <FolderOpen className="w-4 h-4 text-foreground" />
                 ) : (
-                  <Folder className="w-4 h-4" />
+                  <Folder className="w-4 h-4 text-foreground" />
                 )}
                 <span>{group.tag}</span>
                 <span className="text-muted-foreground ml-auto">

@@ -560,8 +560,8 @@ export function ApiDetailDrawer({open, onClose, specId}: ApiDetailDrawerProps) {
                                 size="icon-xs"
                                 onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
                             >
-                                {isSidebarCollapsed ? <ChevronRight className="w-4 h-4"/> :
-                                    <ChevronLeft className="w-4 h-4"/>}
+                                {isSidebarCollapsed ? <ChevronRight className="w-4 h-4 text-foreground"/> :
+                                    <ChevronLeft className="w-4 h-4 text-foreground"/>}
                             </Button>
                         )}
 
@@ -577,7 +577,7 @@ export function ApiDetailDrawer({open, onClose, specId}: ApiDetailDrawerProps) {
                                         : 'text-muted-foreground hover:text-foreground'
                                 }`}
                             >
-                                <Play className="w-3.5 h-3.5"/>
+                                <Play className="w-3.5 h-3.5 text-current"/>
                                 Try It Out
                             </Button>
                             <Button
@@ -590,7 +590,7 @@ export function ApiDetailDrawer({open, onClose, specId}: ApiDetailDrawerProps) {
                                         : 'text-muted-foreground hover:text-foreground'
                                 }`}
                             >
-                                <BookOpen className="w-3.5 h-3.5"/>
+                                <BookOpen className="w-3.5 h-3.5 text-current"/>
                                 Documentation
                             </Button>
                         </div>
@@ -643,7 +643,7 @@ export function ApiDetailDrawer({open, onClose, specId}: ApiDetailDrawerProps) {
                             onClick={() => navigate(`/editor/${specId}`)}
                             className="text-xs"
                         >
-                            <FileEdit className="w-3.5 h-3.5"/>
+                            <FileEdit className="w-3.5 h-3.5 text-foreground"/>
                             Edit
                         </Button>
 
@@ -653,7 +653,7 @@ export function ApiDetailDrawer({open, onClose, specId}: ApiDetailDrawerProps) {
                             size="icon-xs"
                             onClick={onClose}
                         >
-                            <X className="w-4 h-4"/>
+                            <X className="w-4 h-4 text-foreground"/>
                         </Button>
                     </div>
                 </div>
