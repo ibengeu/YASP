@@ -13,7 +13,6 @@ import { ApiDetailDrawer } from '@/components/api-details/ApiDetailDrawer';
 import { idbStorage } from '@/core/storage/idb-storage';
 import type { OpenApiDocument } from '@/core/storage/storage-schema';
 import { staggerFadeIn, pageTransition } from '@/lib/animations';
-import { SEED_SPEC, SEED_SPEC_METADATA } from '@/lib/seed-data';
 import { getScoreColor } from '@/lib/constants';
 
 export default function CatalogPage() {
@@ -43,18 +42,7 @@ export default function CatalogPage() {
   const loadSpecs = async () => {
     setIsLoading(true);
     try {
-      let allSpecs = await idbStorage.getAllSpecs();
-
-      // Add seed data if empty
-      if (allSpecs.length === 0) {
-        await idbStorage.createSpec({
-          ...SEED_SPEC_METADATA,
-          content: SEED_SPEC,
-        });
-
-        allSpecs = await idbStorage.getAllSpecs();
-      }
-
+      const allSpecs = await idbStorage.getAllSpecs();
       setSpecs(allSpecs);
     } catch (error) {
       console.error('Failed to load specs:', error);
