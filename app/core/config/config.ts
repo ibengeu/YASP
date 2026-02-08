@@ -12,8 +12,6 @@ export interface AppConfig {
     env: 'development' | 'production' | 'test';
   };
   features: {
-    aiGeneration: boolean;
-    governance: boolean;
     collaboration: boolean; // Future
   };
   storage: {
@@ -37,8 +35,6 @@ const config: AppConfig = {
     env: (import.meta.env.MODE as any) || 'development',
   },
   features: {
-    aiGeneration: import.meta.env.VITE_ENABLE_AI !== 'false',
-    governance: import.meta.env.VITE_ENABLE_GOVERNANCE !== 'false',
     collaboration: false, // v2 feature
   },
   storage: {

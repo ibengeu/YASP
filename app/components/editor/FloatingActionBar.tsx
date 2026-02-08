@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { BookOpen, FileCode, Maximize2, Minimize2, Play, Save, Loader2 } from 'lucide-react';
+import { BookOpen, FileCode, Maximize2, Minimize2, Save, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { animate } from 'animejs';
@@ -15,7 +15,6 @@ interface FloatingActionBarProps {
   onTabChange: (tab: 'editor' | 'docs') => void;
   onToggleMaximize: () => void;
   onSave: () => void;
-  onTryItOut: () => void;
 }
 
 /**
@@ -36,7 +35,6 @@ export function FloatingActionBar({
   onTabChange,
   onToggleMaximize,
   onSave,
-  onTryItOut,
 }: FloatingActionBarProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -204,7 +202,7 @@ export function FloatingActionBar({
             aria-orientation="vertical"
             className="flex flex-col gap-2"
           >
-            {/* Primary Action - Save or Try It Out */}
+            {/* Primary Action - Save */}
             <Button
               ref={(el) => {
                 menuItemsRef.current[0] = el;
@@ -212,23 +210,14 @@ export function FloatingActionBar({
               variant="default"
               size="default"
               role="menuitem"
-              aria-label={activeTab === 'editor' ? 'Save Changes' : 'Try It Out'}
-              disabled={activeTab === 'editor' && !hasChanges}
+              aria-label="Save Changes"
+              disabled={!hasChanges}
               className="fab-menu-item min-w-[110px] sm:min-w-[120px] h-12 justify-start gap-2 shadow-lg cursor-pointer"
-              onClick={() => handleMenuItemClick(activeTab === 'editor' ? onSave : onTryItOut)}
+              onClick={() => handleMenuItemClick(onSave)}
               onKeyDown={(e) => handleKeyDown(e, 0)}
             >
-              {activeTab === 'editor' ? (
-                <>
-                  <Save className="w-4 h-4" />
-                  {hasChanges ? 'Save' : 'No Changes'}
-                </>
-              ) : (
-                <>
-                  <Play className="w-4 h-4" />
-                  Try It Out
-                </>
-              )}
+              <Save className="w-4 h-4" />
+              {hasChanges ? 'Save' : 'No Changes'}
             </Button>
 
             {/* Docs Tab */}
@@ -300,9 +289,7 @@ export function FloatingActionBar({
               ? 'Saving...'
               : isExpanded
               ? 'Close menu'
-              : activeTab === 'editor'
-              ? 'Save Changes'
-              : 'Try It Out'
+              : 'Save Changes'
           }
           aria-haspopup="menu"
           aria-expanded={isExpanded}
@@ -315,8 +302,6 @@ export function FloatingActionBar({
         >
           {isSaving ? (
             <Loader2 className="w-5 h-5 animate-spin" />
-          ) : activeTab === 'docs' ? (
-            <Play className="w-5 h-5" />
           ) : (
             <Save className="w-5 h-5" />
           )}

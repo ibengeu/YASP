@@ -58,36 +58,11 @@ export interface SpecLoadedPayload {
 }
 
 /**
- * Governance Events
- * Emitted by: Governance feature
- */
-export interface GovernanceLintCompletePayload {
-  specId: string;
-  score: number; // 0-100
-  diagnostics: ISpectralDiagnostic[];
-}
-
-export interface GovernanceLintFailedPayload {
-  specId: string;
-  error: string;
-}
-
-/**
  * Editor Events
  * Emitted by: Visual Designer feature
  */
 export interface EditorModeSwitchPayload {
   mode: 'visual' | 'code';
-}
-
-/**
- * Diagnostic Jump Event
- * Emitted by: Governance DiagnosticsPanel
- * Consumed by: Visual Editor (scrolls to issue)
- */
-export interface DiagnosticJumpPayload {
-  yamlPath: string[]; // e.g., ['paths', '/users', 'get']
-  diagnostic: ISpectralDiagnostic;
 }
 
 /**
@@ -115,15 +90,8 @@ export const EventNames = {
   SPEC_DELETED: 'spec:deleted',
   SPEC_LOADED: 'spec:loaded',
 
-  // Governance events
-  GOVERNANCE_LINT_COMPLETE: 'governance:lint-complete',
-  GOVERNANCE_LINT_FAILED: 'governance:lint-failed',
-
   // Editor events
   EDITOR_MODE_SWITCH: 'editor:mode-switch',
-
-  // Diagnostic events
-  DIAGNOSTIC_JUMP: 'diagnostic:jump',
 } as const;
 
 export type EventName = typeof EventNames[keyof typeof EventNames];

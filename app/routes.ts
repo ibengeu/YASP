@@ -18,6 +18,5 @@ export default [
 
   // API Resource Routes (server actions only, no UI)
   route("api/execute-request", "routes/api.execute-request.ts"),
-  route("api/quick-fix", "routes/api.quick-fix.ts"),
   route("api/fetch-spec", "routes/api.fetch-spec.ts"),
 ] satisfies RouteConfig;
