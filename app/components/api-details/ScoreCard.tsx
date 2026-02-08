@@ -19,8 +19,8 @@ export function ScoreCard({ label, score }: ScoreCardProps) {
     if (score >= 90) {
       return {
         label: 'Excellent',
-        color: 'bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20',
-        barColor: 'bg-green-500',
+        color: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20',
+        barColor: 'bg-emerald-500',
       };
     }
     if (score >= 70) {
@@ -39,8 +39,8 @@ export function ScoreCard({ label, score }: ScoreCardProps) {
     }
     return {
       label: 'Critical',
-      color: 'bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20',
-      barColor: 'bg-red-500',
+      color: 'bg-destructive/10 text-destructive border-destructive/20',
+      barColor: 'bg-destructive',
     };
   };
 

@@ -4,13 +4,12 @@
  */
 
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router';
 import { toast } from 'sonner';
 import { Plus, Search, Trash2 } from 'lucide-react';
 import { PageHeader } from '@/components/navigation/PageHeader';
 import { ApiCard } from '@/components/catalog/ApiCard';
-import { GenerateSpecDialog } from '@/features/ai-catalyst/components/GenerateSpecDialog';
 import { RegisterApiDrawer } from '@/components/registration/RegisterApiDrawer';
+import { ApiDetailDrawer } from '@/components/api-details/ApiDetailDrawer';
 import { idbStorage } from '@/core/storage/idb-storage';
 import type { OpenApiDocument } from '@/core/storage/storage-schema';
 import { staggerFadeIn, pageTransition } from '@/lib/animations';
@@ -18,14 +17,13 @@ import { SEED_SPEC, SEED_SPEC_METADATA } from '@/lib/seed-data';
 import { getScoreColor } from '@/lib/constants';
 
 export default function CatalogPage() {
-  const navigate = useNavigate();
-  const [showGenerateDialog, setShowGenerateDialog] = useState(false);
   const [showRegisterDrawer, setShowRegisterDrawer] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [specs, setSpecs] = useState<OpenApiDocument[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [typeFilter, setTypeFilter] = useState<string>('all');
+  const [selectedSpecId, setSelectedSpecId] = useState<string | null>(null);
 
   // Refs for anime.js animations (React pattern)
   const pageRef = useRef<HTMLDivElement>(null);
@@ -222,10 +220,10 @@ export default function CatalogPage() {
                     {filteredSpecs.map((spec, index) => {
                       const score = spec.metadata.score || 0;
                       const statusBadge = spec.metadata.syncStatus === 'synced'
-                        ? { label: 'Active', color: 'bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20' }
+                        ? { label: 'Active', color: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20' }
                         : spec.content.includes('deprecated: true')
                         ? { label: 'Deprecated', color: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20' }
-                        : { label: 'Draft', color: 'bg-gray-500/10 text-gray-600 dark:text-gray-400 border-gray-500/20' };
+                        : { label: 'Draft', color: 'bg-muted text-muted-foreground border-border' };
 
                       return (
                         <tr
@@ -235,7 +233,7 @@ export default function CatalogPage() {
                           }}
                           className="hover:bg-muted/50 cursor-pointer transition-colors animate-in fade-in duration-300"
                           style={{ animationDelay: `${index * 50}ms` }}
-                          onClick={() => navigate(`/editor/${spec.id}`)}
+                          onClick={() => setSelectedSpecId(spec.id)}
                         >
                           <td className="px-6 py-4 whitespace-nowrap">
                             <span className={`px-2 py-0.5 rounded-full text-xs font-medium border ${statusBadge.color}`}>
@@ -256,7 +254,7 @@ export default function CatalogPage() {
                             {spec.version}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <span className="px-2 py-0.5 rounded-full text-xs font-medium border bg-gray-500/10 text-gray-600 dark:text-gray-400 border-gray-500/20">
+                            <span className="px-2 py-0.5 rounded-full text-xs font-medium border bg-muted text-muted-foreground border-border">
                               {spec.metadata.workspaceType}
                             </span>
                           </td>
@@ -284,7 +282,7 @@ export default function CatalogPage() {
                                 e.stopPropagation();
                                 handleDelete(spec.id);
                               }}
-                              className="p-2 text-muted-foreground hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-md transition-colors"
+                              className="p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-md transition-colors"
                               aria-label="Delete specification"
                               title="Delete"
                             >
@@ -309,7 +307,7 @@ export default function CatalogPage() {
                 >
                   <ApiCard
                     spec={spec}
-                    onClick={() => navigate(`/editor/${spec.id}`)}
+                    onClick={() => setSelectedSpecId(spec.id)}
                     onDelete={handleDelete}
                   />
                 </div>
@@ -326,7 +324,7 @@ export default function CatalogPage() {
                 >
                   <ApiCard
                     spec={spec}
-                    onClick={() => navigate(`/editor/${spec.id}`)}
+                    onClick={() => setSelectedSpecId(spec.id)}
                     onDelete={handleDelete}
                   />
                 </div>
@@ -336,34 +334,6 @@ export default function CatalogPage() {
         )}
       </div>
 
-      {/* Dialogs */}
-      <GenerateSpecDialog
-        open={showGenerateDialog}
-        onClose={() => setShowGenerateDialog(false)}
-        onGenerated={async (yamlSpec) => {
-          const yaml = await import('yaml');
-          const parsed = yaml.parse(yamlSpec);
-
-          const newSpec = await idbStorage.createSpec({
-            type: 'openapi',
-            content: yamlSpec,
-            title: parsed.info?.title || 'Generated API',
-            version: parsed.info?.version || '1.0.0',
-            description: parsed.info?.description,
-            metadata: {
-              score: 0,
-              tags: ['ai-generated'],
-              workspaceType: 'personal',
-              syncStatus: 'offline',
-              isDiscoverable: false,
-            },
-          });
-
-          toast.success('API specification generated successfully');
-          navigate(`/editor/${newSpec.id}`);
-        }}
-      />
-
       <RegisterApiDrawer
         isOpen={showRegisterDrawer}
         onClose={() => setShowRegisterDrawer(false)}
@@ -372,6 +342,14 @@ export default function CatalogPage() {
           loadSpecs();
         }}
       />
+
+      {selectedSpecId && (
+        <ApiDetailDrawer
+          open={selectedSpecId !== null}
+          onClose={() => setSelectedSpecId(null)}
+          specId={selectedSpecId}
+        />
+      )}
     </div>
   );
 }

@@ -298,7 +298,7 @@ export function RegisterApiDrawer({ isOpen, onClose, onSuccess }: RegisterApiDra
             <PersistentAnalysisSummary
               inferredData={inferredData}
               currentStep={wizard.state.currentStep}
-              className="border-b px-6 py-3 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950/20 dark:to-emerald-950/20"
+              className="border-b px-6 py-3 bg-muted/50"
             />
           )}
 
@@ -313,7 +313,6 @@ export function RegisterApiDrawer({ isOpen, onClose, onSuccess }: RegisterApiDra
                   onSpecParsed={handleSpecParsed}
                   inferredData={inferredData}
                   isParsingSpec={isParsingSpec}
-                  onSkip={wizard.actions.goToNext}
                 />
               </WizardStepContainer>
 

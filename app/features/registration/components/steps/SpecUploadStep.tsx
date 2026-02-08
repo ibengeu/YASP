@@ -14,7 +14,6 @@ import {
   Loader2,
   CheckCircle2,
   AlertCircle,
-  Lightbulb,
 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -33,7 +32,6 @@ export interface SpecUploadStepProps {
   onSpecParsed: (content: string, sourceUrl?: string) => Promise<void>;
   inferredData: InferredData | null;
   isParsingSpec: boolean;
-  onSkip?: () => void;
 }
 
 export function SpecUploadStep({
@@ -42,7 +40,6 @@ export function SpecUploadStep({
   onSpecParsed,
   inferredData,
   isParsingSpec,
-  onSkip,
 }: SpecUploadStepProps) {
   const [pastedContent, setPastedContent] = useState('');
   const [url, setUrl] = useState('');
@@ -159,24 +156,6 @@ export function SpecUploadStep({
 
   return (
     <div className="space-y-6">
-      {/* Onboarding Helper */}
-      {!inferredData && (
-        <div className="p-4 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900 rounded-lg">
-          <div className="flex items-start gap-3">
-            <Lightbulb className="h-5 w-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
-            <div>
-              <p className="text-sm font-medium text-blue-900 dark:text-blue-100">
-                What is an OpenAPI Specification?
-              </p>
-              <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
-                An OpenAPI spec is a standard format (YAML or JSON) that describes your API's structure.
-                Upload yours and we'll auto-fill your API name, version, description, endpoints, and authentication details—saving you time.
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Loading State */}
       {isParsingSpec && (
         <div className="flex items-center gap-2 text-sm text-muted-foreground p-3 bg-muted/30 rounded-lg">
@@ -257,10 +236,10 @@ export function SpecUploadStep({
 
         {/* Spec Analysis Card */}
         {inferredData && (
-          <Card className="mt-4 border-green-200 dark:border-green-900 bg-green-50/50 dark:bg-green-950/20">
+          <Card className="mt-4 border-emerald-500/30 bg-emerald-500/5">
             <CardHeader className="pb-3">
               <CardTitle className="text-sm flex items-center gap-2">
-                <CheckCircle2 className="h-4 w-4 text-green-600" />
+                <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
                 Specification Analysis
               </CardTitle>
               <CardDescription>
@@ -308,7 +287,7 @@ export function SpecUploadStep({
 
               {inferredData.validationIssues.length > 0 && (
                 <div className="mt-3 pt-3 border-t border-border">
-                  <div className="flex items-center gap-2 text-amber-600 dark:text-amber-500">
+                  <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400">
                     <AlertCircle className="h-4 w-4" />
                     <span className="text-xs font-medium">
                       {inferredData.validationIssues.length} validation issue
@@ -368,19 +347,6 @@ export function SpecUploadStep({
         </div>
       </div>
 
-      {/* Skip Option */}
-      {!inferredData && onSkip && (
-        <div className="mt-6 text-center border-t pt-4">
-          <Button
-            type="button"
-            variant="link"
-            onClick={onSkip}
-            className="text-muted-foreground hover:text-foreground"
-          >
-            Skip spec upload and enter details manually →
-          </Button>
-        </div>
-      )}
     </div>
   );
 }

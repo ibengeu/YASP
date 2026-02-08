@@ -48,16 +48,14 @@ describe('ScoreCard', () => {
   it('should apply correct color for excellent scores', () => {
     render(<ScoreCard label="Score" score={95} />);
 
-    // Check for green color class
     const badge = screen.getByText('Excellent').closest('div');
-    expect(badge?.className).toContain('green');
+    expect(badge?.className).toContain('emerald');
   });
 
   it('should apply correct color for critical scores', () => {
     render(<ScoreCard label="Score" score={30} />);
 
-    // Check for red color class
     const badge = screen.getByText('Critical').closest('div');
-    expect(badge?.className).toContain('red');
+    expect(badge?.className).toContain('destructive');
   });
 });

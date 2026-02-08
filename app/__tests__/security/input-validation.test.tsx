@@ -12,7 +12,6 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { ScoreCard } from '@/components/api-details/ScoreCard';
-import { KPICard } from '@/components/dashboard/KPICard';
 
 describe('Input Validation Security', () => {
   it('should handle oversized numeric values safely', () => {
@@ -39,14 +38,6 @@ describe('Input Validation Security', () => {
     expect(container.textContent).toContain('<script>');
   });
 
-  it('should handle special characters in KPI labels', () => {
-    const specialChars = '< > & " \' / \\ `';
-    render(<KPICard label={specialChars} value={100} />);
-
-    // Should render without breaking
-    expect(screen.getByText(specialChars)).toBeInTheDocument();
-  });
-
   it('should reject NaN values gracefully', () => {
     // Use a valid fallback for NaN to prevent React warnings
     const score = Number.isNaN(NaN) ? 0 : NaN;
@@ -64,28 +55,6 @@ describe('Input Validation Security', () => {
     expect(screen.getByText('Zero Score')).toBeInTheDocument();
   });
 
-  it('should sanitize sparkline data array', () => {
-    const maliciousData = [
-      10,
-      20,
-      Number.POSITIVE_INFINITY,
-      40,
-      50,
-    ];
-
-    render(<KPICard label="Test" value={100} sparkline={maliciousData} />);
-
-    // Should render without crashing despite Infinity value
-    expect(screen.getByText('Test')).toBeInTheDocument();
-  });
-
-  it('should handle empty sparkline array', () => {
-    render(<KPICard label="Test" value={100} sparkline={[]} />);
-
-    // Should render without crashing
-    expect(screen.getByText('Test')).toBeInTheDocument();
-  });
-
   it('should limit score display to valid range', () => {
     // Test score > 100
     const { rerender } = render(<ScoreCard label="High Score" score={150} />);
@@ -101,14 +70,6 @@ describe('Type Safety Security', () => {
   it('should enforce number type for score values', () => {
     // TypeScript should prevent this at compile time
     render(<ScoreCard label="Test" score={"100" as any} />);
-
-    // Should not crash even with wrong type
-    expect(screen.getByText('Test')).toBeInTheDocument();
-  });
-
-  it('should enforce number type for KPI values', () => {
-    // TypeScript should prevent this at compile time
-    render(<KPICard label="Test" value={"100" as any} />);
 
     // Should not crash even with wrong type
     expect(screen.getByText('Test')).toBeInTheDocument();

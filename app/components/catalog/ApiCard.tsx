@@ -30,23 +30,23 @@ export function ApiCard({ spec, onClick, onDelete }: ApiCardProps) {
   // Determine status badge
   const getStatusBadge = () => {
     if (spec.metadata.syncStatus === 'synced') {
-      return { label: 'Active', color: 'bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20' };
+      return { label: 'Active', color: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20' };
     }
     if (spec.content.includes('deprecated: true')) {
       return { label: 'Deprecated', color: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20' };
     }
-    return { label: 'Draft', color: 'bg-gray-500/10 text-gray-600 dark:text-gray-400 border-gray-500/20' };
+    return { label: 'Draft', color: 'bg-muted text-muted-foreground border-border' };
   };
 
   // Get quality badge based on score
   const getQualityBadge = () => {
     if (score >= SCORE_THRESHOLDS.excellent) {
-      return { icon: CheckCircle, label: getQualityLabel(score), color: 'text-green-600 dark:text-green-400' };
+      return { icon: CheckCircle, label: getQualityLabel(score), color: 'text-emerald-600 dark:text-emerald-400' };
     }
     if (score >= SCORE_THRESHOLDS.good) {
       return { icon: AlertCircle, label: getQualityLabel(score), color: 'text-amber-600 dark:text-amber-400' };
     }
-    return { icon: XCircle, label: getQualityLabel(score), color: 'text-red-600 dark:text-red-400' };
+    return { icon: XCircle, label: getQualityLabel(score), color: 'text-destructive' };
   };
 
   const workspaceColor = getWorkspaceColor(spec.metadata.workspaceType);
@@ -142,7 +142,7 @@ export function ApiCard({ spec, onClick, onDelete }: ApiCardProps) {
 
       {/* Security Badge (if has security schemes) */}
       {spec.content.includes('securitySchemes') && (
-        <div className="mt-3 flex items-center gap-1 text-xs text-green-600 dark:text-green-400">
+        <div className="mt-3 flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400">
           <Shield className="w-3 h-3" />
           <span>Auth Configured</span>
         </div>
@@ -155,7 +155,7 @@ export function ApiCard({ spec, onClick, onDelete }: ApiCardProps) {
             e.stopPropagation();
             onDelete(spec.id);
           }}
-          className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-red-500/10 text-muted-foreground hover:text-red-600"
+          className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive"
         >
           <XCircle className="w-4 h-4" />
         </button>

@@ -1,537 +1,176 @@
 @import "tailwindcss";
 
 @custom-variant dark (&:is(.dark *));
-
-@theme {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-card: var(--card);
-  --color-card-foreground: var(--card-foreground);
-  --color-primary: var(--primary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-secondary: var(--secondary);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-muted: var(--muted);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-accent: var(--accent);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-border: var(--border);
-  --color-input: var(--input);
-  --color-ring: var(--ring);
-  --color-popover: var(--popover);
-  --color-popover-foreground: var(--popover-foreground);
-}
-
-/* Vercel/Linear/Stripe Design System - Modern Minimalism */
 :root {
-    /* Z-Index Management System */
-    --z-base: 1;
-    --z-dropdown: 1000;
-    --z-sticky: 1020;
-    --z-navigation: 1030;
-    --z-modal-backdrop: 1040;
-    --z-modal: 1050;
-    --z-toast: 1060;
-
-    /* Spacing Scale (4px base unit) */
-    --spacing-0: 0;
-    --spacing-1: 0.25rem;
-    /* 4px */
-    --spacing-2: 0.5rem;
-    /* 8px */
-    --spacing-3: 0.75rem;
-    /* 12px */
-    --spacing-4: 1rem;
-    /* 16px */
-    --spacing-5: 1.25rem;
-    /* 20px */
-    --spacing-6: 1.5rem;
-    /* 24px */
-    --spacing-7: 1.75rem;
-    /* 28px */
-    --spacing-8: 2rem;
-    /* 32px */
-    --spacing-9: 2.25rem;
-    /* 36px */
-    --spacing-10: 2.5rem;
-    /* 40px */
-    --spacing-12: 3rem;
-    /* 48px */
-    --spacing-16: 4rem;
-    /* 64px */
-    --spacing-20: 5rem;
-    /* 80px */
-    --spacing-24: 6rem;
-    /* 96px */
-    --spacing-32: 8rem;
-    /* 128px */
-
-    /* Typography - Geist (Vercel) / DM Sans */
-    --font-sans: 'Geist', 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    --font-serif: Georgia, Cambria, 'Times New Roman', serif;
-    --font-mono: 'Geist Mono', 'Fira Code', 'JetBrains Mono', Consolas, monospace;
-
-    /* Font Sizes - Vercel Scale */
-    --font-size-xs: 0.75rem;
-    /* 12px */
-    --font-size-sm: 0.875rem;
-    /* 14px */
-    --font-size-base: 0.9375rem;
-    /* 15px - Vercel uses 15px for body */
-    --font-size-lg: 1.0625rem;
-    /* 17px */
-    --font-size-xl: 1.25rem;
-    /* 20px */
-    --font-size-2xl: 1.5rem;
-    /* 24px */
-
-    /* Font Weights - Geist */
-    --font-weight-light: 300;
-    --font-weight-normal: 400;
-    --font-weight-medium: 500;
-    --font-weight-semibold: 600;
-    --font-weight-bold: 700;
-
-    /* Letter Spacing - Tighter for modern look */
-    --letter-spacing-tighter: -0.04em;
-    /* Display headings */
-    --letter-spacing-tight: -0.02em;
-    /* Headings */
-    --letter-spacing-normal: -0.01em;
-    /* Body - slightly tighter than default */
-    --letter-spacing-wide: 0.01em;
-    /* UI labels */
-
-    /* Line Heights - Optimized for readability */
-    --line-height-none: 1;
-    --line-height-tight: 1.25;
-    --line-height-snug: 1.375;
-    --line-height-normal: 1.5;
-    --line-height-relaxed: 1.625;
-    --line-height-loose: 2;
-
-    /* Radius - Subtle, modern */
-    --radius: 0.375rem;
-    /* 6px - Buttons/Inputs (Vercel default) */
-    --radius-xs: 0.25rem;
-    /* 4px - Tags */
-    --radius-sm: 0.3125rem;
-    /* 5px - Small elements */
-    --radius-md: 0.5rem;
-    /* 8px - Medium containers */
-    --radius-lg: 0.75rem;
-    /* 12px - Cards (Linear/Stripe) */
-    --radius-xl: 1rem;
-    /* 16px - Large containers */
-    --radius-full: 9999px;
-    /* Full - Pills, Avatars */
-
-    /* Color Palette - Monochrome with High Contrast */
-    /* Pure black/white for maximum clarity */
-
-    /* Interactive - Pure Black Primary */
-    --interactive-01: #000000;
-    /* Pure black (Vercel) */
-    --interactive-02: #171717;
-    /* Near black (hover) */
-    --interactive-03: #404040;
-    /* Medium gray */
-    --interactive-04: #fafafa;
-    /* Off-white (selected bg) */
-
-    /* UI Colors - Minimal Gray Scale */
-    --ui-01: #ffffff;
-    /* Pure white (Cards) */
-    --ui-02: #fafafa;
-    /* Off-white (App Bg) */
-    --ui-03: #e5e5e5;
-    /* Light border */
-    --ui-04: #f5f5f5;
-    /* Subtle hover */
-    --ui-05: #d4d4d4;
-    /* Disabled */
-
-    /* Text - High Contrast */
-    --text-01: #000000;
-    /* Pure black (Headings) */
-    --text-02: #171717;
-    /* Near black (Body) */
-    --text-03: #737373;
-    /* Medium gray (Secondary) */
-    --text-04: #ffffff;
-    /* White (On dark) */
-    --text-05: #525252;
-    /* Dark gray (Labels) */
-
-    /* Backgrounds */
-    --background: #ffffff;
-    /* Pure white */
-    --background-hover: #fafafa;
-    --background-ui: #ffffff;
-
-    /* Support Colors - Vibrant Accents */
-    --support-01: #ef4444;
-    /* Red (Error) */
-    --support-02: #10b981;
-    /* Green (Success) */
-    --support-03: #f59e0b;
-    /* Amber (Warning) */
-    --support-04: #3b82f6;
-    /* Blue (Info) */
-
-    /* Shadows - Sharp, Minimal (Vercel/Linear style) */
-    --shadow-none: none;
-    --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-    /* Subtle lift */
-    --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
-    /* Light cards */
-    --shadow-card: 0 0 0 1px rgba(0, 0, 0, 0.05), 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-    /* Bordered card - Vercel style */
-    --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.08);
-    /* Standard elevation */
-    --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.12);
-    /* Floating panels */
-    --shadow-dropdown: 0 4px 12px rgba(0, 0, 0, 0.1);
-    /* Dropdowns */
-    --shadow-xl: 0 8px 24px rgba(0, 0, 0, 0.15);
-    /* Modals */
-
-    /* Semantic Color Mappings (Tailwind v4 compatible) */
-    --background: var(--ui-02);
-    --foreground: var(--text-02);
-    --card: var(--ui-01);
-    --card-foreground: var(--text-01);
-    --popover: var(--ui-01);
-    --popover-foreground: var(--text-01);
-    --primary: var(--interactive-01);
-    --primary-foreground: var(--text-04);
-    --secondary: var(--interactive-02);
-    --secondary-foreground: var(--text-04);
-    --accent: var(--interactive-04);
-    --accent-foreground: var(--interactive-01);
-    --muted: var(--ui-04);
-    --muted-foreground: var(--text-03);
-    --border: var(--ui-03);
-    --input: var(--ui-01);
-    --ring: var(--interactive-01);
-    --disabled: var(--ui-05);
-    --disabled-foreground: var(--text-03);
-
-    /* Success, Warning, Info, Destructive */
-    --success: #10b981;
-    --success-foreground: #ffffff;
-    --warning: #f59e0b;
-    --warning-foreground: #ffffff;
-    --info: #3b82f6;
-    --info-foreground: #ffffff;
-    --destructive: #ef4444;
-    --destructive-foreground: #ffffff;
+    --background: oklch(1.0000 0 0);
+    --foreground: oklch(0.2101 0.0318 264.6645);
+    --card: oklch(1.0000 0 0);
+    --card-foreground: oklch(0.2101 0.0318 264.6645);
+    --popover: oklch(1.0000 0 0);
+    --popover-foreground: oklch(0.2101 0.0318 264.6645);
+    --primary: oklch(0.6716 0.1368 48.5130);
+    --primary-foreground: oklch(1.0000 0 0);
+    --secondary: oklch(0.5360 0.0398 196.0280);
+    --secondary-foreground: oklch(1.0000 0 0);
+    --muted: oklch(0.9670 0.0029 264.5419);
+    --muted-foreground: oklch(0.5510 0.0234 264.3637);
+    --accent: oklch(0.9491 0 0);
+    --accent-foreground: oklch(0.2101 0.0318 264.6645);
+    --destructive: oklch(0.6368 0.2078 25.3313);
+    --destructive-foreground: oklch(0.9851 0 0);
+    --border: oklch(0.9276 0.0058 264.5313);
+    --input: oklch(0.9276 0.0058 264.5313);
+    --ring: oklch(0.6716 0.1368 48.5130);
+    --chart-1: oklch(0.5940 0.0443 196.0233);
+    --chart-2: oklch(0.7214 0.1337 49.9802);
+    --chart-3: oklch(0.8721 0.0864 68.5474);
+    --chart-4: oklch(0.6268 0 0);
+    --chart-5: oklch(0.6830 0 0);
+    --sidebar: oklch(0.9670 0.0029 264.5419);
+    --sidebar-foreground: oklch(0.2101 0.0318 264.6645);
+    --sidebar-primary: oklch(0.6716 0.1368 48.5130);
+    --sidebar-primary-foreground: oklch(1.0000 0 0);
+    --sidebar-accent: oklch(1.0000 0 0);
+    --sidebar-accent-foreground: oklch(0.2101 0.0318 264.6645);
+    --sidebar-border: oklch(0.9276 0.0058 264.5313);
+    --sidebar-ring: oklch(0.6716 0.1368 48.5130);
+    --font-sans: Geist Mono, ui-monospace, monospace;
+    --font-serif: serif;
+    --font-mono: JetBrains Mono, monospace;
+    --radius: 0.75rem;
+    --shadow-x: 0px;
+    --shadow-y: 1px;
+    --shadow-blur: 4px;
+    --shadow-spread: 0px;
+    --shadow-opacity: 0.05;
+    --shadow-color: #000000;
+    --shadow-2xs: 0px 1px 4px 0px hsl(0 0% 0% / 0.03);
+    --shadow-xs: 0px 1px 4px 0px hsl(0 0% 0% / 0.03);
+    --shadow-sm: 0px 1px 4px 0px hsl(0 0% 0% / 0.05), 0px 1px 2px -1px hsl(0 0% 0% / 0.05);
+    --shadow: 0px 1px 4px 0px hsl(0 0% 0% / 0.05), 0px 1px 2px -1px hsl(0 0% 0% / 0.05);
+    --shadow-md: 0px 1px 4px 0px hsl(0 0% 0% / 0.05), 0px 2px 4px -1px hsl(0 0% 0% / 0.05);
+    --shadow-lg: 0px 1px 4px 0px hsl(0 0% 0% / 0.05), 0px 4px 6px -1px hsl(0 0% 0% / 0.05);
+    --shadow-xl: 0px 1px 4px 0px hsl(0 0% 0% / 0.05), 0px 8px 10px -1px hsl(0 0% 0% / 0.05);
+    --shadow-2xl: 0px 1px 4px 0px hsl(0 0% 0% / 0.13);
+    --tracking-normal: 0rem;
+    --spacing: 0.25rem;
 }
 
-/* Dark Theme - Pure Black (Vercel/Linear) */
 .dark {
-    /* Interactive - Dark (White primary on black) */
-    --interactive-01: #ffffff;
-    /* Pure white */
-    --interactive-02: #e5e5e5;
-    /* Light gray */
-    --interactive-03: #a3a3a3;
-    /* Medium gray */
-    --interactive-04: #171717;
-    /* Near black (selected) */
-
-    /* UI Colors - Dark (True black base) */
-    --ui-01: #0a0a0a;
-    /* Near black (Cards) */
-    --ui-02: #000000;
-    /* Pure black (Bg) - Vercel style */
-    --ui-03: #262626;
-    /* Dark border */
-    --ui-04: #171717;
-    /* Hover */
-    --ui-05: #404040;
-    /* Disabled */
-
-    /* Text - Dark (High contrast on black) */
-    --text-01: #ffffff;
-    /* Pure white (Headings) */
-    --text-02: #ededed;
-    /* Off-white (Body) */
-    --text-03: #a3a3a3;
-    /* Light gray (Secondary) */
-    --text-04: #000000;
-    /* Black (On light) */
-    --text-05: #d4d4d4;
-    /* Lighter gray (Labels) */
-
-    /* Backgrounds - Dark */
-    --background: #000000;
-    /* Pure black - Vercel style */
-    --background-hover: #0a0a0a;
-    --background-ui: #0a0a0a;
-
-    /* Support Colors - Dark (Brighter for visibility) */
-    --support-01: #f87171;
-    /* Red (Error) */
-    --support-02: #34d399;
-    /* Green (Success) */
-    --support-03: #fbbf24;
-    /* Amber (Warning) */
-    --support-04: #60a5fa;
-    /* Blue (Info) */
-
-    /* Shadows - Dark (Subtle, border-focused) */
-    --shadow-none: none;
-    --shadow-xs: 0 0 0 1px rgba(255, 255, 255, 0.05);
-    /* Subtle border glow */
-    --shadow-sm: 0 0 0 1px rgba(255, 255, 255, 0.08);
-    /* Light cards */
-    --shadow-card: 0 0 0 1px rgba(255, 255, 255, 0.1), 0 2px 4px 0 rgba(0, 0, 0, 0.5);
-    /* Bordered card */
-    --shadow-md: 0 0 0 1px rgba(255, 255, 255, 0.1), 0 4px 8px rgba(0, 0, 0, 0.6);
-    /* Standard elevation */
-    --shadow-lg: 0 0 0 1px rgba(255, 255, 255, 0.12), 0 8px 16px rgba(0, 0, 0, 0.7);
-    /* Floating panels */
-    --shadow-dropdown: 0 0 0 1px rgba(255, 255, 255, 0.1), 0 4px 12px rgba(0, 0, 0, 0.6);
-    /* Dropdowns */
-    --shadow-xl: 0 0 0 1px rgba(255, 255, 255, 0.15), 0 12px 24px rgba(0, 0, 0, 0.8);
-    /* Modals */
-
-    /* Semantic Mappings - Dark (Tailwind v4 compatible) */
-    --background: var(--ui-02);
-    --foreground: var(--text-02);
-    --card: var(--ui-01);
-    --card-foreground: var(--text-01);
-    --popover: var(--ui-01);
-    --popover-foreground: var(--text-01);
-    --primary: var(--interactive-01);
-    --primary-foreground: var(--text-04);
-    --secondary: var(--interactive-02);
-    --secondary-foreground: var(--text-04);
-    --accent: var(--interactive-04);
-    --accent-foreground: var(--interactive-01);
-    --muted: var(--ui-04);
-    --muted-foreground: var(--text-03);
-    --border: var(--ui-03);
-    --input: var(--ui-01);
-    --ring: var(--interactive-01);
-    --disabled: var(--ui-05);
-    --disabled-foreground: var(--text-03);
-
-    /* Support - Dark */
-    --success: #10b981;
-    --success-foreground: #ffffff;
-    --warning: #f59e0b;
-    --warning-foreground: #000000;
-    --info: #3b82f6;
-    --info-foreground: #ffffff;
-    --destructive: #ef4444;
-    --destructive-foreground: #ffffff;
+    --background: oklch(0.1797 0.0043 308.1928);
+    --foreground: oklch(0.8109 0 0);
+    --card: oklch(0.1822 0 0);
+    --card-foreground: oklch(0.8109 0 0);
+    --popover: oklch(0.1797 0.0043 308.1928);
+    --popover-foreground: oklch(0.8109 0 0);
+    --primary: oklch(0.7214 0.1337 49.9802);
+    --primary-foreground: oklch(0.1797 0.0043 308.1928);
+    --secondary: oklch(0.5940 0.0443 196.0233);
+    --secondary-foreground: oklch(0.1797 0.0043 308.1928);
+    --muted: oklch(0.2520 0 0);
+    --muted-foreground: oklch(0.6268 0 0);
+    --accent: oklch(0.3211 0 0);
+    --accent-foreground: oklch(0.8109 0 0);
+    --destructive: oklch(0.5940 0.0443 196.0233);
+    --destructive-foreground: oklch(0.1797 0.0043 308.1928);
+    --border: oklch(0.2520 0 0);
+    --input: oklch(0.2520 0 0);
+    --ring: oklch(0.7214 0.1337 49.9802);
+    --chart-1: oklch(0.5940 0.0443 196.0233);
+    --chart-2: oklch(0.7214 0.1337 49.9802);
+    --chart-3: oklch(0.8721 0.0864 68.5474);
+    --chart-4: oklch(0.6268 0 0);
+    --chart-5: oklch(0.6830 0 0);
+    --sidebar: oklch(0.1822 0 0);
+    --sidebar-foreground: oklch(0.8109 0 0);
+    --sidebar-primary: oklch(0.7214 0.1337 49.9802);
+    --sidebar-primary-foreground: oklch(0.1797 0.0043 308.1928);
+    --sidebar-accent: oklch(0.3211 0 0);
+    --sidebar-accent-foreground: oklch(0.8109 0 0);
+    --sidebar-border: oklch(0.2520 0 0);
+    --sidebar-ring: oklch(0.7214 0.1337 49.9802);
+    --font-sans: Geist Mono, ui-monospace, monospace;
+    --font-serif: serif;
+    --font-mono: JetBrains Mono, monospace;
+    --radius: 0.75rem;
+    --shadow-x: 0px;
+    --shadow-y: 1px;
+    --shadow-blur: 4px;
+    --shadow-spread: 0px;
+    --shadow-opacity: 0.05;
+    --shadow-color: #000000;
+    --shadow-2xs: 0px 1px 4px 0px hsl(0 0% 0% / 0.03);
+    --shadow-xs: 0px 1px 4px 0px hsl(0 0% 0% / 0.03);
+    --shadow-sm: 0px 1px 4px 0px hsl(0 0% 0% / 0.05), 0px 1px 2px -1px hsl(0 0% 0% / 0.05);
+    --shadow: 0px 1px 4px 0px hsl(0 0% 0% / 0.05), 0px 1px 2px -1px hsl(0 0% 0% / 0.05);
+    --shadow-md: 0px 1px 4px 0px hsl(0 0% 0% / 0.05), 0px 2px 4px -1px hsl(0 0% 0% / 0.05);
+    --shadow-lg: 0px 1px 4px 0px hsl(0 0% 0% / 0.05), 0px 4px 6px -1px hsl(0 0% 0% / 0.05);
+    --shadow-xl: 0px 1px 4px 0px hsl(0 0% 0% / 0.05), 0px 8px 10px -1px hsl(0 0% 0% / 0.05);
+    --shadow-2xl: 0px 1px 4px 0px hsl(0 0% 0% / 0.13);
 }
 
 @theme inline {
-    /* Colors (Tailwind v4 compatible) */
-    --background: var(--background);
-    --foreground: var(--foreground);
-    --card: var(--card);
-    --card-foreground: var(--card-foreground);
-    --popover: var(--popover);
-    --popover-foreground: var(--popover-foreground);
-    --primary: var(--primary);
-    --primary-foreground: var(--primary-foreground);
-    --secondary: var(--secondary);
-    --secondary-foreground: var(--secondary-foreground);
-    --muted: var(--muted);
-    --muted-foreground: var(--muted-foreground);
-    --accent: var(--accent);
-    --accent-foreground: var(--accent-foreground);
-    --destructive: var(--destructive);
-    --destructive-foreground: var(--destructive-foreground);
-    --success: var(--success);
-    --success-foreground: var(--success-foreground);
-    --warning: var(--warning);
-    --warning-foreground: var(--warning-foreground);
-    --info: var(--info);
-    --info-foreground: var(--info-foreground);
-    --disabled: var(--disabled);
-    --disabled-foreground: var(--disabled-foreground);
-    --border: var(--border);
-    --input: var(--input);
-    --ring: var(--ring);
+    --color-background: var(--background);
+    --color-foreground: var(--foreground);
+    --color-card: var(--card);
+    --color-card-foreground: var(--card-foreground);
+    --color-popover: var(--popover);
+    --color-popover-foreground: var(--popover-foreground);
+    --color-primary: var(--primary);
+    --color-primary-foreground: var(--primary-foreground);
+    --color-secondary: var(--secondary);
+    --color-secondary-foreground: var(--secondary-foreground);
+    --color-muted: var(--muted);
+    --color-muted-foreground: var(--muted-foreground);
+    --color-accent: var(--accent);
+    --color-accent-foreground: var(--accent-foreground);
+    --color-destructive: var(--destructive);
+    --color-destructive-foreground: var(--destructive-foreground);
+    --color-border: var(--border);
+    --color-input: var(--input);
+    --color-ring: var(--ring);
+    --color-chart-1: var(--chart-1);
+    --color-chart-2: var(--chart-2);
+    --color-chart-3: var(--chart-3);
+    --color-chart-4: var(--chart-4);
+    --color-chart-5: var(--chart-5);
+    --color-sidebar: var(--sidebar);
+    --color-sidebar-foreground: var(--sidebar-foreground);
+    --color-sidebar-primary: var(--sidebar-primary);
+    --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+    --color-sidebar-accent: var(--sidebar-accent);
+    --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+    --color-sidebar-border: var(--sidebar-border);
+    --color-sidebar-ring: var(--sidebar-ring);
 
-    /* Typography */
     --font-sans: var(--font-sans);
-    --font-serif: var(--font-serif);
     --font-mono: var(--font-mono);
+    --font-serif: var(--font-serif);
 
-    /* Sizing & Spacing */
-    --spacing-0: var(--spacing-0);
-    --spacing-1: var(--spacing-1);
-    --spacing-2: var(--spacing-2);
-    --spacing-3: var(--spacing-3);
-    --spacing-4: var(--spacing-4);
-    --spacing-5: var(--spacing-5);
-    --spacing-6: var(--spacing-6);
-    --spacing-7: var(--spacing-7);
-    --spacing-8: var(--spacing-8);
-    --spacing-9: var(--spacing-9);
-    --spacing-10: var(--spacing-10);
-    --spacing-12: var(--spacing-12);
-    --spacing-16: var(--spacing-16);
-    --spacing-20: var(--spacing-20);
-    --spacing-24: var(--spacing-24);
-    --spacing-32: var(--spacing-32);
+    --radius-sm: calc(var(--radius) - 4px);
+    --radius-md: calc(var(--radius) - 2px);
+    --radius-lg: var(--radius);
+    --radius-xl: calc(var(--radius) + 4px);
 
-    /* Radius */
-    --radius-none: 0;
-    --radius-xs: var(--radius-xs);
-    --radius-sm: var(--radius-sm);
-    --radius-md: var(--radius-md);
-    --radius-lg: var(--radius-lg);
-    --radius-xl: var(--radius-xl);
-    --radius-full: var(--radius-full);
-
-    /* Shadows */
-    --shadow-none: var(--shadow-none);
+    --shadow-2xs: var(--shadow-2xs);
     --shadow-xs: var(--shadow-xs);
     --shadow-sm: var(--shadow-sm);
-    --shadow-card: var(--shadow-card);
+    --shadow: var(--shadow);
     --shadow-md: var(--shadow-md);
     --shadow-lg: var(--shadow-lg);
-    --shadow-dropdown: var(--shadow-dropdown);
     --shadow-xl: var(--shadow-xl);
+    --shadow-2xl: var(--shadow-2xl);
 
-    /* Typography Tokens */
-    --font-size-xs: var(--font-size-xs);
-    --font-size-sm: var(--font-size-sm);
-    --font-size-base: var(--font-size-base);
-    --font-size-lg: var(--font-size-lg);
-    --font-size-xl: var(--font-size-xl);
-    --font-size-2xl: var(--font-size-2xl);
-    --font-weight-light: var(--font-weight-light);
-    --font-weight-normal: var(--font-weight-normal);
-    --font-weight-medium: var(--font-weight-medium);
-    --font-weight-semibold: var(--font-weight-semibold);
-    --font-weight-bold: var(--font-weight-bold);
-    --letter-spacing-tighter: var(--letter-spacing-tighter);
-    --letter-spacing-tight: var(--letter-spacing-tight);
-    --letter-spacing-normal: var(--letter-spacing-normal);
-    --letter-spacing-wide: var(--letter-spacing-wide);
-    --line-height-none: var(--line-height-none);
-    --line-height-tight: var(--line-height-tight);
-    --line-height-snug: var(--line-height-snug);
-    --line-height-normal: var(--line-height-normal);
-    --line-height-relaxed: var(--line-height-relaxed);
-    --line-height-loose: var(--line-height-loose);
+    --tracking-tighter: calc(var(--tracking-normal) - 0.05em);
+    --tracking-tight: calc(var(--tracking-normal) - 0.025em);
+    --tracking-normal: var(--tracking-normal);
+    --tracking-wide: calc(var(--tracking-normal) + 0.025em);
+    --tracking-wider: calc(var(--tracking-normal) + 0.05em);
+    --tracking-widest: calc(var(--tracking-normal) + 0.1em);
 }
 
 body {
-    @apply font-sans text-base;
-    font-weight: var(--font-weight-normal);
-    letter-spacing: var(--letter-spacing-normal);
-    line-height: var(--line-height-normal);
-    /* Mitigation for OWASP A04:2025 – Insecure Design: Apply consistent typography for accessibility and readability */
-}
-
-/* Material Design Motion - Standard Easing Curves */
-@keyframes slideDown {
-    from {
-        opacity: 0;
-        transform: translateY(-10px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-@keyframes slideInRight {
-    from {
-        transform: translateX(100%);
-    }
-    to {
-        transform: translateX(0);
-    }
-}
-
-@keyframes slideUp {
-    from {
-        opacity: 0;
-        transform: translateY(20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-    }
-    to {
-        opacity: 1;
-    }
-}
-
-@keyframes scaleIn {
-    from {
-        opacity: 0;
-        transform: scale(0.95);
-    }
-    to {
-        opacity: 1;
-        transform: scale(1);
-    }
-}
-
-@keyframes shimmer {
-    0% {
-        background-position: -1000px 0;
-    }
-    100% {
-        background-position: 1000px 0;
-    }
-}
-
-/* Utility classes for animations */
-.animate-slideDown {
-    animation: slideDown 300ms cubic-bezier(0.4, 0.0, 0.2, 1);
-}
-
-.animate-slideInRight {
-    animation: slideInRight 400ms cubic-bezier(0.4, 0.0, 0.2, 1);
-}
-
-.animate-slideUp {
-    animation: slideUp 400ms cubic-bezier(0.4, 0.0, 0.2, 1);
-}
-
-.animate-fadeIn {
-    animation: fadeIn 300ms cubic-bezier(0.4, 0.0, 0.2, 1);
-}
-
-.animate-scaleIn {
-    animation: scaleIn 200ms cubic-bezier(0.4, 0.0, 0.2, 1);
-}
-
-/* Page Transitions */
-.page-transition {
-    animation: fadeIn 400ms cubic-bezier(0.4, 0.0, 0.2, 1);
-}
-
-/* Skeleton Loading Animation */
-.skeleton {
-    background: linear-gradient(
-        90deg,
-        var(--muted) 0%,
-        var(--muted-foreground) 20%,
-        var(--muted) 40%,
-        var(--muted) 100%
-    );
-    background-size: 2000px 100%;
-    animation: shimmer 2s infinite linear;
-    border-radius: var(--radius-md);
+    letter-spacing: var(--tracking-normal);
 }
 
 /* Input/Textarea Dark Mode Fix */

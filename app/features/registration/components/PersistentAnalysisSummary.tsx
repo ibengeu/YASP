@@ -29,7 +29,7 @@ export function PersistentAnalysisSummary({ inferredData, currentStep, className
     <div className={className}>
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <CheckCircle2 className="h-4 w-4 text-green-600" />
+          <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
           <span className="text-sm font-medium">
             Spec analyzed: {inferredData.fieldsPopulated}/{inferredData.totalFields} fields auto-filled
           </span>

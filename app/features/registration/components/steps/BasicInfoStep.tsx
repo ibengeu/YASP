@@ -36,7 +36,7 @@ export function BasicInfoStep({ register, errors, fieldSources, setFieldSources,
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Badge variant="secondary" className="text-xs bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-300">
+                  <Badge variant="secondary" className="text-xs bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
                     <CheckCircle2 className="h-3 w-3 mr-1" />
                     Auto-filled from spec
                   </Badge>
@@ -55,12 +55,12 @@ export function BasicInfoStep({ register, errors, fieldSources, setFieldSources,
           })}
           placeholder="my-payment-api"
           className={cn(
-            fieldSources.name === 'inferred' && 'border-green-500 focus-visible:ring-green-500',
+            fieldSources.name === 'inferred' && 'border-emerald-500 focus-visible:ring-emerald-500',
             fieldSources.name === 'manual' && formValues.name && 'border-blue-500',
-            errors.name && 'border-red-500'
+            errors.name && 'border-destructive'
           )}
         />
-        {errors.name && <p className="text-xs text-red-500 mt-1">{errors.name.message}</p>}
+        {errors.name && <p className="text-xs text-destructive mt-1">{errors.name.message}</p>}
       </div>
 
       {/* Description */}
@@ -71,7 +71,7 @@ export function BasicInfoStep({ register, errors, fieldSources, setFieldSources,
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Badge variant="secondary" className="text-xs bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-300">
+                  <Badge variant="secondary" className="text-xs bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
                     <CheckCircle2 className="h-3 w-3 mr-1" />
                     Auto-filled from spec
                   </Badge>
@@ -91,12 +91,12 @@ export function BasicInfoStep({ register, errors, fieldSources, setFieldSources,
           rows={4}
           placeholder="Describe what this API does..."
           className={cn(
-            fieldSources.description === 'inferred' && 'border-green-500 focus-visible:ring-green-500',
+            fieldSources.description === 'inferred' && 'border-emerald-500 focus-visible:ring-emerald-500',
             fieldSources.description === 'manual' && formValues.description && 'border-blue-500',
-            errors.description && 'border-red-500'
+            errors.description && 'border-destructive'
           )}
         />
-        {errors.description && <p className="text-xs text-red-500 mt-1">{errors.description.message}</p>}
+        {errors.description && <p className="text-xs text-destructive mt-1">{errors.description.message}</p>}
       </div>
 
       {/* Version */}
@@ -107,7 +107,7 @@ export function BasicInfoStep({ register, errors, fieldSources, setFieldSources,
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Badge variant="secondary" className="text-xs bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-300">
+                  <Badge variant="secondary" className="text-xs bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
                     <CheckCircle2 className="h-3 w-3 mr-1" />
                     Auto-filled from spec
                   </Badge>
@@ -126,12 +126,12 @@ export function BasicInfoStep({ register, errors, fieldSources, setFieldSources,
           })}
           placeholder="v1.0.0"
           className={cn(
-            fieldSources.version === 'inferred' && 'border-green-500 focus-visible:ring-green-500',
+            fieldSources.version === 'inferred' && 'border-emerald-500 focus-visible:ring-emerald-500',
             fieldSources.version === 'manual' && formValues.version && 'border-blue-500',
-            errors.version && 'border-red-500'
+            errors.version && 'border-destructive'
           )}
         />
-        {errors.version && <p className="text-xs text-red-500 mt-1">{errors.version.message}</p>}
+        {errors.version && <p className="text-xs text-destructive mt-1">{errors.version.message}</p>}
       </div>
 
       {/* Base URL */}
@@ -142,7 +142,7 @@ export function BasicInfoStep({ register, errors, fieldSources, setFieldSources,
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Badge variant="secondary" className="text-xs bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-300">
+                  <Badge variant="secondary" className="text-xs bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
                     <CheckCircle2 className="h-3 w-3 mr-1" />
                     Auto-filled from spec
                   </Badge>
@@ -162,13 +162,13 @@ export function BasicInfoStep({ register, errors, fieldSources, setFieldSources,
           })}
           placeholder="https://api.example.com"
           className={cn(
-            fieldSources.endpoint === 'inferred' && 'border-green-500 focus-visible:ring-green-500',
+            fieldSources.endpoint === 'inferred' && 'border-emerald-500 focus-visible:ring-emerald-500',
             fieldSources.endpoint === 'manual' && formValues.endpoint && 'border-blue-500',
-            errors.endpoint && 'border-red-500'
+            errors.endpoint && 'border-destructive'
           )}
         />
         <p className="text-xs text-muted-foreground mt-1">Your API's root URL without any path</p>
-        {errors.endpoint && <p className="text-xs text-red-500 mt-1">{errors.endpoint.message}</p>}
+        {errors.endpoint && <p className="text-xs text-destructive mt-1">{errors.endpoint.message}</p>}
       </div>
     </div>
   );
