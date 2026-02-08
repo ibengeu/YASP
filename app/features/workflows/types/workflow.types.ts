@@ -10,7 +10,6 @@
  */
 export interface WorkflowDocument {
   id: string;
-  specId: string;
   name: string;
   description?: string;
   steps: WorkflowStep[];
@@ -30,6 +29,7 @@ export interface WorkflowStep {
   request: WorkflowRequest;
   extractions: VariableExtraction[];
   specEndpoint?: {
+    specId: string;
     path: string;
     method: string;
     operationId?: string;
@@ -46,6 +46,7 @@ export interface WorkflowRequest {
   queryParams: Record<string, string>;
   body?: string;
   auth?: WorkflowAuth;
+  serverUrl?: string;
 }
 
 /**

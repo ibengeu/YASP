@@ -6,6 +6,19 @@
 import { useState, useCallback, useRef } from 'react';
 import { Plus } from 'lucide-react';
 import { toast } from 'sonner';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
 import { Button } from '@/components/ui/button';
 import { WorkflowToolbar } from './WorkflowToolbar';
@@ -17,12 +30,13 @@ import { useWorkflowStore } from '../store/workflow.store';
 import { WorkflowEngine } from '../services/workflow-engine';
 import { idbStorage } from '@/core/storage/idb-storage';
 import type { WorkflowStep } from '../types/workflow.types';
+import type { SpecEntry } from '@/routes/workflows';
 
 interface WorkflowBuilderProps {
-  spec: any;
+  specs: Map<string, SpecEntry>;
 }
 
-export function WorkflowBuilder({ spec }: WorkflowBuilderProps) {
+export function WorkflowBuilder({ specs }: WorkflowBuilderProps) {
   const [showEndpointPicker, setShowEndpointPicker] = useState(false);
   const engineRef = useRef<WorkflowEngine | null>(null);
 
@@ -34,12 +48,28 @@ export function WorkflowBuilder({ spec }: WorkflowBuilderProps) {
     updateStep,
     removeStep,
     reorderStep,
+    reorderSteps,
     addExtraction,
     removeExtraction,
     getAvailableVariables,
     setExecution,
     resetExecution,
   } = useWorkflowStore();
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(KeyboardSensor),
+  );
+
+  const handleDragEnd = useCallback((event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id || !currentWorkflow) return;
+    const fromIndex = currentWorkflow.steps.findIndex((s) => s.id === active.id);
+    const toIndex = currentWorkflow.steps.findIndex((s) => s.id === over.id);
+    if (fromIndex !== -1 && toIndex !== -1) {
+      reorderSteps(fromIndex, toIndex);
+    }
+  }, [currentWorkflow, reorderSteps]);
 
   if (!currentWorkflow) return null;
 
@@ -159,43 +189,58 @@ export function WorkflowBuilder({ spec }: WorkflowBuilderProps) {
                 </Button>
               </div>
             ) : (
-              <div>
-                {currentWorkflow.steps.map((step, index) => {
-                  const result = execution.results.find((r) => r.stepId === step.id);
-                  return (
-                    <WorkflowStepCard
-                      key={step.id}
-                      step={step}
-                      index={index}
-                      totalSteps={currentWorkflow.steps.length}
-                      executionResult={result}
-                      availableVariables={getAvailableVariables(index)}
-                      onUpdate={(updates) => updateStep(step.id, updates)}
-                      onRemove={() => removeStep(step.id)}
-                      onReorder={(dir) => reorderStep(step.id, dir)}
-                      onDuplicate={() => handleDuplicate(step)}
-                      onAddExtraction={(ext) => addExtraction(step.id, ext)}
-                      onRemoveExtraction={(extId) => removeExtraction(step.id, extId)}
-                    />
-                  );
-                })}
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragEnd={handleDragEnd}
+              >
+                <SortableContext
+                  items={currentWorkflow.steps.map((s) => s.id)}
+                  strategy={verticalListSortingStrategy}
+                >
+                  <div>
+                    {currentWorkflow.steps.map((step, index) => {
+                      const result = execution.results.find((r) => r.stepId === step.id);
+                      const specName = step.specEndpoint?.specId
+                        ? specs.get(step.specEndpoint.specId)?.title
+                        : undefined;
+                      return (
+                        <WorkflowStepCard
+                          key={step.id}
+                          step={step}
+                          index={index}
+                          totalSteps={currentWorkflow.steps.length}
+                          executionResult={result}
+                          availableVariables={getAvailableVariables(index)}
+                          specName={specName}
+                          onUpdate={(updates) => updateStep(step.id, updates)}
+                          onRemove={() => removeStep(step.id)}
+                          onReorder={(dir) => reorderStep(step.id, dir)}
+                          onDuplicate={() => handleDuplicate(step)}
+                          onAddExtraction={(ext) => addExtraction(step.id, ext)}
+                          onRemoveExtraction={(extId) => removeExtraction(step.id, extId)}
+                        />
+                      );
+                    })}
 
-                {/* Add Step button at bottom */}
-                <div className="flex gap-3">
-                  <div className="flex flex-col items-center">
-                    <div className="w-3 h-3 rounded-full bg-muted-foreground/20 border-2 border-background" />
+                    {/* Add Step button at bottom */}
+                    <div className="flex gap-3">
+                      <div className="flex flex-col items-center">
+                        <div className="w-3 h-3 rounded-full bg-muted-foreground/20 border-2 border-background" />
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setShowEndpointPicker(true)}
+                        className="text-xs border-dashed"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        Add Step
+                      </Button>
+                    </div>
                   </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowEndpointPicker(true)}
-                    className="text-xs border-dashed"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                    Add Step
-                  </Button>
-                </div>
-              </div>
+                </SortableContext>
+              </DndContext>
             )}
           </div>
         </ResizablePanel>
@@ -223,7 +268,7 @@ export function WorkflowBuilder({ spec }: WorkflowBuilderProps) {
       <EndpointPicker
         open={showEndpointPicker}
         onClose={() => setShowEndpointPicker(false)}
-        spec={spec}
+        specs={specs}
         onSelect={handleAddStep}
       />
     </div>

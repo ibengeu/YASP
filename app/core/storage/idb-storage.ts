@@ -14,7 +14,7 @@ import type {
 import type { WorkflowDocument } from '@/features/workflows/types/workflow.types';
 
 const DB_NAME = 'yasp_db_v1';
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 
 export class IDBStorage {
   private db: IDBDatabase | null = null;
@@ -319,17 +319,16 @@ export class IDBStorage {
     });
   }
 
-  async getWorkflowsBySpecId(specId: string): Promise<WorkflowDocument[]> {
+  async getAllWorkflows(): Promise<WorkflowDocument[]> {
     const db = await this.init();
 
     return new Promise((resolve, reject) => {
       const tx = db.transaction(['workflows'], 'readonly');
       const store = tx.objectStore('workflows');
-      const index = store.index('specId');
-      const request = index.getAll(specId);
+      const request = store.getAll();
 
       request.onsuccess = () => resolve(request.result || []);
-      request.onerror = () => reject(new Error(`Failed to get workflows for spec: ${request.error?.message}`));
+      request.onerror = () => reject(new Error(`Failed to get all workflows: ${request.error?.message}`));
     });
   }
 
@@ -372,10 +371,24 @@ export class IDBStorage {
     });
   }
 
-  async deleteWorkflowsBySpecId(specId: string): Promise<void> {
-    const workflows = await this.getWorkflowsBySpecId(specId);
-    for (const workflow of workflows) {
-      await this.deleteWorkflow(workflow.id);
+  /**
+   * Remove steps referencing a deleted spec from all workflows.
+   * If a workflow has no steps remaining after cleanup, delete the workflow entirely.
+   */
+  async removeSpecFromWorkflows(specId: string): Promise<void> {
+    const allWorkflows = await this.getAllWorkflows();
+    for (const workflow of allWorkflows) {
+      const filtered = workflow.steps.filter(
+        (step) => step.specEndpoint?.specId !== specId
+      );
+      if (filtered.length === 0 && workflow.steps.length > 0) {
+        // All steps were from this spec — delete the workflow
+        await this.deleteWorkflow(workflow.id);
+      } else if (filtered.length < workflow.steps.length) {
+        // Some steps removed — update with reindexed order
+        const reordered = filtered.map((s, i) => ({ ...s, order: i }));
+        await this.updateWorkflow(workflow.id, { steps: reordered });
+      }
     }
   }
 

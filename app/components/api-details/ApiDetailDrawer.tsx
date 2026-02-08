@@ -640,7 +640,7 @@ export function ApiDetailDrawer({open, onClose, specId}: ApiDetailDrawerProps) {
                         <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => navigate(`/workflows/${specId}`)}
+                            onClick={() => navigate('/workflows')}
                             className="text-xs"
                         >
                             <GitBranch className="w-3.5 h-3.5 text-foreground"/>

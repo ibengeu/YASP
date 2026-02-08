@@ -1,6 +1,6 @@
 /**
  * EndpointPicker - Dialog with command palette for choosing spec endpoints
- * Groups by tag, shows method badge + path, pre-fills step from spec schema
+ * Cross-collection: groups endpoints by spec title, then by tag
  */
 
 import { useMemo } from 'react';
@@ -22,49 +22,64 @@ import {
 import { cn } from '@/lib/utils';
 import { getMethodColor } from '@/lib/constants';
 import type { WorkflowStep } from '../types/workflow.types';
+import type { SpecEntry } from '@/routes/workflows';
 
 const HTTP_METHODS = ['get', 'post', 'put', 'delete', 'patch'] as const;
 
 interface ParsedEndpoint {
+  specId: string;
+  specTitle: string;
+  serverUrl: string;
   path: string;
   method: string;
   summary?: string;
   tags: string[];
   operation: any;
+  spec: any;
 }
 
 interface EndpointPickerProps {
   open: boolean;
   onClose: () => void;
-  spec: any;
+  specs: Map<string, SpecEntry>;
   onSelect: (step: WorkflowStep) => void;
 }
 
-function parseEndpoints(spec: any): ParsedEndpoint[] {
-  if (!spec?.paths) return [];
+function parseAllEndpoints(specs: Map<string, SpecEntry>): ParsedEndpoint[] {
   const endpoints: ParsedEndpoint[] = [];
-  for (const [path, pathItem] of Object.entries(spec.paths) as [string, any][]) {
-    for (const method of HTTP_METHODS) {
-      if (pathItem[method]) {
-        endpoints.push({
-          path,
-          method: method.toUpperCase(),
-          summary: pathItem[method].summary,
-          tags: pathItem[method].tags || ['default'],
-          operation: pathItem[method],
-        });
+  for (const [specId, entry] of specs) {
+    const spec = entry.parsed;
+    if (!spec?.paths) continue;
+    const serverUrl = spec.servers?.[0]?.url || '';
+    for (const [path, pathItem] of Object.entries(spec.paths) as [string, any][]) {
+      for (const method of HTTP_METHODS) {
+        if (pathItem[method]) {
+          endpoints.push({
+            specId,
+            specTitle: entry.title,
+            serverUrl,
+            path,
+            method: method.toUpperCase(),
+            summary: pathItem[method].summary,
+            tags: pathItem[method].tags || ['default'],
+            operation: pathItem[method],
+            spec,
+          });
+        }
       }
     }
   }
   return endpoints;
 }
 
-function groupByTag(endpoints: ParsedEndpoint[]): Map<string, ParsedEndpoint[]> {
+/** Group by "SpecTitle > Tag" */
+function groupBySpecAndTag(endpoints: ParsedEndpoint[]): Map<string, ParsedEndpoint[]> {
   const grouped = new Map<string, ParsedEndpoint[]>();
   for (const ep of endpoints) {
     const tag = ep.tags[0] || 'default';
-    if (!grouped.has(tag)) grouped.set(tag, []);
-    grouped.get(tag)!.push(ep);
+    const key = `${ep.specTitle} > ${tag}`;
+    if (!grouped.has(key)) grouped.set(key, []);
+    grouped.get(key)!.push(ep);
   }
   return grouped;
 }
@@ -104,16 +119,16 @@ function generateBodyFromSchema(schema: any, depth = 0, spec?: any): string {
   return '{\n  \n}';
 }
 
-export function EndpointPicker({ open, onClose, spec, onSelect }: EndpointPickerProps) {
-  const endpoints = useMemo(() => parseEndpoints(spec), [spec]);
-  const grouped = useMemo(() => groupByTag(endpoints), [endpoints]);
+export function EndpointPicker({ open, onClose, specs, onSelect }: EndpointPickerProps) {
+  const endpoints = useMemo(() => parseAllEndpoints(specs), [specs]);
+  const grouped = useMemo(() => groupBySpecAndTag(endpoints), [endpoints]);
 
   const handleSelect = (ep: ParsedEndpoint) => {
     // Build headers from spec parameters
     const headers: Record<string, string> = {};
     const queryParams: Record<string, string> = {};
     const params = [
-      ...(spec?.paths?.[ep.path]?.parameters || []),
+      ...(ep.spec?.paths?.[ep.path]?.parameters || []),
       ...(ep.operation?.parameters || []),
     ];
     for (const param of params) {
@@ -130,7 +145,7 @@ export function EndpointPicker({ open, onClose, spec, onSelect }: EndpointPicker
     let body: string | undefined;
     const reqBody = ep.operation?.requestBody;
     if (reqBody?.content?.['application/json']?.schema) {
-      body = generateBodyFromSchema(reqBody.content['application/json'].schema, 0, spec);
+      body = generateBodyFromSchema(reqBody.content['application/json'].schema, 0, ep.spec);
     }
 
     const step: WorkflowStep = {
@@ -143,9 +158,11 @@ export function EndpointPicker({ open, onClose, spec, onSelect }: EndpointPicker
         headers,
         queryParams,
         body,
+        serverUrl: ep.serverUrl || undefined,
       },
       extractions: [],
       specEndpoint: {
+        specId: ep.specId,
         path: ep.path,
         method: ep.method.toLowerCase(),
         operationId: ep.operation?.operationId,
@@ -167,13 +184,13 @@ export function EndpointPicker({ open, onClose, spec, onSelect }: EndpointPicker
           <CommandInput placeholder="Search endpoints..." />
           <CommandList className="max-h-80">
             <CommandEmpty>No endpoints found.</CommandEmpty>
-            {Array.from(grouped.entries()).map(([tag, eps]) => (
-              <CommandGroup key={tag} heading={tag}>
+            {Array.from(grouped.entries()).map(([heading, eps]) => (
+              <CommandGroup key={heading} heading={heading}>
                 {eps.map((ep) => {
                   const colors = getMethodColor(ep.method);
                   return (
                     <CommandItem
-                      key={`${ep.method}-${ep.path}`}
+                      key={`${ep.specId}-${ep.method}-${ep.path}`}
                       onSelect={() => handleSelect(ep)}
                       className="flex items-center gap-2 cursor-pointer"
                     >

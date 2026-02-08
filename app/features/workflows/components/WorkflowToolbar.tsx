@@ -3,9 +3,9 @@
  * Shows workflow name, run/stop/save buttons, back navigation
  */
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router';
-import { ArrowLeft, Play, Square, Save, Settings } from 'lucide-react';
+import { ArrowLeft, Play, Square, Save, Settings, Download, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -16,7 +16,9 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
+import { toast } from 'sonner';
 import type { WorkflowDocument, WorkflowAuth } from '../types/workflow.types';
+import { exportWorkflow, importWorkflow } from '../services/workflow-io';
 import {
   Select,
   SelectContent,
@@ -33,6 +35,7 @@ interface WorkflowToolbarProps {
   onStop: () => void;
   onSave: () => void;
   onSettingsChange: (updates: { serverUrl?: string; sharedAuth?: WorkflowAuth }) => void;
+  onImport?: (workflow: Omit<WorkflowDocument, 'id' | 'created_at' | 'updated_at'>) => void;
 }
 
 export function WorkflowToolbar({
@@ -43,9 +46,40 @@ export function WorkflowToolbar({
   onStop,
   onSave,
   onSettingsChange,
+  onImport,
 }: WorkflowToolbarProps) {
   const navigate = useNavigate();
   const [showSettings, setShowSettings] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleExport = () => {
+    const json = exportWorkflow(workflow);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${workflow.name.replace(/\s+/g, '-').toLowerCase()}.workflow.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleImportFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const imported = importWorkflow(reader.result as string);
+        onImport?.(imported);
+        toast.success('Workflow imported');
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : 'Failed to import workflow');
+      }
+    };
+    reader.readAsText(file);
+    // Reset file input so same file can be re-imported
+    e.target.value = '';
+  };
   const [serverUrl, setServerUrl] = useState(workflow.serverUrl);
   const [authType, setAuthType] = useState<WorkflowAuth['type']>(
     workflow.sharedAuth?.type || 'none'
@@ -117,6 +151,31 @@ export function WorkflowToolbar({
             <Save className="w-3.5 h-3.5" />
             Save
           </Button>
+
+          <Button
+            variant="ghost"
+            size="icon-xs"
+            onClick={handleExport}
+            title="Export workflow"
+          >
+            <Download className="w-4 h-4 text-foreground" />
+          </Button>
+
+          <Button
+            variant="ghost"
+            size="icon-xs"
+            onClick={() => fileInputRef.current?.click()}
+            title="Import workflow"
+          >
+            <Upload className="w-4 h-4 text-foreground" />
+          </Button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".json"
+            className="hidden"
+            onChange={handleImportFile}
+          />
 
           <Button
             variant="ghost"

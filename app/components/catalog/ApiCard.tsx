@@ -151,7 +151,7 @@ export function ApiCard({ spec, onClick, onDelete }: ApiCardProps) {
         <button
           onClick={(e) => {
             e.stopPropagation();
-            navigate(`/workflows/${spec.id}`);
+            navigate('/workflows');
           }}
           className="p-1 rounded hover:bg-primary/10 text-muted-foreground hover:text-primary"
           title="Workflows"

@@ -3,11 +3,13 @@
  * Railway-track dot + method badge + path + extractions + reorder controls
  */
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import {
   ChevronUp, ChevronDown, Trash2, Copy, ChevronDown as Expand, ChevronUp as Collapse,
-  Variable,
+  Variable, GripVertical,
 } from 'lucide-react';
+import { useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -15,6 +17,7 @@ import { cn } from '@/lib/utils';
 import { getMethodColor } from '@/lib/constants';
 import type { WorkflowStep, StepExecutionResult, VariableExtraction } from '../types/workflow.types';
 import { ExtractionEditor } from './ExtractionEditor';
+import { pulseElement, successFlash, failureShake } from '@/lib/animations';
 
 interface WorkflowStepCardProps {
   step: WorkflowStep;
@@ -22,6 +25,7 @@ interface WorkflowStepCardProps {
   totalSteps: number;
   executionResult?: StepExecutionResult;
   availableVariables: { name: string; stepName: string; stepId: string }[];
+  specName?: string;
   onUpdate: (updates: Partial<WorkflowStep>) => void;
   onRemove: () => void;
   onReorder: (direction: 'up' | 'down') => void;
@@ -36,6 +40,7 @@ export function WorkflowStepCard({
   totalSteps,
   executionResult,
   availableVariables: _availableVariables,
+  specName,
   onUpdate,
   onRemove,
   onReorder,
@@ -43,6 +48,42 @@ export function WorkflowStepCard({
   onAddExtraction,
   onRemoveExtraction,
 }: WorkflowStepCardProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: step.id });
+
+  const sortableStyle = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : undefined,
+    zIndex: isDragging ? 10 : undefined,
+  };
+
+  const cardRef = useRef<HTMLDivElement>(null);
+  const prevStatusRef = useRef<string | undefined>(undefined);
+
+  useEffect(() => {
+    const status = executionResult?.status;
+    const prevStatus = prevStatusRef.current;
+    prevStatusRef.current = status;
+
+    if (!cardRef.current || status === prevStatus) return;
+
+    if (status === 'running') {
+      const anim = pulseElement(cardRef.current);
+      return () => { anim.pause(); };
+    } else if (status === 'success') {
+      successFlash(cardRef.current);
+    } else if (status === 'failure') {
+      failureShake(cardRef.current);
+    }
+  }, [executionResult?.status]);
+
   const [isExpanded, setIsExpanded] = useState(false);
   const methodColors = getMethodColor(step.request.method);
 
@@ -75,7 +116,7 @@ export function WorkflowStepCard({
   }
 
   return (
-    <div className="flex gap-3 group">
+    <div ref={setNodeRef} style={sortableStyle} {...attributes} className="flex gap-3 group">
       {/* Railway track */}
       <div className="flex flex-col items-center pt-4">
         <div className={cn('w-3 h-3 rounded-full shrink-0 border-2 border-background', getDotColor())} />
@@ -85,7 +126,7 @@ export function WorkflowStepCard({
       </div>
 
       {/* Card */}
-      <div className={cn(
+      <div ref={cardRef} className={cn(
         'flex-1 bg-card rounded-lg border border-border p-3 mb-2',
         'hover:border-primary/50 transition-colors',
         executionResult?.status === 'failure' && 'border-destructive/50',
@@ -93,6 +134,15 @@ export function WorkflowStepCard({
       )}>
         {/* Header row */}
         <div className="flex items-center gap-2">
+          {/* Drag handle */}
+          <button
+            {...listeners}
+            className="cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity touch-none"
+            tabIndex={-1}
+          >
+            <GripVertical className="w-3.5 h-3.5 text-muted-foreground" />
+          </button>
+
           {/* Method badge */}
           <span className={cn(
             'px-2 py-0.5 rounded text-[10px] font-bold uppercase',
@@ -100,6 +150,13 @@ export function WorkflowStepCard({
           )}>
             {step.request.method}
           </span>
+
+          {/* Spec name badge */}
+          {specName && (
+            <span className="px-1.5 py-0.5 rounded text-[10px] bg-muted text-muted-foreground truncate max-w-[120px]">
+              {specName}
+            </span>
+          )}
 
           {/* Path (monospace) */}
           <code className="text-xs text-foreground font-mono truncate flex-1">

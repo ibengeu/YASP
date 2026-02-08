@@ -1,11 +1,11 @@
 /**
- * Workflows Route - /workflows/:specId
- * Loads spec from IDB, shows workflow list or builder
+ * Workflows Route - /workflows
+ * Cross-collection: loads ALL specs from IDB, shows workflow list or builder
  * Query param ?wf=<id> selects a specific workflow
  */
 
 import { useState, useEffect } from 'react';
-import { useParams, useSearchParams, useNavigate } from 'react-router';
+import { useSearchParams } from 'react-router';
 import { toast } from 'sonner';
 import { idbStorage } from '@/core/storage/idb-storage';
 import { useWorkflowStore } from '@/features/workflows/store/workflow.store';
@@ -13,14 +13,18 @@ import { WorkflowBuilder } from '@/features/workflows/components/WorkflowBuilder
 import { WorkflowList } from '@/features/workflows/components/WorkflowList';
 import type { WorkflowDocument } from '@/features/workflows/types/workflow.types';
 
+export interface SpecEntry {
+  id: string;
+  title: string;
+  parsed: any;
+}
+
 export default function WorkflowsPage() {
-  const { specId } = useParams<{ specId: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
-  const navigate = useNavigate();
   const selectedWfId = searchParams.get('wf');
 
   const [isLoading, setIsLoading] = useState(true);
-  const [parsedSpec, setParsedSpec] = useState<any>(null);
+  const [specs, setSpecs] = useState<Map<string, SpecEntry>>(new Map());
 
   const {
     workflows,
@@ -30,38 +34,44 @@ export default function WorkflowsPage() {
     resetExecution,
   } = useWorkflowStore();
 
-  // Load spec and workflows
+  // Load all specs and all workflows
   useEffect(() => {
-    if (!specId) return;
     let cancelled = false;
 
     const load = async () => {
       setIsLoading(true);
       try {
-        const [spec, wfs] = await Promise.all([
-          idbStorage.getSpec(specId),
-          idbStorage.getWorkflowsBySpecId(specId),
+        const [allSpecs, allWorkflows] = await Promise.all([
+          idbStorage.getAllSpecs(),
+          idbStorage.getAllWorkflows(),
         ]);
 
         if (cancelled) return;
 
-        if (!spec) {
-          toast.error('Specification not found');
-          navigate('/catalog');
-          return;
+        const yaml = await import('yaml');
+        const specsMap = new Map<string, SpecEntry>();
+        for (const spec of allSpecs) {
+          try {
+            const parsed = yaml.parse(spec.content);
+            specsMap.set(spec.id, {
+              id: spec.id,
+              title: spec.title || parsed?.info?.title || 'Untitled',
+              parsed,
+            });
+          } catch {
+            // Skip specs that fail to parse
+          }
         }
 
-        const yaml = await import('yaml');
-        setParsedSpec(yaml.parse(spec.content));
-        setWorkflows(wfs);
+        setSpecs(specsMap);
+        setWorkflows(allWorkflows);
 
         // If a workflow ID is in the URL, load it
         if (selectedWfId) {
-          const wf = wfs.find((w) => w.id === selectedWfId);
+          const wf = allWorkflows.find((w) => w.id === selectedWfId);
           if (wf) {
             setCurrentWorkflow(wf);
           } else {
-            // Invalid wf ID, clear it
             setSearchParams({}, { replace: true });
             setCurrentWorkflow(null);
           }
@@ -80,18 +90,14 @@ export default function WorkflowsPage() {
 
     load();
     return () => { cancelled = true; };
-  }, [specId, selectedWfId]);
+  }, [selectedWfId]);
 
   const handleCreateWorkflow = async () => {
-    if (!specId || !parsedSpec) return;
-
     try {
-      const serverUrl = parsedSpec.servers?.[0]?.url || 'https://api.example.com';
       const newWf = await idbStorage.createWorkflow({
-        specId,
         name: 'New Workflow',
         steps: [],
-        serverUrl,
+        serverUrl: 'https://api.example.com',
       });
 
       setWorkflows([...workflows, newWf]);
@@ -107,6 +113,18 @@ export default function WorkflowsPage() {
     setCurrentWorkflow(wf);
     resetExecution();
     setSearchParams({ wf: wf.id }, { replace: true });
+  };
+
+  const handleImportWorkflow = async (data: Omit<WorkflowDocument, 'id' | 'created_at' | 'updated_at'>) => {
+    try {
+      const newWf = await idbStorage.createWorkflow(data);
+      setWorkflows([...workflows, newWf]);
+      setCurrentWorkflow(newWf);
+      resetExecution();
+      setSearchParams({ wf: newWf.id }, { replace: true });
+    } catch (error) {
+      toast.error('Failed to import workflow');
+    }
   };
 
   const handleDeleteWorkflow = async (id: string) => {
@@ -135,19 +153,11 @@ export default function WorkflowsPage() {
     );
   }
 
-  if (!parsedSpec || !specId) {
-    return (
-      <div className="flex items-center justify-center h-screen bg-background">
-        <p className="text-sm text-muted-foreground">Specification not found</p>
-      </div>
-    );
-  }
-
   // Show builder if a workflow is selected, otherwise show list
   if (currentWorkflow) {
     return (
       <div className="h-screen flex flex-col bg-background">
-        <WorkflowBuilder spec={parsedSpec} />
+        <WorkflowBuilder specs={specs} />
       </div>
     );
   }
@@ -159,6 +169,7 @@ export default function WorkflowsPage() {
         onSelect={handleSelectWorkflow}
         onCreate={handleCreateWorkflow}
         onDelete={handleDeleteWorkflow}
+        onImport={handleImportWorkflow}
       />
     </div>
   );

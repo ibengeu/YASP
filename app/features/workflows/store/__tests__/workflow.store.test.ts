@@ -21,7 +21,6 @@ function createTestStep(overrides: Partial<WorkflowStep> = {}): WorkflowStep {
 function createTestWorkflow(overrides: Partial<WorkflowDocument> = {}): WorkflowDocument {
   return {
     id: 'wf-1',
-    specId: 'spec-1',
     name: 'Test Workflow',
     steps: [],
     serverUrl: 'https://api.example.com',

@@ -31,6 +31,7 @@ interface WorkflowState {
   updateStep: (stepId: string, updates: Partial<WorkflowStep>) => void;
   removeStep: (stepId: string) => void;
   reorderStep: (stepId: string, direction: 'up' | 'down') => void;
+  reorderSteps: (fromIndex: number, toIndex: number) => void;
 
   // Extraction CRUD
   addExtraction: (stepId: string, extraction: VariableExtraction) => void;
@@ -118,6 +119,26 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
     // Swap
     [steps[index], steps[targetIndex]] = [steps[targetIndex], steps[index]];
     // Reassign order
+    const reordered = steps.map((s, i) => ({ ...s, order: i }));
+
+    set({
+      currentWorkflow: {
+        ...currentWorkflow,
+        steps: reordered,
+      },
+    });
+  },
+
+  reorderSteps: (fromIndex, toIndex) => {
+    const { currentWorkflow } = get();
+    if (!currentWorkflow) return;
+
+    const steps = [...currentWorkflow.steps];
+    if (fromIndex < 0 || fromIndex >= steps.length) return;
+    if (toIndex < 0 || toIndex >= steps.length) return;
+
+    const [moved] = steps.splice(fromIndex, 1);
+    steps.splice(toIndex, 0, moved);
     const reordered = steps.map((s, i) => ({ ...s, order: i }));
 
     set({

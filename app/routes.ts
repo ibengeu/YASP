@@ -17,7 +17,7 @@ export default [
   route("editor/:id", "routes/editor.$id.tsx"),
 
   // Workflow Builder
-  route("workflows/:specId", "routes/workflows.$specId.tsx"),
+  route("workflows", "routes/workflows.tsx"),
 
   // API Resource Routes (server actions only, no UI)
   route("api/execute-request", "routes/api.execute-request.ts"),

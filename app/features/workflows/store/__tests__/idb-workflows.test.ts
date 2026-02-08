@@ -22,14 +22,12 @@ describe('IDB Workflow CRUD', () => {
 
   it('should create a workflow with generated id and timestamps', async () => {
     const workflow = await storage.createWorkflow({
-      specId: 'spec-1',
       name: 'My Workflow',
       steps: [],
       serverUrl: 'https://api.example.com',
     });
 
     expect(workflow.id).toBeTruthy();
-    expect(workflow.specId).toBe('spec-1');
     expect(workflow.name).toBe('My Workflow');
     expect(workflow.created_at).toBeTruthy();
     expect(workflow.updated_at).toBeTruthy();
@@ -37,7 +35,6 @@ describe('IDB Workflow CRUD', () => {
 
   it('should get a workflow by id', async () => {
     const created = await storage.createWorkflow({
-      specId: 'spec-1',
       name: 'My Workflow',
       steps: [],
       serverUrl: 'https://api.example.com',
@@ -52,37 +49,25 @@ describe('IDB Workflow CRUD', () => {
     expect(result).toBeNull();
   });
 
-  it('should get workflows by specId', async () => {
+  it('should get all workflows', async () => {
     await storage.createWorkflow({
-      specId: 'spec-1',
       name: 'Workflow A',
       steps: [],
       serverUrl: 'https://api.example.com',
     });
     await storage.createWorkflow({
-      specId: 'spec-1',
       name: 'Workflow B',
       steps: [],
       serverUrl: 'https://api.example.com',
     });
-    await storage.createWorkflow({
-      specId: 'spec-2',
-      name: 'Workflow C',
-      steps: [],
-      serverUrl: 'https://api.example.com',
-    });
 
-    const spec1Workflows = await storage.getWorkflowsBySpecId('spec-1');
-    expect(spec1Workflows).toHaveLength(2);
-    expect(spec1Workflows.map(w => w.name).sort()).toEqual(['Workflow A', 'Workflow B']);
-
-    const spec2Workflows = await storage.getWorkflowsBySpecId('spec-2');
-    expect(spec2Workflows).toHaveLength(1);
+    const all = await storage.getAllWorkflows();
+    expect(all).toHaveLength(2);
+    expect(all.map(w => w.name).sort()).toEqual(['Workflow A', 'Workflow B']);
   });
 
   it('should update a workflow', async () => {
     const created = await storage.createWorkflow({
-      specId: 'spec-1',
       name: 'Original',
       steps: [],
       serverUrl: 'https://api.example.com',
@@ -122,7 +107,6 @@ describe('IDB Workflow CRUD', () => {
 
   it('should delete a workflow', async () => {
     const created = await storage.createWorkflow({
-      specId: 'spec-1',
       name: 'To Delete',
       steps: [],
       serverUrl: 'https://api.example.com',
@@ -133,32 +117,75 @@ describe('IDB Workflow CRUD', () => {
     expect(result).toBeNull();
   });
 
-  it('should cascade delete workflows by specId', async () => {
-    await storage.createWorkflow({
-      specId: 'spec-1',
-      name: 'WF 1',
-      steps: [],
-      serverUrl: 'https://api.example.com',
-    });
-    await storage.createWorkflow({
-      specId: 'spec-1',
-      name: 'WF 2',
-      steps: [],
-      serverUrl: 'https://api.example.com',
-    });
-    await storage.createWorkflow({
-      specId: 'spec-2',
-      name: 'WF 3',
-      steps: [],
-      serverUrl: 'https://api.example.com',
+  describe('removeSpecFromWorkflows', () => {
+    it('should delete workflow entirely if all steps reference the deleted spec', async () => {
+      const wf = await storage.createWorkflow({
+        name: 'WF 1',
+        steps: [
+          {
+            id: 's1', order: 0, name: 'Step 1',
+            request: { method: 'GET', path: '/test', headers: {}, queryParams: {} },
+            extractions: [],
+            specEndpoint: { specId: 'spec-1', path: '/test', method: 'get' },
+          },
+        ],
+        serverUrl: 'https://api.example.com',
+      });
+
+      await storage.removeSpecFromWorkflows('spec-1');
+
+      const result = await storage.getWorkflow(wf.id);
+      expect(result).toBeNull();
     });
 
-    await storage.deleteWorkflowsBySpecId('spec-1');
+    it('should remove only steps referencing the deleted spec and keep others', async () => {
+      const wf = await storage.createWorkflow({
+        name: 'Mixed WF',
+        steps: [
+          {
+            id: 's1', order: 0, name: 'From Spec 1',
+            request: { method: 'GET', path: '/a', headers: {}, queryParams: {} },
+            extractions: [],
+            specEndpoint: { specId: 'spec-1', path: '/a', method: 'get' },
+          },
+          {
+            id: 's2', order: 1, name: 'From Spec 2',
+            request: { method: 'POST', path: '/b', headers: {}, queryParams: {} },
+            extractions: [],
+            specEndpoint: { specId: 'spec-2', path: '/b', method: 'post' },
+          },
+        ],
+        serverUrl: 'https://api.example.com',
+      });
 
-    const remaining = await storage.getWorkflowsBySpecId('spec-1');
-    expect(remaining).toHaveLength(0);
+      await storage.removeSpecFromWorkflows('spec-1');
 
-    const untouched = await storage.getWorkflowsBySpecId('spec-2');
-    expect(untouched).toHaveLength(1);
+      const updated = await storage.getWorkflow(wf.id);
+      expect(updated).not.toBeNull();
+      expect(updated!.steps).toHaveLength(1);
+      expect(updated!.steps[0].specEndpoint?.specId).toBe('spec-2');
+      expect(updated!.steps[0].order).toBe(0); // Reindexed
+    });
+
+    it('should not touch workflows with no matching steps', async () => {
+      const wf = await storage.createWorkflow({
+        name: 'Unrelated WF',
+        steps: [
+          {
+            id: 's1', order: 0, name: 'From Spec 3',
+            request: { method: 'GET', path: '/c', headers: {}, queryParams: {} },
+            extractions: [],
+            specEndpoint: { specId: 'spec-3', path: '/c', method: 'get' },
+          },
+        ],
+        serverUrl: 'https://api.example.com',
+      });
+
+      await storage.removeSpecFromWorkflows('spec-1');
+
+      const result = await storage.getWorkflow(wf.id);
+      expect(result).not.toBeNull();
+      expect(result!.steps).toHaveLength(1);
+    });
   });
 });

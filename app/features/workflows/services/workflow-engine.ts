@@ -87,7 +87,9 @@ export class WorkflowEngine {
         // Substitute variables in request fields
         const vars = execution.variables;
         const path = substituteVariables(step.request.path, vars, 'url');
-        const url = `${workflow.serverUrl}${path}`;
+        // Per-step serverUrl overrides workflow-level serverUrl
+        const baseUrl = step.request.serverUrl || workflow.serverUrl;
+        const url = `${baseUrl}${path}`;
 
         const headers: Record<string, string> = {};
         for (const [key, value] of Object.entries(step.request.headers)) {

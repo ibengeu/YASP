@@ -9,7 +9,6 @@ global.fetch = mockFetch;
 function createWorkflow(overrides: Partial<WorkflowDocument> = {}): WorkflowDocument {
   return {
     id: 'wf-1',
-    specId: 'spec-1',
     name: 'Test Workflow',
     serverUrl: 'https://api.example.com',
     steps: [],
@@ -149,5 +148,43 @@ describe('WorkflowEngine', () => {
 
     const callBody = JSON.parse(mockFetch.mock.calls[0][1].body);
     expect(callBody.auth).toEqual({ type: 'bearer', token: 'shared-token' });
+  });
+
+  it('should use per-step serverUrl when provided, falling back to workflow serverUrl', async () => {
+    const workflow = createWorkflow({
+      serverUrl: 'https://default.example.com',
+      steps: [
+        {
+          id: 's1', order: 0, name: 'Step with custom server',
+          request: {
+            method: 'GET', path: '/resource', headers: {}, queryParams: {},
+            serverUrl: 'https://custom.example.com',
+          },
+          extractions: [],
+        },
+        {
+          id: 's2', order: 1, name: 'Step with default server',
+          request: { method: 'GET', path: '/other', headers: {}, queryParams: {} },
+          extractions: [],
+        },
+      ],
+    });
+
+    mockFetch.mockResolvedValueOnce(
+      new Response(JSON.stringify({ success: true, data: { status: 200, statusText: 'OK', headers: {}, body: {}, time: 50, size: 0 } }), { status: 200, headers: { 'Content-Type': 'application/json' } })
+    );
+    mockFetch.mockResolvedValueOnce(
+      new Response(JSON.stringify({ success: true, data: { status: 200, statusText: 'OK', headers: {}, body: {}, time: 50, size: 0 } }), { status: 200, headers: { 'Content-Type': 'application/json' } })
+    );
+
+    await engine.execute(workflow);
+
+    // Step 1 should use custom server URL
+    const step1Body = JSON.parse(mockFetch.mock.calls[0][1].body);
+    expect(step1Body.url).toBe('https://custom.example.com/resource');
+
+    // Step 2 should fall back to workflow server URL
+    const step2Body = JSON.parse(mockFetch.mock.calls[1][1].body);
+    expect(step2Body.url).toBe('https://default.example.com/other');
   });
 });

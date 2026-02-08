@@ -3,16 +3,20 @@
  * Shows name, step count, last updated, with create + delete actions
  */
 
-import { Plus, Trash2, GitBranch, Clock } from 'lucide-react';
+import { useRef } from 'react';
+import { Plus, Trash2, GitBranch, Clock, Upload } from 'lucide-react';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import type { WorkflowDocument } from '../types/workflow.types';
+import { importWorkflow } from '../services/workflow-io';
 
 interface WorkflowListProps {
   workflows: WorkflowDocument[];
   onSelect: (workflow: WorkflowDocument) => void;
   onCreate: () => void;
   onDelete: (id: string) => void;
+  onImport?: (workflow: Omit<WorkflowDocument, 'id' | 'created_at' | 'updated_at'>) => void;
 }
 
 export function WorkflowList({
@@ -20,7 +24,27 @@ export function WorkflowList({
   onSelect,
   onCreate,
   onDelete,
+  onImport,
 }: WorkflowListProps) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleImportFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const imported = importWorkflow(reader.result as string);
+        onImport?.(imported);
+        toast.success('Workflow imported');
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : 'Failed to import workflow');
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  };
+
   return (
     <div className="p-6 max-w-3xl mx-auto">
       <div className="flex items-center justify-between mb-6">
@@ -30,10 +54,27 @@ export function WorkflowList({
             Chain API requests to test multi-step sequences
           </p>
         </div>
-        <Button onClick={onCreate} size="sm">
-          <Plus className="w-4 h-4" />
-          New Workflow
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => fileInputRef.current?.click()}
+          >
+            <Upload className="w-4 h-4" />
+            Import
+          </Button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".json"
+            className="hidden"
+            onChange={handleImportFile}
+          />
+          <Button onClick={onCreate} size="sm">
+            <Plus className="w-4 h-4" />
+            New Workflow
+          </Button>
+        </div>
       </div>
 
       {workflows.length === 0 ? (
