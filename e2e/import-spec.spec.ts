@@ -1,0 +1,151 @@
+/**
+ * Import Specification E2E Tests
+ * Tests for the Library Import Dialog (separate from API Registration Wizard)
+ *
+ * NOTE: This tests the library import feature (ImportSpecDialog).
+ * For API Registration Wizard tests, see api-registration.spec.ts
+ *
+ * Test Coverage:
+ * - File upload
+ * - Paste from clipboard
+ * - Import from URL
+ * - Validation and error handling
+ */
+
+import { test, expect } from '@playwright/test';
+
+const SAMPLE_OPENAPI_YAML = `openapi: 3.1.0
+info:
+  title: Test API
+  version: 1.0.0
+  description: Test API for E2E testing
+paths:
+  /test:
+    get:
+      summary: Test endpoint
+      operationId: getTest
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+`;
+
+test.describe('Import Specification via Registration Wizard', () => {
+  test.beforeEach(async ({ page }) => {
+    // Go to catalog where registration functionality lives
+    await page.goto('/catalog');
+    // Open registration drawer
+    await page.getByRole('button', { name: /Register New API/i }).click();
+    // Wait for drawer to be visible
+    await expect(page.getByRole('dialog')).toBeVisible({ timeout: 3000 });
+  });
+
+  test('should import spec via paste', async ({ page }) => {
+    // Switch to paste tab
+    await page.getByRole('tab', { name: /Paste/i }).click();
+
+    // Paste YAML content
+    await page.locator('textarea').fill(SAMPLE_OPENAPI_YAML);
+
+    // Click analyze button
+    await page.getByRole('button', { name: /Analyze|Use Pasted/i }).click();
+
+    // Should navigate to editor
+    await expect(page).toHaveURL(/\/editor\/[a-f0-9-]+/);
+
+    // Editor should contain the pasted content
+    await expect(page.locator('.cm-editor')).toBeVisible({ timeout: 5000 });
+
+    // Check title was extracted
+    const titleInput = page.locator('input[value="Test API"]');
+    await expect(titleInput).toBeVisible();
+  });
+
+  test('should validate pasted content', async ({ page }) => {
+    // Switch to paste tab
+    await page.getByRole('tab', { name: /Paste/i }).click();
+
+    // Paste invalid content
+    await page.locator('textarea').fill('invalid yaml content {{{');
+
+    // Click analyze button
+    await page.getByRole('button', { name: /Analyze|Use Pasted/i }).click();
+
+    // Should show error toast (wait for toast to appear and check text)
+    await page.waitForSelector('[data-sonner-toast]', { timeout: 3000 });
+    const toastText = await page.locator('[data-sonner-toast]').last().textContent();
+    expect(toastText).toMatch(/invalid|failed/i);
+  });
+
+  test('should disable analyze button when paste area is empty', async ({ page }) => {
+    // Switch to paste tab
+    await page.getByRole('tab', { name: /Paste/i }).click();
+
+    // Analyze button should be disabled
+    const analyzeButton = page.getByRole('button', { name: /Analyze|Use Pasted/i });
+    await expect(analyzeButton).toBeDisabled();
+
+    // Type something
+    await page.locator('textarea').fill('test');
+
+    // Button should be enabled
+    await expect(analyzeButton).toBeEnabled();
+  });
+
+  test('should show file upload interface', async ({ page }) => {
+    // File tab should be default
+    await expect(page.getByRole('tab', { name: /File/i })).toHaveAttribute('data-state', 'active');
+
+    // Check for upload UI
+    await expect(page.getByText(/Click to upload or drag and drop/i)).toBeVisible();
+    await expect(page.getByText(/YAML or JSON files/i)).toBeVisible();
+  });
+
+  test('should show URL import interface', async ({ page }) => {
+    // Switch to URL tab
+    await page.getByRole('tab', { name: /URL/i }).click();
+
+    // Check for URL input
+    const urlInput = page.locator('input[type="url"]');
+    await expect(urlInput).toBeVisible();
+    await expect(page.getByText(/Enter the URL/i)).toBeVisible();
+
+    // Fetch button should be disabled when empty
+    const fetchButton = page.getByRole('button', { name: /Fetch|Import from URL/i });
+    await expect(fetchButton).toBeDisabled();
+
+    // Type URL
+    await urlInput.fill('https://example.com/openapi.yaml');
+
+    // Button should be enabled
+    await expect(fetchButton).toBeEnabled();
+  });
+
+  test('should close dialog with close button', async ({ page }) => {
+    // Radix dialog close button has data-slot="dialog-close"
+    const closeButton = page.locator('[data-slot="dialog-close"]');
+    await expect(closeButton).toBeVisible();
+    await closeButton.click();
+
+    // Dialog should be hidden
+    await expect(page.getByRole('dialog')).not.toBeVisible();
+  });
+
+  test('should close dialog on escape key', async ({ page }) => {
+    await page.keyboard.press('Escape');
+
+    // Dialog should be hidden
+    await expect(page.getByRole('dialog')).not.toBeVisible();
+  });
+
+  test('should handle file size validation message', async ({ page }) => {
+    // File tab should show size limit
+    await expect(page.getByText(/max 5MB/i)).toBeVisible();
+  });
+});
