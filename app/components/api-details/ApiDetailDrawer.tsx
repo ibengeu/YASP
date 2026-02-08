@@ -712,28 +712,13 @@ export function ApiDetailDrawer({open, onClose, specId}: ApiDetailDrawerProps) {
                                     <div
                                         className="p-4 border-b border-border flex flex-col sm:flex-row gap-2 sm:gap-3 shrink-0">
                                         <div className="flex-1 flex rounded-md shadow-sm">
-                                            <Select
-                                                value={request.method}
-                                                onValueChange={(value) => setRequest({
-                                                    ...request,
-                                                    method: value as HTTPMethod
-                                                })}
-                                            >
-                                                <SelectTrigger className={`w-[100px] rounded-r-none text-xs font-bold ${getMethodColor(request.method)}`}>
-                                                    <SelectValue />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    <SelectItem value="GET">GET</SelectItem>
-                                                    <SelectItem value="POST">POST</SelectItem>
-                                                    <SelectItem value="PUT">PUT</SelectItem>
-                                                    <SelectItem value="PATCH">PATCH</SelectItem>
-                                                    <SelectItem value="DELETE">DELETE</SelectItem>
-                                                </SelectContent>
-                                            </Select>
+                                            <span className={`inline-flex items-center justify-center w-[80px] shrink-0 rounded-l-md border border-r-0 border-input bg-muted text-xs font-bold ${getMethodColor(request.method)}`}>
+                                                {request.method}
+                                            </span>
                                             <Input
                                                 value={request.url}
                                                 onChange={(e) => setRequest({...request, url: e.target.value})}
-                                                className="flex-1 rounded-l-none font-mono"
+                                                className="flex-1 rounded-l-none font-mono text-foreground"
                                                 placeholder="Enter request URL"
                                             />
                                         </div>
@@ -785,10 +770,10 @@ export function ApiDetailDrawer({open, onClose, specId}: ApiDetailDrawerProps) {
                                                             <table className="w-full text-xs min-w-[400px]">
                                                                 <thead className="bg-muted">
                                                                 <tr>
-                                                                    <th className="w-10 p-2 text-left font-medium"></th>
-                                                                    <th className="p-2 text-left font-medium">Key</th>
-                                                                    <th className="p-2 text-left font-medium">Value</th>
-                                                                    <th className="p-2 text-left font-medium">Description</th>
+                                                                    <th className="w-10 p-2 text-left font-medium text-foreground"></th>
+                                                                    <th className="p-2 text-left font-medium text-foreground">Key</th>
+                                                                    <th className="p-2 text-left font-medium text-foreground">Value</th>
+                                                                    <th className="p-2 text-left font-medium text-foreground">Description</th>
                                                                 </tr>
                                                                 </thead>
                                                                 <tbody>
@@ -979,9 +964,9 @@ export function ApiDetailDrawer({open, onClose, specId}: ApiDetailDrawerProps) {
                                                             <table className="w-full text-xs min-w-[350px]">
                                                                 <thead className="bg-muted">
                                                                 <tr>
-                                                                    <th className="w-10 p-2 text-left font-medium"></th>
-                                                                    <th className="p-2 text-left font-medium">Header</th>
-                                                                    <th className="p-2 text-left font-medium">Value</th>
+                                                                    <th className="w-10 p-2 text-left font-medium text-foreground"></th>
+                                                                    <th className="p-2 text-left font-medium text-foreground">Header</th>
+                                                                    <th className="p-2 text-left font-medium text-foreground">Value</th>
                                                                 </tr>
                                                                 </thead>
                                                                 <tbody>
@@ -1065,7 +1050,7 @@ export function ApiDetailDrawer({open, onClose, specId}: ApiDetailDrawerProps) {
                                                     <div
                                                         className="flex items-center gap-3 text-xs text-muted-foreground">
                                                         <span>Status: <span
-                                                            className="text-emerald-600 dark:text-emerald-400 font-medium">{response.status}</span></span>
+                                                            className={`font-medium ${response.status >= 200 && response.status < 300 ? 'text-emerald-600 dark:text-emerald-400' : response.status >= 400 ? 'text-destructive' : 'text-amber-600 dark:text-amber-400'}`}>{response.status}</span></span>
                                                         <span>Time: {response.time}ms</span>
                                                         <span>Size: {response.size} KB</span>
                                                         <Button variant="ghost" size="icon-xs" onClick={handleCopyResponse}>

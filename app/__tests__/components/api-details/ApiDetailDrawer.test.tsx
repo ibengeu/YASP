@@ -384,7 +384,7 @@ describe('ApiDetailDrawer', () => {
       expect(screen.getByText('Send')).toBeInTheDocument();
     });
 
-    // Should have method selector and URL input
+    // Should have URL input (method is shown as a static badge)
     const urlInput = screen.getByPlaceholderText('Enter request URL');
     expect(urlInput).toBeInTheDocument();
   });
