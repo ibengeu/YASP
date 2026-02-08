@@ -5,6 +5,8 @@
  * Architecture: SRS_01 § 2.1 - IndexedDB Schema
  */
 
+import type { ServerConfig, AuthConfig } from '@/features/registration/utils/spec-inference';
+
 /**
  * OpenAPI Specification Document
  * Primary entity storing complete OpenAPI 3.x specs
@@ -31,6 +33,22 @@ export interface SpecMetadata {
   workspaceType: WorkspaceType; // Workspace classification
   syncStatus: SyncStatus; // Sync state (future feature)
   isDiscoverable: boolean; // Public visibility flag
+
+  // Source URL for auditing/debugging and future re-fetch functionality
+  sourceUrl?: string; // URL from which spec was fetched (null for file/paste uploads)
+
+  // Try It Out Support (Gap 0 fix)
+  // Mitigation for gaps preventing API testing with registered specs
+  servers?: ServerConfig[]; // Server configurations from OpenAPI spec
+  defaultAuth?: AuthConfig; // Default authentication configuration (without credentials)
+  inferredFields?: string[]; // List of fields auto-populated from spec
+  specQuality?: {
+    confidence: 'high' | 'medium' | 'low'; // Inference confidence level
+    endpointCount: number; // Number of API endpoints
+    hasAuth: boolean; // Whether authentication is configured
+    hasMultipleServers: boolean; // Whether multiple servers defined
+    validationIssues: number; // Count of validation issues
+  };
 }
 
 export type WorkspaceType = 'personal' | 'team' | 'partner' | 'public';

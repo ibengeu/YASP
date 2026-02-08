@@ -118,7 +118,7 @@ paths:
       console.error('Failed to load specs:', error);
       // Mitigation for OWASP A09:2025 – Security Logging and Monitoring Failures:
       // Log errors without exposing sensitive implementation details to users
-      toast.error('Failed to load specifications');
+      toast.error('Failed to load APIs. Please refresh the page.');
     } finally {
       setIsLoading(false);
     }
@@ -127,11 +127,11 @@ paths:
   const handleDelete = async (id: string) => {
     try {
       await idbStorage.deleteSpec(id);
-      toast.success('Specification deleted');
+      toast.success('API deleted successfully');
       loadSpecs();
     } catch (error) {
       console.error('Failed to delete spec:', error);
-      toast.error('Failed to delete specification');
+      toast.error('Failed to delete API. Please try again.');
     }
   };
 
@@ -170,7 +170,7 @@ paths:
     <div ref={pageRef} className="bg-[#FAFBFC] dark:bg-[#0E1420] min-h-screen" style={{ opacity: 0 }}>
       <PageHeader
         title="API Catalog"
-        description={`Browse ${specs.length} registered APIs`}
+        description={`Browse and manage ${specs.length} registered ${specs.length === 1 ? 'API' : 'APIs'}`}
         actions={
           <button
             onClick={() => setShowRegisterDrawer(true)}
@@ -231,15 +231,15 @@ paths:
           <div className="p-12 text-center bg-white dark:bg-[#0a0a0a] rounded-lg border border-border">
             <div className="text-muted-foreground mb-4">
               {searchQuery || statusFilter !== 'all' || typeFilter !== 'all'
-                ? 'No specifications match your filters'
-                : 'No specifications yet'}
+                ? 'No APIs match your filters. Try adjusting your search or filter criteria.'
+                : 'You haven\'t registered any APIs yet. Get started by registering your first API.'}
             </div>
             {!searchQuery && statusFilter === 'all' && typeFilter === 'all' && (
               <button
-                onClick={() => setShowGenerateDialog(true)}
+                onClick={() => setShowRegisterDrawer(true)}
                 className="px-4 py-2 text-sm font-medium text-primary-foreground bg-primary rounded-md hover:opacity-90 transition-opacity cursor-pointer"
               >
-                Create Your First API
+                Register Your First API
               </button>
             )}
           </div>
@@ -417,7 +417,7 @@ paths:
             },
           });
 
-          toast.success('Specification generated successfully');
+          toast.success('API specification generated successfully');
           navigate(`/editor/${newSpec.id}`);
         }}
       />

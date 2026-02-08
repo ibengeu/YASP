@@ -18,8 +18,24 @@ export async function action({ request }: { request: Request }) {
   try {
     const requestData = await request.json() as ApiRequestData;
 
+    console.debug('[API Execute] Received request:', {
+      method: requestData.method,
+      url: requestData.url,
+      headers: Object.keys(requestData.headers || {}),
+      hasBody: !!requestData.body,
+      bodyLength: requestData.body?.length ?? 0,
+      authType: requestData.auth?.type,
+    });
+
     // Execute the API request
     const response = await executeApiRequest(requestData);
+
+    console.debug('[API Execute] Response:', {
+      status: response.status,
+      statusText: response.statusText,
+      time: response.time,
+      size: response.size,
+    });
 
     return Response.json({ success: true, data: response });
   } catch (error) {

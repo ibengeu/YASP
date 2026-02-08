@@ -7,7 +7,8 @@ import { useState, useEffect, useRef } from 'react';
 import { useFetcher } from 'react-router';
 import {
   X, Play, ChevronLeft, ChevronRight, Search,
-  ChevronDown, Folder, FolderOpen, Copy, GripHorizontal
+  ChevronDown, Folder, FolderOpen, Copy, GripHorizontal,
+  AlertTriangle
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { EditorView, lineNumbers } from '@codemirror/view';
@@ -65,6 +66,8 @@ interface ParamRow {
   key: string;
   value: string;
   description?: string;
+  /** OpenAPI parameter location: query, path, header, cookie */
+  paramIn?: 'query' | 'path' | 'header' | 'cookie';
 }
 
 interface HeaderRow {
@@ -110,6 +113,32 @@ interface EndpointGroup {
   endpoints: ParsedEndpoint[];
 }
 
+/** Detect auth type from OpenAPI securitySchemes (Gap 1 fix) */
+function detectAuthFromSpec(spec: any): { type: 'none' | 'api-key' | 'bearer' | 'basic' } {
+  const securitySchemes = spec?.components?.securitySchemes;
+  const globalSecurity = spec?.security;
+
+  if (!securitySchemes || !globalSecurity || globalSecurity.length === 0) {
+    return { type: 'none' };
+  }
+
+  const firstName = Object.keys(globalSecurity[0])[0];
+  const scheme = securitySchemes[firstName];
+  if (!scheme) return { type: 'none' };
+
+  if (scheme.type === 'http' && scheme.scheme === 'bearer') return { type: 'bearer' };
+  if (scheme.type === 'http' && scheme.scheme === 'basic') return { type: 'basic' };
+  if (scheme.type === 'apiKey') return { type: 'api-key' };
+
+  return { type: 'none' };
+}
+
+/** Check if baseUrl is a dummy fallback (Gap 4 fix) */
+const DUMMY_FALLBACK_URL = 'https://api.example.com';
+function isDummyFallbackUrl(url: string, spec: any): boolean {
+  return url === DUMMY_FALLBACK_URL && (!spec?.servers || spec.servers.length === 0);
+}
+
 interface TryItOutDrawerProps {
   open: boolean;
   onClose: () => void;
@@ -121,6 +150,8 @@ interface TryItOutDrawerProps {
   spec?: any;
 }
 
+const LOG_PREFIX = '[TryItOut]';
+
 export function TryItOutDrawer({
   open,
   onClose,
@@ -130,6 +161,7 @@ export function TryItOutDrawer({
   baseUrl,
   spec,
 }: TryItOutDrawerProps) {
+  console.debug(LOG_PREFIX, 'render', { open, initialPath, initialMethod, baseUrl, hasSpec: !!spec });
   const fetcher = useFetcher();
   const [activeTab, setActiveTab] = useState<'params' | 'auth' | 'headers' | 'body'>('params');
   const [response, setResponse] = useState<TestResponse | null>(null);
@@ -145,6 +177,14 @@ export function TryItOutDrawer({
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
 
+  // Gap 1: Derive initial auth type from spec securitySchemes
+  const detectedAuth = detectAuthFromSpec(spec);
+  const authWasAutoDetected = detectedAuth.type !== 'none';
+
+  // Gap 3: Multi-server support
+  const servers = spec?.servers || [];
+  const [selectedServer, setSelectedServer] = useState<string>(baseUrl);
+
   const [request, setRequest] = useState<TestRequest>({
     method: (initialMethod?.toUpperCase() as HTTPMethod) || 'GET',
     url: `${baseUrl}${initialPath}`,
@@ -154,7 +194,7 @@ export function TryItOutDrawer({
       { enabled: true, key: 'Accept', value: 'application/json' },
       { enabled: false, key: '', value: '' },
     ],
-    auth: { type: 'none' },
+    auth: detectedAuth,
     body: '{\n  \n}',
   });
 
@@ -187,6 +227,12 @@ export function TryItOutDrawer({
 
   // Parse endpoints from spec
   useEffect(() => {
+    console.debug(LOG_PREFIX, 'parseEndpoints effect', {
+      hasSpec: !!spec,
+      pathCount: spec?.paths ? Object.keys(spec.paths).length : 0,
+      currentSelectedEndpoint: selectedEndpoint ? `${selectedEndpoint.method} ${selectedEndpoint.path}` : null,
+    });
+
     if (!spec?.paths) {
       setEndpointGroups([]);
       return;
@@ -206,6 +252,8 @@ export function TryItOutDrawer({
         }
       });
     });
+
+    console.debug(LOG_PREFIX, 'parseEndpoints: parsed', endpoints.length, 'endpoints');
 
     // Group by tags
     const grouped = new Map<string, ParsedEndpoint[]>();
@@ -228,7 +276,10 @@ export function TryItOutDrawer({
       const initial = endpoints.find(
         e => e.path === initialPath && e.method === initialMethod.toUpperCase()
       ) || endpoints[0];
+      console.debug(LOG_PREFIX, 'parseEndpoints: setting initial endpoint', `${initial.method} ${initial.path}`);
       setSelectedEndpoint(initial);
+    } else {
+      console.debug(LOG_PREFIX, 'parseEndpoints: skipping initial endpoint (already selected or no endpoints)');
     }
   }, [spec]);
 
@@ -288,20 +339,71 @@ export function TryItOutDrawer({
     }
   }, [selectedEndpoint]); // Only update when endpoint changes
 
-  // Update request when endpoint changes
+  // Update request when endpoint or server changes
   useEffect(() => {
+    console.debug(LOG_PREFIX, 'updateRequest effect', {
+      selectedEndpoint: selectedEndpoint ? `${selectedEndpoint.method} ${selectedEndpoint.path}` : null,
+      selectedServer,
+      specPathKeys: spec?.paths ? Object.keys(spec.paths) : [],
+    });
+
     if (!selectedEndpoint) return;
 
-    const fullUrl = `${baseUrl}${selectedEndpoint.path}`;
+    const fullUrl = `${selectedServer}${selectedEndpoint.path}`;
+    console.debug(LOG_PREFIX, 'updateRequest: fullUrl =', fullUrl);
 
-    // Extract parameters from operation
-    const parameters = (selectedEndpoint.operation?.parameters || []) as any[];
-    const paramRows: ParamRow[] = parameters.map((param) => ({
-      enabled: param.required || false,
-      key: param.name,
-      value: param.schema?.default || '',
-      description: param.description,
-    }));
+    // Merge path-level and operation-level parameters per OpenAPI spec.
+    // Operation-level params override path-level params with same name+in.
+    const pathLevelParams = (spec?.paths?.[selectedEndpoint.path]?.parameters || []) as any[];
+    const operationParams = (selectedEndpoint.operation?.parameters || []) as any[];
+
+    console.debug(LOG_PREFIX, 'updateRequest: pathLevelParams =', pathLevelParams.length,
+      ', operationParams =', operationParams.length,
+      ', pathLevelRaw =', pathLevelParams.map((p: any) => `${p.name}(${p.in})`),
+      ', operationRaw =', operationParams.map((p: any) => `${p.name}(${p.in})`));
+
+    // Deduplicate: operation params take precedence over path-level params
+    const paramMap = new Map<string, any>();
+    for (const param of pathLevelParams) {
+      paramMap.set(`${param.name}:${param.in}`, param);
+    }
+    for (const param of operationParams) {
+      paramMap.set(`${param.name}:${param.in}`, param);
+    }
+    const allParameters = Array.from(paramMap.values());
+
+    console.debug(LOG_PREFIX, 'updateRequest: merged params =', allParameters.map((p: any) => `${p.name}(${p.in})`));
+
+    // Separate parameters by location
+    const paramRows: ParamRow[] = [];
+    const headerParamsFromSpec: HeaderRow[] = [];
+
+    for (const param of allParameters) {
+      const location = param.in as string;
+      if (location === 'header') {
+        // Header params go to the headers array
+        headerParamsFromSpec.push({
+          enabled: param.required || true,
+          key: param.name,
+          value: param.schema?.default || '',
+        });
+      } else if (location === 'query' || location === 'path' || location === 'cookie') {
+        paramRows.push({
+          // Path params are always required per OpenAPI spec
+          enabled: location === 'path' ? true : (param.required || false),
+          key: param.name,
+          value: param.schema?.default?.toString() || '',
+          description: param.description,
+          paramIn: location as ParamRow['paramIn'],
+        });
+      } else {
+        console.warn(LOG_PREFIX, 'updateRequest: unknown param location', location, 'for param', param.name);
+      }
+    }
+
+    console.debug(LOG_PREFIX, 'updateRequest: paramRows =',
+      paramRows.map(p => `${p.key}(${p.paramIn}, enabled=${p.enabled})`),
+      ', headerParams =', headerParamsFromSpec.map(h => h.key));
 
     // Add empty row for manual input
     paramRows.push({ enabled: false, key: '', value: '', description: undefined });
@@ -348,11 +450,23 @@ export function TryItOutDrawer({
       }
     }
 
+    // Merge spec header params with default headers
+    const defaultHeaders: HeaderRow[] = [
+      { enabled: true, key: 'Content-Type', value: 'application/json' },
+      { enabled: true, key: 'Accept', value: 'application/json' },
+    ];
+    const mergedHeaders = [
+      ...defaultHeaders,
+      ...headerParamsFromSpec,
+      { enabled: false, key: '', value: '' }, // empty row for manual input
+    ];
+
     setRequest(prev => ({
       ...prev,
       method: selectedEndpoint.method,
       url: fullUrl,
       params: paramRows,
+      headers: mergedHeaders,
       body: exampleBody,
     }));
 
@@ -362,9 +476,21 @@ export function TryItOutDrawer({
     } else {
       setActiveTab('params');
     }
-  }, [selectedEndpoint, baseUrl]);
+  }, [selectedEndpoint, selectedServer]);
 
   const handleSendRequest = () => {
+    console.group(LOG_PREFIX, 'handleSendRequest');
+
+    console.debug('request state snapshot:', {
+      method: request.method,
+      url: request.url,
+      params: request.params.map(p => ({
+        key: p.key, value: p.value, paramIn: p.paramIn, enabled: p.enabled,
+      })),
+      headerCount: request.headers.filter(h => h.enabled && h.key).length,
+      bodyLength: request.body?.length ?? 0,
+    });
+
     // Build headers from enabled rows
     const headers: Record<string, string> = {};
     request.headers
@@ -373,15 +499,30 @@ export function TryItOutDrawer({
         headers[h.key] = h.value;
       });
 
-    // Build query params
+    // Substitute path parameters into the URL
+    // Mitigation for OWASP A07:2025 (Injection): encodeURIComponent prevents URL injection
     let url = request.url;
-    const enabledParams = request.params.filter(p => p.enabled && p.key && p.value);
-    if (enabledParams.length > 0) {
-      const queryString = enabledParams
+    const pathParams = request.params.filter(p => p.paramIn === 'path' && p.key && p.value);
+    console.debug('path params to substitute:', pathParams.map(p => `{${p.key}} → ${p.value}`));
+    for (const param of pathParams) {
+      url = url.replace(`{${param.key}}`, encodeURIComponent(param.value));
+    }
+    console.debug('url after path substitution:', url);
+
+    // Build query string from query params only (paramIn === 'query' or undefined for user-added)
+    const queryParams = request.params.filter(
+      p => p.enabled && p.key && p.value && p.paramIn !== 'path' && p.paramIn !== 'header' && p.paramIn !== 'cookie'
+    );
+    console.debug('query params:', queryParams.map(p => `${p.key}=${p.value} (paramIn=${p.paramIn})`));
+    if (queryParams.length > 0) {
+      const queryString = queryParams
         .map(p => `${encodeURIComponent(p.key)}=${encodeURIComponent(p.value)}`)
         .join('&');
       url = `${url}?${queryString}`;
     }
+
+    console.debug('final url:', url);
+    console.debug('final headers:', headers);
 
     // Submit to React Router action
     const requestData = JSON.stringify({
@@ -392,6 +533,9 @@ export function TryItOutDrawer({
       auth: request.auth,
     });
 
+    console.debug('submitting requestData:', requestData);
+    console.groupEnd();
+
     fetcher.submit(requestData, {
       method: 'POST',
       action: '/api/execute-request',
@@ -401,12 +545,26 @@ export function TryItOutDrawer({
 
   // Handle fetcher response
   useEffect(() => {
+    console.debug(LOG_PREFIX, 'fetcher state changed:', {
+      state: fetcher.state,
+      hasData: !!fetcher.data,
+      dataSuccess: fetcher.data?.success,
+      dataError: fetcher.data?.error,
+    });
+
     if (fetcher.state === 'idle' && fetcher.data) {
       if (fetcher.data.success) {
+        console.debug(LOG_PREFIX, 'response received:', {
+          status: fetcher.data.data.status,
+          statusText: fetcher.data.data.statusText,
+          time: fetcher.data.data.time,
+          bodyPreview: JSON.stringify(fetcher.data.data.body)?.substring(0, 200),
+        });
         setResponse(fetcher.data.data);
         toast.success(`Request completed in ${fetcher.data.data.time}ms`);
       } else {
         const errorMessage = fetcher.data.error || 'Request failed';
+        console.error(LOG_PREFIX, 'request error:', errorMessage);
         toast.error(errorMessage);
         setResponse({
           status: 0,
@@ -525,13 +683,50 @@ export function TryItOutDrawer({
               </>
             )}
           </div>
-          <button
-            onClick={onClose}
-            className="p-1.5 rounded hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
-          >
-            <X className="w-4 h-4" />
-          </button>
+          <div className="flex items-center gap-3">
+            {/* Gap 3: Multi-server selector */}
+            {servers.length > 1 && (
+              <select
+                data-testid="server-selector"
+                value={selectedServer}
+                onChange={(e) => {
+                  setSelectedServer(e.target.value);
+                  // Update current request URL with new server
+                  setRequest(prev => ({
+                    ...prev,
+                    url: prev.url.replace(/^https?:\/\/[^/]+/, '') // strip old host
+                      ? `${e.target.value}${prev.url.replace(/^https?:\/\/[^/]*/, '')}`
+                      : `${e.target.value}${initialPath}`,
+                  }));
+                }}
+                className="h-8 bg-muted border border-border rounded px-2 text-xs focus:outline-none focus:border-primary"
+              >
+                {servers.map((server: any, idx: number) => (
+                  <option key={idx} value={server.url}>
+                    {server.description || server.url}
+                  </option>
+                ))}
+              </select>
+            )}
+
+            <button
+              onClick={onClose}
+              className="p-1.5 rounded hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
         </div>
+
+        {/* Gap 4: Fallback URL warning */}
+        {isDummyFallbackUrl(baseUrl, spec) && (
+          <div className="px-4 py-2 bg-amber-500/10 border-b border-amber-500/30 flex items-center gap-2 shrink-0">
+            <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0" />
+            <span className="text-xs text-amber-700 dark:text-amber-400">
+              No server URL configured. Edit the URL in the request bar or add servers to your spec.
+            </span>
+          </div>
+        )}
 
         {/* Main Content */}
         <div className="flex-1 flex overflow-hidden">
@@ -660,7 +855,7 @@ export function TryItOutDrawer({
 
             {/* Request/Response Split */}
             <ResizablePanelGroup
-              direction="horizontal"
+              orientation="horizontal"
               className="flex-1 min-h-0 overflow-hidden"
             >
               {/* Request Config */}
@@ -742,7 +937,12 @@ export function TryItOutDrawer({
                                     value={param.value}
                                     onChange={(e) => {
                                       const newParams = [...request.params];
-                                      newParams[index].value = e.target.value;
+                                      newParams[index] = {
+                                        ...newParams[index],
+                                        value: e.target.value,
+                                        // Auto-enable param when user types a value
+                                        enabled: e.target.value ? true : newParams[index].enabled,
+                                      };
                                       setRequest({ ...request, params: newParams });
                                     }}
                                     placeholder="Value"
@@ -778,6 +978,12 @@ export function TryItOutDrawer({
                           <option value="bearer">Bearer Token</option>
                           <option value="basic">Basic Auth</option>
                         </select>
+                        {/* Gap 1: Show hint when auth was pre-selected from spec */}
+                        {authWasAutoDetected && request.auth.type === detectedAuth.type && (
+                          <p className="text-xs text-green-600 dark:text-green-400 mt-1">
+                            Pre-selected from API specification
+                          </p>
+                        )}
                       </div>
 
                       {request.auth.type === 'api-key' && (

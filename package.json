@@ -64,6 +64,7 @@
     "motion": "^12.26.2",
     "next-themes": "^0.4.6",
     "octokit": "^5.0.5",
+    "radix-ui": "^1.4.3",
     "react": "^19.2.3",
     "react-day-picker": "^9.13.0",
     "react-dom": "^19.2.3",
@@ -81,7 +82,7 @@
     "tailwindcss": "^4.1.18",
     "vaul": "^1.1.2",
     "yaml": "^2.8.2",
-    "zod": "^4.3.5",
+    "zod": "^4.3.6",
     "zustand": "^5.0.10"
   },
   "devDependencies": {

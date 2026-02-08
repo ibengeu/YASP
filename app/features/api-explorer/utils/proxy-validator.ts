@@ -43,7 +43,30 @@ export interface ValidationResult {
 }
 
 const ALLOWED_PROTOCOLS = ['http:', 'https:'];
-const ALLOWED_PORTS = [80, 443, 8080, 8443];
+
+// Mitigation: OWASP A09:2025 (SSRF) - Block known-dangerous service ports
+// Uses a blocklist approach instead of allowlist to support non-standard API ports
+// (e.g., 8025, 5000, 3000) commonly used by OpenAPI/Swagger specs.
+// All SSRF IP/hostname protections remain in effect.
+const BLOCKED_PORTS = [
+  22,    // SSH
+  23,    // Telnet
+  25,    // SMTP
+  53,    // DNS
+  135,   // MSRPC
+  137,   // NetBIOS Name
+  138,   // NetBIOS Datagram
+  139,   // NetBIOS Session
+  445,   // SMB
+  1433,  // MSSQL
+  1521,  // Oracle DB
+  3306,  // MySQL
+  5432,  // PostgreSQL
+  6379,  // Redis
+  9200,  // Elasticsearch
+  11211, // Memcached
+  27017, // MongoDB
+];
 
 // Mitigation: OWASP A10:2021 (SSRF) - Block dangerous hostname keywords
 const BLOCKED_HOSTNAME_KEYWORDS = [
@@ -103,7 +126,7 @@ export async function validateProxyUrl(url: string): Promise<ValidationResult> {
   if (!isAllowedPort(port)) {
     return {
       valid: false,
-      error: `Port ${port} not allowed. Permitted ports: ${ALLOWED_PORTS.join(', ')}`,
+      error: `Port ${port} blocked: Known dangerous service port (SSRF protection)`,
     };
   }
 
@@ -230,11 +253,13 @@ function isPrivateIPv6(ip: string): boolean {
 
 /**
  * Check if port is allowed for proxy requests
- * Mitigation: OWASP A10:2021 - Restrict ports to common HTTP/HTTPS ports
+ * Mitigation: OWASP A09:2025 (SSRF) - Block known-dangerous service ports
+ * Uses blocklist approach to allow non-standard API ports while blocking
+ * database, admin, and infrastructure service ports.
  *
  * @param port - Port number
- * @returns true if port is allowed
+ * @returns true if port is allowed (not on the blocklist)
  */
 export function isAllowedPort(port: number): boolean {
-  return ALLOWED_PORTS.includes(port);
+  return !BLOCKED_PORTS.includes(port);
 }

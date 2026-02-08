@@ -125,7 +125,7 @@ test.describe('Try It Out - Real API Calls', () => {
     // Select Bearer token
     const authSelect = page.locator('select').first();
     await authSelect.selectOption('bearer');
-    await expect(page.getByPlaceholderText('Enter bearer token')).toBeVisible();
+    await expect(page.getByPlaceholder('Enter bearer token')).toBeVisible();
 
     // Test Headers tab
     const headersTab = page.getByTestId('tab-headers');
@@ -133,8 +133,8 @@ test.describe('Try It Out - Real API Calls', () => {
     await expect(page.getByText(/HTTP headers to include/i)).toBeVisible({ timeout: 3000 });
 
     // Verify default headers exist
-    await expect(page.getByDisplayValue('Content-Type')).toBeVisible();
-    await expect(page.getByDisplayValue('Accept')).toBeVisible();
+    await expect(page.locator('input[value="Content-Type"]')).toBeVisible();
+    await expect(page.locator('input[value="Accept"]')).toBeVisible();
 
     // Test Body tab
     const bodyTab = page.getByTestId('tab-body');
@@ -164,7 +164,7 @@ test.describe('Try It Out - Real API Calls', () => {
     const authSelect = page.locator('select').first();
     await authSelect.selectOption('bearer');
 
-    const tokenInput = page.getByPlaceholderText('Enter bearer token');
+    const tokenInput = page.getByPlaceholder('Enter bearer token');
     await tokenInput.fill('test-token-123');
 
     // Update URL to test endpoint that accepts auth headers

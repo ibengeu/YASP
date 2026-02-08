@@ -172,6 +172,9 @@ paths:
                 const yaml = await import('yaml');
                 const parsed = yaml.parse(content);
 
+                // Calculate a basic quality score (0-100)
+                const score = 0; // Will be calculated by validation later
+
                 // Create new spec
                 const newSpec = await idbStorage.createSpec({
                     type: 'openapi',
@@ -197,6 +200,9 @@ paths:
                 // Get existing spec to preserve metadata
                 const existing = await idbStorage.getSpec(id!);
                 if (!existing) throw new Error('Spec not found');
+
+                // Preserve existing score or set to 0
+                const score = existing.metadata.score || 0;
 
                 // Update existing spec
                 await idbStorage.updateSpec(id!, {

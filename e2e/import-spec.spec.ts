@@ -1,6 +1,9 @@
 /**
  * Import Specification E2E Tests
- * Tests for importing specs via file, paste, and URL
+ * Tests for the Library Import Dialog (separate from API Registration Wizard)
+ *
+ * NOTE: This tests the library import feature (ImportSpecDialog).
+ * For API Registration Wizard tests, see api-registration.spec.ts
  *
  * Test Coverage:
  * - File upload
@@ -33,12 +36,13 @@ paths:
                     type: string
 `;
 
-test.describe('Import Specification', () => {
+test.describe('Import Specification via Registration Wizard', () => {
   test.beforeEach(async ({ page }) => {
-    // Go to catalog where import functionality lives
+    // Go to catalog where registration functionality lives
     await page.goto('/catalog');
-    // Open import dialog
-    await page.getByRole('button', { name: /Register New API|Import/i }).click();
+    // Open registration drawer
+    await page.getByRole('button', { name: /Register New API/i }).click();
+    // Wait for drawer to be visible
     await expect(page.getByRole('dialog')).toBeVisible({ timeout: 3000 });
   });
 
@@ -49,8 +53,8 @@ test.describe('Import Specification', () => {
     // Paste YAML content
     await page.locator('textarea').fill(SAMPLE_OPENAPI_YAML);
 
-    // Click import button
-    await page.getByRole('button', { name: /Import Specification/i }).click();
+    // Click analyze button
+    await page.getByRole('button', { name: /Analyze|Use Pasted/i }).click();
 
     // Should navigate to editor
     await expect(page).toHaveURL(/\/editor\/[a-f0-9-]+/);
@@ -70,8 +74,8 @@ test.describe('Import Specification', () => {
     // Paste invalid content
     await page.locator('textarea').fill('invalid yaml content {{{');
 
-    // Click import button
-    await page.getByRole('button', { name: /Import Specification/i }).click();
+    // Click analyze button
+    await page.getByRole('button', { name: /Analyze|Use Pasted/i }).click();
 
     // Should show error toast (wait for toast to appear and check text)
     await page.waitForSelector('[data-sonner-toast]', { timeout: 3000 });
@@ -79,19 +83,19 @@ test.describe('Import Specification', () => {
     expect(toastText).toMatch(/invalid|failed/i);
   });
 
-  test('should disable import button when paste area is empty', async ({ page }) => {
+  test('should disable analyze button when paste area is empty', async ({ page }) => {
     // Switch to paste tab
     await page.getByRole('tab', { name: /Paste/i }).click();
 
-    // Import button should be disabled
-    const importButton = page.getByRole('button', { name: /Import Specification/i });
-    await expect(importButton).toBeDisabled();
+    // Analyze button should be disabled
+    const analyzeButton = page.getByRole('button', { name: /Analyze|Use Pasted/i });
+    await expect(analyzeButton).toBeDisabled();
 
     // Type something
     await page.locator('textarea').fill('test');
 
     // Button should be enabled
-    await expect(importButton).toBeEnabled();
+    await expect(analyzeButton).toBeEnabled();
   });
 
   test('should show file upload interface', async ({ page }) => {
@@ -112,15 +116,15 @@ test.describe('Import Specification', () => {
     await expect(urlInput).toBeVisible();
     await expect(page.getByText(/Enter the URL/i)).toBeVisible();
 
-    // Import button should be disabled when empty
-    const importButton = page.getByRole('button', { name: /Import from URL/i });
-    await expect(importButton).toBeDisabled();
+    // Fetch button should be disabled when empty
+    const fetchButton = page.getByRole('button', { name: /Fetch|Import from URL/i });
+    await expect(fetchButton).toBeDisabled();
 
     // Type URL
     await urlInput.fill('https://example.com/openapi.yaml');
 
     // Button should be enabled
-    await expect(importButton).toBeEnabled();
+    await expect(fetchButton).toBeEnabled();
   });
 
   test('should close dialog with close button', async ({ page }) => {

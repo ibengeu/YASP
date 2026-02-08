@@ -217,7 +217,9 @@ export function FloatingActionBar({
           >
             {/* Primary Action - Save or Try It Out */}
             <Button
-              ref={(el) => (menuItemsRef.current[0] = el)}
+              ref={(el) => {
+                menuItemsRef.current[0] = el;
+              }}
               variant="default"
               size="default"
               role="menuitem"
@@ -242,7 +244,9 @@ export function FloatingActionBar({
 
             {/* Docs Tab */}
             <Button
-              ref={(el) => (menuItemsRef.current[1] = el)}
+              ref={(el) => {
+                menuItemsRef.current[1] = el;
+              }}
               variant="secondary"
               size="default"
               role="menuitem"
@@ -260,7 +264,9 @@ export function FloatingActionBar({
 
             {/* Editor Tab */}
             <Button
-              ref={(el) => (menuItemsRef.current[2] = el)}
+              ref={(el) => {
+                menuItemsRef.current[2] = el;
+              }}
               variant="secondary"
               size="default"
               role="menuitem"
@@ -278,7 +284,9 @@ export function FloatingActionBar({
 
             {/* Maximize Toggle */}
             <Button
-              ref={(el) => (menuItemsRef.current[3] = el)}
+              ref={(el) => {
+                menuItemsRef.current[3] = el;
+              }}
               variant="secondary"
               size="default"
               role="menuitem"

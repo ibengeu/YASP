@@ -103,16 +103,16 @@ describe('ProxyValidator - SSRF Protection', () => {
       expect(result.error).toContain('Invalid URL');
     });
 
-    it('should block disallowed port 22 (SSH)', async () => {
+    it('should block dangerous port 22 (SSH)', async () => {
       const result = await validateProxyUrl('http://example.com:22/');
       expect(result.valid).toBe(false);
-      expect(result.error).toContain('port');
+      expect(result.error).toContain('Port');
     });
 
-    it('should block disallowed port 3306 (MySQL)', async () => {
+    it('should block dangerous port 3306 (MySQL)', async () => {
       const result = await validateProxyUrl('http://example.com:3306/');
       expect(result.valid).toBe(false);
-      expect(result.error).toContain('port');
+      expect(result.error).toContain('Port');
     });
 
     it('should allow port 8080', async () => {
@@ -123,6 +123,44 @@ describe('ProxyValidator - SSRF Protection', () => {
     it('should allow port 8443', async () => {
       const result = await validateProxyUrl('https://example.com:8443/api');
       expect(result.valid).toBe(true);
+    });
+
+    it('should allow non-standard API port 8025', async () => {
+      const result = await validateProxyUrl('https://example.com:8025/api');
+      expect(result.valid).toBe(true);
+    });
+
+    it('should allow port 5000 (common dev API port)', async () => {
+      const result = await validateProxyUrl('http://example.com:5000/api');
+      expect(result.valid).toBe(true);
+    });
+
+    it('should allow port 3000 (common dev API port)', async () => {
+      const result = await validateProxyUrl('http://example.com:3000/api');
+      expect(result.valid).toBe(true);
+    });
+
+    it('should allow port 9090', async () => {
+      const result = await validateProxyUrl('http://example.com:9090/api');
+      expect(result.valid).toBe(true);
+    });
+
+    it('should block dangerous port 5432 (PostgreSQL)', async () => {
+      const result = await validateProxyUrl('http://example.com:5432/');
+      expect(result.valid).toBe(false);
+      expect(result.error).toContain('Port');
+    });
+
+    it('should block dangerous port 6379 (Redis)', async () => {
+      const result = await validateProxyUrl('http://example.com:6379/');
+      expect(result.valid).toBe(false);
+      expect(result.error).toContain('Port');
+    });
+
+    it('should block dangerous port 27017 (MongoDB)', async () => {
+      const result = await validateProxyUrl('http://example.com:27017/');
+      expect(result.valid).toBe(false);
+      expect(result.error).toContain('Port');
     });
 
     it('should block hostname containing "internal"', async () => {
@@ -216,8 +254,40 @@ describe('ProxyValidator - SSRF Protection', () => {
       expect(isAllowedPort(8443)).toBe(true);
     });
 
+    it('should allow port 8025 (non-standard API port)', () => {
+      expect(isAllowedPort(8025)).toBe(true);
+    });
+
+    it('should allow port 3000 (common dev port)', () => {
+      expect(isAllowedPort(3000)).toBe(true);
+    });
+
+    it('should allow port 5000 (common dev port)', () => {
+      expect(isAllowedPort(5000)).toBe(true);
+    });
+
+    it('should allow port 9090', () => {
+      expect(isAllowedPort(9090)).toBe(true);
+    });
+
     it('should block port 22 (SSH)', () => {
       expect(isAllowedPort(22)).toBe(false);
+    });
+
+    it('should block port 23 (Telnet)', () => {
+      expect(isAllowedPort(23)).toBe(false);
+    });
+
+    it('should block port 25 (SMTP)', () => {
+      expect(isAllowedPort(25)).toBe(false);
+    });
+
+    it('should block port 135 (MSRPC)', () => {
+      expect(isAllowedPort(135)).toBe(false);
+    });
+
+    it('should block port 445 (SMB)', () => {
+      expect(isAllowedPort(445)).toBe(false);
     });
 
     it('should block port 3306 (MySQL)', () => {
@@ -234,6 +304,10 @@ describe('ProxyValidator - SSRF Protection', () => {
 
     it('should block port 9200 (Elasticsearch)', () => {
       expect(isAllowedPort(9200)).toBe(false);
+    });
+
+    it('should block port 27017 (MongoDB)', () => {
+      expect(isAllowedPort(27017)).toBe(false);
     });
   });
 });

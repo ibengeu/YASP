@@ -83,7 +83,10 @@ export async function executeApiRequest(request: ApiRequestData): Promise<ApiRes
     let body: any;
     const contentType = response.headers.get('content-type') || '';
 
-    if (contentType.includes('application/json')) {
+    // Match application/json and JSON-based subtypes:
+    // application/problem+json (RFC 7807), application/vnd.api+json (JSON:API),
+    // application/hal+json, etc.
+    if (contentType.includes('json')) {
       body = await response.json();
     } else if (contentType.includes('text/')) {
       body = await response.text();

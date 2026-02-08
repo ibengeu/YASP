@@ -219,4 +219,87 @@ describe('executeApiRequest', () => {
     expect(result.statusText).toBe('Not Found');
     expect(result.body).toEqual({ error: 'Resource not found' });
   });
+
+  it('should parse application/problem+json as JSON (RFC 7807)', async () => {
+    const mockHeaders = new Headers();
+    mockHeaders.set('content-type', 'application/problem+json; charset=utf-8');
+
+    const problemBody = {
+      type: 'https://example.com/errors/not-found',
+      title: 'Not Found',
+      status: 404,
+      detail: 'The requested resource was not found',
+    };
+
+    (global.fetch as any).mockResolvedValue({
+      ok: false,
+      status: 404,
+      statusText: 'Not Found',
+      headers: mockHeaders,
+      json: async () => problemBody,
+    });
+
+    const result = await executeApiRequest({
+      method: 'GET',
+      url: 'https://api.example.com/missing',
+      headers: {},
+    });
+
+    expect(result.status).toBe(404);
+    expect(result.body).toEqual(problemBody);
+    expect(result.body.title).toBe('Not Found');
+  });
+
+  it('should parse application/vnd.api+json as JSON (JSON:API)', async () => {
+    const mockHeaders = new Headers();
+    mockHeaders.set('content-type', 'application/vnd.api+json');
+
+    const jsonApiBody = {
+      errors: [{ status: '422', title: 'Invalid Attribute' }],
+    };
+
+    (global.fetch as any).mockResolvedValue({
+      ok: false,
+      status: 422,
+      statusText: 'Unprocessable Entity',
+      headers: mockHeaders,
+      json: async () => jsonApiBody,
+    });
+
+    const result = await executeApiRequest({
+      method: 'GET',
+      url: 'https://api.example.com/resource',
+      headers: {},
+    });
+
+    expect(result.status).toBe(422);
+    expect(result.body).toEqual(jsonApiBody);
+  });
+
+  it('should parse application/hal+json as JSON', async () => {
+    const mockHeaders = new Headers();
+    mockHeaders.set('content-type', 'application/hal+json');
+
+    const halBody = {
+      _links: { self: { href: '/orders' } },
+      count: 5,
+    };
+
+    (global.fetch as any).mockResolvedValue({
+      ok: true,
+      status: 200,
+      statusText: 'OK',
+      headers: mockHeaders,
+      json: async () => halBody,
+    });
+
+    const result = await executeApiRequest({
+      method: 'GET',
+      url: 'https://api.example.com/orders',
+      headers: {},
+    });
+
+    expect(result.status).toBe(200);
+    expect(result.body).toEqual(halBody);
+  });
 });
