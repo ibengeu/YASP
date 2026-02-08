@@ -1,6 +1,7 @@
 import { Shield, Clock, Tag, CheckCircle, AlertCircle, XCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { OpenApiDocument } from '@/core/storage/storage-schema';
+import { SCORE_THRESHOLDS, getQualityLabel, getScoreColor, getWorkspaceColor } from '@/lib/constants';
 
 interface ApiCardProps {
   spec: OpenApiDocument;
@@ -39,29 +40,16 @@ export function ApiCard({ spec, onClick, onDelete }: ApiCardProps) {
 
   // Get quality badge based on score
   const getQualityBadge = () => {
-    if (score >= 80) {
-      return { icon: CheckCircle, label: 'Excellent', color: 'text-green-600 dark:text-green-400' };
+    if (score >= SCORE_THRESHOLDS.excellent) {
+      return { icon: CheckCircle, label: getQualityLabel(score), color: 'text-green-600 dark:text-green-400' };
     }
-    if (score >= 60) {
-      return { icon: AlertCircle, label: 'Good', color: 'text-amber-600 dark:text-amber-400' };
+    if (score >= SCORE_THRESHOLDS.good) {
+      return { icon: AlertCircle, label: getQualityLabel(score), color: 'text-amber-600 dark:text-amber-400' };
     }
-    return { icon: XCircle, label: 'Needs Attention', color: 'text-red-600 dark:text-red-400' };
+    return { icon: XCircle, label: getQualityLabel(score), color: 'text-red-600 dark:text-red-400' };
   };
 
-  // Get workspace type color
-  const getWorkspaceColor = () => {
-    const type = spec.metadata.workspaceType;
-    switch (type) {
-      case 'team':
-        return 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20';
-      case 'partner':
-        return 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20';
-      case 'public':
-        return 'bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border-cyan-500/20';
-      default: // personal
-        return 'bg-gray-500/10 text-gray-600 dark:text-gray-400 border-gray-500/20';
-    }
-  };
+  const workspaceColor = getWorkspaceColor(spec.metadata.workspaceType);
 
   const statusBadge = getStatusBadge();
   const qualityBadge = getQualityBadge();
@@ -83,7 +71,7 @@ export function ApiCard({ spec, onClick, onDelete }: ApiCardProps) {
         <div className={cn('px-2 py-0.5 rounded-full text-xs font-medium border', statusBadge.color)}>
           {statusBadge.label}
         </div>
-        <div className={cn('px-2 py-0.5 rounded-full text-xs font-medium border', getWorkspaceColor())}>
+        <div className={cn('px-2 py-0.5 rounded-full text-xs font-medium border', workspaceColor)}>
           {spec.metadata.workspaceType}
         </div>
       </div>
@@ -145,7 +133,7 @@ export function ApiCard({ spec, onClick, onDelete }: ApiCardProps) {
           <div
             className={cn(
               'h-full transition-all',
-              score >= 80 ? 'bg-green-500' : score >= 60 ? 'bg-amber-500' : 'bg-red-500'
+              getScoreColor(score)
             )}
             style={{ width: `${score}%` }}
           />

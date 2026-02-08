@@ -16,6 +16,8 @@ import {FloatingActionBar} from '@/components/editor/FloatingActionBar';
 import {idbStorage} from '@/core/storage/idb-storage';
 import type {PathItemObject, OperationObject, ServerObject} from '@/types/openapi-spec';
 import {EndpointSidebarSkeleton, DocumentationSkeleton} from '@/components/ui/skeleton';
+import {NEW_SPEC_TEMPLATE, NEW_SPEC_DEFAULT_TITLE} from '@/lib/templates';
+import {getMethodColor as getMethodColorFromConstants, DEFAULT_FALLBACK_URL} from '@/lib/constants';
 
 // Parsed OpenAPI spec structure
 interface ParsedOpenAPISpec {
@@ -72,32 +74,10 @@ export default function SpecEditor() {
         const loadSpec = async () => {
             setIsLoading(true);
             if (id === 'new') {
-                // New spec template
-                const template = `openapi: 3.1.0
-info:
-  title: My API
-  version: 1.0.0
-  description: API description
-servers:
-  - url: https://api.example.com/v1
-paths:
-  /example:
-    get:
-      summary: Example endpoint
-      operationId: getExample
-      tags: [Examples]
-      responses:
-        '200':
-          description: Success
-          content:
-            application/json:
-              schema:
-                type: object
-`;
-                setEditorContent(template, 'code');
-                setOriginalContent(template);
-                setTitle('Untitled Spec');
-                setOriginalTitle('Untitled Spec');
+                setEditorContent(NEW_SPEC_TEMPLATE, 'code');
+                setOriginalContent(NEW_SPEC_TEMPLATE);
+                setTitle(NEW_SPEC_DEFAULT_TITLE);
+                setOriginalTitle(NEW_SPEC_DEFAULT_TITLE);
             } else {
                 const spec = await idbStorage.getSpec(id!);
                 if (spec) {
@@ -289,17 +269,7 @@ paths:
         console.log('Could not find endpoint in content:', path, method);
     };
 
-    // Method color mapping
-    const getMethodColor = (method: string) => {
-        const colors: Record<string, { bg: string; text: string; border: string }> = {
-            get: {bg: 'bg-green-500/10', text: 'text-green-400', border: 'border-green-500/30'},
-            post: {bg: 'bg-emerald-500/10', text: 'text-emerald-400', border: 'border-emerald-500/30'},
-            put: {bg: 'bg-orange-500/10', text: 'text-orange-400', border: 'border-orange-500/30'},
-            patch: {bg: 'bg-purple-500/10', text: 'text-purple-400', border: 'border-purple-500/30'},
-            delete: {bg: 'bg-rose-500/10', text: 'text-rose-400', border: 'border-rose-500/30'},
-        };
-        return colors[method.toLowerCase()] || colors.get;
-    };
+    const getMethodColor = getMethodColorFromConstants;
 
     // Update breadcrumb in CommandDeck
     useEffect(() => {
@@ -317,9 +287,9 @@ paths:
             <div className="flex-1 flex overflow-hidden min-h-0">
                 {/* Endpoint List Sidebar - Show skeleton while loading, then show endpoints or hide if none */}
                 {isLoading ? (
-                    <EndpointSidebarSkeleton/>
+                    <div className="hidden md:block"><EndpointSidebarSkeleton/></div>
                 ) : parsedSpec?.paths && Object.keys(parsedSpec.paths).length > 0 ? (
-                    <div className="w-72 border-r border-border bg-card flex flex-col shrink-0">
+                    <div className="hidden md:flex w-72 border-r border-border bg-card flex-col shrink-0">
                         <div className="p-4 border-b border-border">
                             <h3 className="text-sm font-semibold text-card-foreground mb-1">Endpoints</h3>
                             <p className="text-xs text-muted-foreground">
@@ -622,7 +592,7 @@ paths:
                     operation={selectedEndpoint.operation}
                     path={selectedEndpoint.path}
                     method={selectedEndpoint.method}
-                    baseUrl={parsedSpec?.servers?.[0]?.url || 'https://api.example.com'}
+                    baseUrl={parsedSpec?.servers?.[0]?.url || DEFAULT_FALLBACK_URL}
                     spec={parsedSpec}
                 />
             )}

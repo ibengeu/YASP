@@ -27,7 +27,6 @@ interface FloatingActionBarProps {
  * - Collapsed/expanded states with smooth animations
  * - Keyboard navigation (Escape, Enter, Arrow keys)
  * - Focus management and accessibility
- * - Haptic feedback hooks (future native wrapper)
  */
 export function FloatingActionBar({
   activeTab,
@@ -50,7 +49,6 @@ export function FloatingActionBar({
   // Expand menu
   const expand = () => {
     setIsExpanded(true);
-    triggerHaptic('light');
 
     // Animate menu items with stagger
     if (menuRef.current) {
@@ -142,7 +140,6 @@ export function FloatingActionBar({
   // Handle menu item click
   const handleMenuItemClick = (action: () => void) => {
     action();
-    triggerHaptic('light');
     collapse();
   };
 
@@ -189,20 +186,12 @@ export function FloatingActionBar({
     }
   }, [isExpanded]);
 
-  // Haptic feedback hook (future React Native integration)
-  const triggerHaptic = (_type: 'light' | 'medium' | 'heavy') => {
-    // Future: window.ReactNativeWebView?.postMessage({
-    //   type: 'haptic',
-    //   intensity: type
-    // });
-  };
-
   return (
     <>
       {/* FAB Container */}
       <div
         ref={containerRef}
-        className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-2"
+        className="fixed bottom-8 right-4 sm:bottom-6 sm:right-6 z-50 flex flex-col items-end gap-2"
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
       >
@@ -225,7 +214,7 @@ export function FloatingActionBar({
               role="menuitem"
               aria-label={activeTab === 'editor' ? 'Save Changes' : 'Try It Out'}
               disabled={activeTab === 'editor' && !hasChanges}
-              className="fab-menu-item min-w-[120px] h-12 justify-start gap-2 shadow-lg cursor-pointer"
+              className="fab-menu-item min-w-[110px] sm:min-w-[120px] h-12 justify-start gap-2 shadow-lg cursor-pointer"
               onClick={() => handleMenuItemClick(activeTab === 'editor' ? onSave : onTryItOut)}
               onKeyDown={(e) => handleKeyDown(e, 0)}
             >
@@ -252,7 +241,7 @@ export function FloatingActionBar({
               role="menuitem"
               aria-label="Switch to Documentation"
               className={cn(
-                'fab-menu-item min-w-[120px] h-12 justify-start gap-2 shadow-lg',
+                'fab-menu-item min-w-[110px] sm:min-w-[120px] h-12 justify-start gap-2 shadow-lg',
                 activeTab === 'docs' && 'bg-primary text-primary-foreground'
               )}
               onClick={() => handleMenuItemClick(() => onTabChange('docs'))}
@@ -272,7 +261,7 @@ export function FloatingActionBar({
               role="menuitem"
               aria-label="Switch to Editor"
               className={cn(
-                'fab-menu-item min-w-[120px] h-12 justify-start gap-2 shadow-lg',
+                'fab-menu-item min-w-[110px] sm:min-w-[120px] h-12 justify-start gap-2 shadow-lg',
                 activeTab === 'editor' && 'bg-primary text-primary-foreground'
               )}
               onClick={() => handleMenuItemClick(() => onTabChange('editor'))}
@@ -291,7 +280,7 @@ export function FloatingActionBar({
               size="default"
               role="menuitem"
               aria-label={isMaximized ? 'Minimize Editor' : 'Expand Editor'}
-              className="fab-menu-item min-w-[120px] h-12 justify-start gap-2 shadow-lg cursor-pointer"
+              className="fab-menu-item min-w-[110px] sm:min-w-[120px] h-12 justify-start gap-2 shadow-lg cursor-pointer"
               onClick={() => handleMenuItemClick(onToggleMaximize)}
               onKeyDown={(e) => handleKeyDown(e, 3)}
             >

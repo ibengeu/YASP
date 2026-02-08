@@ -5,6 +5,7 @@
 
 import { useState } from 'react';
 import { Outlet, Link, useLocation } from 'react-router';
+import { DEFAULT_USER_PROFILE } from '@/lib/constants';
 
 export default function DashboardLayout() {
   const location = useLocation();
@@ -112,12 +113,12 @@ export default function DashboardLayout() {
         <div className="p-4 border-t border-border">
           <div className={`flex items-center gap-3 p-2 rounded-md text-left hover:bg-muted transition-colors cursor-pointer ${sidebarCollapsed ? 'justify-center' : ''}`}>
             <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-primary/80 border border-border flex items-center justify-center text-xs font-semibold text-primary-foreground shrink-0">
-              YS
+              {DEFAULT_USER_PROFILE.initials}
             </div>
             {!sidebarCollapsed && (
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-foreground truncate">YASP User</p>
-                <p className="text-xs text-muted-foreground truncate">Local Environment</p>
+                <p className="text-sm font-medium text-foreground truncate">{DEFAULT_USER_PROFILE.name}</p>
+                <p className="text-xs text-muted-foreground truncate">{DEFAULT_USER_PROFILE.subtitle}</p>
               </div>
             )}
           </div>
@@ -130,7 +131,7 @@ export default function DashboardLayout() {
         <header className="sticky top-0 z-30 flex items-center justify-between px-6 py-4 border-b border-border bg-card/80 backdrop-blur-xl">
           <div className="flex items-center gap-4">
             {/* Breadcrumb with refined typography */}
-            <nav className="flex items-center text-sm text-muted-foreground">
+            <nav className="hidden sm:flex items-center text-sm text-muted-foreground">
               <span className="hover:text-foreground transition-colors cursor-pointer">Organization</span>
               <svg className="mx-2 w-3 h-3 opacity-40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -164,7 +165,7 @@ export default function DashboardLayout() {
                 placeholder="Search specifications..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="bg-muted/50 border border-border text-sm text-foreground rounded-full pl-9 pr-14 py-2 w-64 focus:outline-none focus:border-ring focus:ring-2 focus:ring-ring/20 transition-all placeholder:text-muted-foreground"
+                className="bg-muted/50 border border-border text-sm text-foreground rounded-full pl-9 pr-14 py-2 w-40 sm:w-64 focus:outline-none focus:border-ring focus:ring-2 focus:ring-ring/20 transition-all placeholder:text-muted-foreground"
               />
               <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1">
                 <kbd className="hidden sm:inline-block border border-border bg-background rounded px-1.5 py-0.5 text-[10px] font-sans text-muted-foreground leading-none">

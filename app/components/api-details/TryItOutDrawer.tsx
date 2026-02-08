@@ -17,6 +17,7 @@ import { json } from '@codemirror/lang-json';
 import { oneDark } from '@codemirror/theme-one-dark';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
 import type { OperationObject } from '@/types/openapi-spec';
+import { STORAGE_KEYS, DEFAULT_HEADERS, DRAWER_LAYOUT, DEFAULT_FALLBACK_URL } from '@/lib/constants';
 
 type HTTPMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 
@@ -134,9 +135,8 @@ function detectAuthFromSpec(spec: any): { type: 'none' | 'api-key' | 'bearer' | 
 }
 
 /** Check if baseUrl is a dummy fallback (Gap 4 fix) */
-const DUMMY_FALLBACK_URL = 'https://api.example.com';
 function isDummyFallbackUrl(url: string, spec: any): boolean {
-  return url === DUMMY_FALLBACK_URL && (!spec?.servers || spec.servers.length === 0);
+  return url === DEFAULT_FALLBACK_URL && (!spec?.servers || spec.servers.length === 0);
 }
 
 interface TryItOutDrawerProps {
@@ -150,8 +150,6 @@ interface TryItOutDrawerProps {
   spec?: any;
 }
 
-const LOG_PREFIX = '[TryItOut]';
-
 export function TryItOutDrawer({
   open,
   onClose,
@@ -161,11 +159,10 @@ export function TryItOutDrawer({
   baseUrl,
   spec,
 }: TryItOutDrawerProps) {
-  console.debug(LOG_PREFIX, 'render', { open, initialPath, initialMethod, baseUrl, hasSpec: !!spec });
   const fetcher = useFetcher();
   const [activeTab, setActiveTab] = useState<'params' | 'auth' | 'headers' | 'body'>('params');
   const [response, setResponse] = useState<TestResponse | null>(null);
-  const [drawerHeight, setDrawerHeight] = useState<number>(600);
+  const [drawerHeight, setDrawerHeight] = useState<number>(DRAWER_LAYOUT.defaultHeight);
   const [isResizing, setIsResizing] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const bodyEditorRef = useRef<HTMLDivElement>(null);
@@ -190,8 +187,7 @@ export function TryItOutDrawer({
     url: `${baseUrl}${initialPath}`,
     params: [],
     headers: [
-      { enabled: true, key: 'Content-Type', value: 'application/json' },
-      { enabled: true, key: 'Accept', value: 'application/json' },
+      ...DEFAULT_HEADERS.map(h => ({ ...h })),
       { enabled: false, key: '', value: '' },
     ],
     auth: detectedAuth,
@@ -200,7 +196,7 @@ export function TryItOutDrawer({
 
   // Load drawer height from localStorage
   useEffect(() => {
-    const saved = localStorage.getItem('api-drawer-height');
+    const saved = localStorage.getItem(STORAGE_KEYS.drawerHeight);
     if (saved) {
       const height = parseInt(saved, 10);
       if (!isNaN(height)) setDrawerHeight(height);
@@ -210,29 +206,23 @@ export function TryItOutDrawer({
   // Save drawer height
   useEffect(() => {
     if (!isResizing) {
-      localStorage.setItem('api-drawer-height', drawerHeight.toString());
+      localStorage.setItem(STORAGE_KEYS.drawerHeight, drawerHeight.toString());
     }
   }, [drawerHeight, isResizing]);
 
   // Load sidebar state
   useEffect(() => {
-    const saved = localStorage.getItem('api-drawer-sidebar-collapsed');
+    const saved = localStorage.getItem(STORAGE_KEYS.sidebarCollapsed);
     if (saved === 'true') setIsSidebarCollapsed(true);
   }, []);
 
   // Save sidebar state
   useEffect(() => {
-    localStorage.setItem('api-drawer-sidebar-collapsed', isSidebarCollapsed.toString());
+    localStorage.setItem(STORAGE_KEYS.sidebarCollapsed, isSidebarCollapsed.toString());
   }, [isSidebarCollapsed]);
 
   // Parse endpoints from spec
   useEffect(() => {
-    console.debug(LOG_PREFIX, 'parseEndpoints effect', {
-      hasSpec: !!spec,
-      pathCount: spec?.paths ? Object.keys(spec.paths).length : 0,
-      currentSelectedEndpoint: selectedEndpoint ? `${selectedEndpoint.method} ${selectedEndpoint.path}` : null,
-    });
-
     if (!spec?.paths) {
       setEndpointGroups([]);
       return;
@@ -252,8 +242,6 @@ export function TryItOutDrawer({
         }
       });
     });
-
-    console.debug(LOG_PREFIX, 'parseEndpoints: parsed', endpoints.length, 'endpoints');
 
     // Group by tags
     const grouped = new Map<string, ParsedEndpoint[]>();
@@ -276,10 +264,7 @@ export function TryItOutDrawer({
       const initial = endpoints.find(
         e => e.path === initialPath && e.method === initialMethod.toUpperCase()
       ) || endpoints[0];
-      console.debug(LOG_PREFIX, 'parseEndpoints: setting initial endpoint', `${initial.method} ${initial.path}`);
       setSelectedEndpoint(initial);
-    } else {
-      console.debug(LOG_PREFIX, 'parseEndpoints: skipping initial endpoint (already selected or no endpoints)');
     }
   }, [spec]);
 
@@ -341,26 +326,14 @@ export function TryItOutDrawer({
 
   // Update request when endpoint or server changes
   useEffect(() => {
-    console.debug(LOG_PREFIX, 'updateRequest effect', {
-      selectedEndpoint: selectedEndpoint ? `${selectedEndpoint.method} ${selectedEndpoint.path}` : null,
-      selectedServer,
-      specPathKeys: spec?.paths ? Object.keys(spec.paths) : [],
-    });
-
     if (!selectedEndpoint) return;
 
     const fullUrl = `${selectedServer}${selectedEndpoint.path}`;
-    console.debug(LOG_PREFIX, 'updateRequest: fullUrl =', fullUrl);
 
     // Merge path-level and operation-level parameters per OpenAPI spec.
     // Operation-level params override path-level params with same name+in.
     const pathLevelParams = (spec?.paths?.[selectedEndpoint.path]?.parameters || []) as any[];
     const operationParams = (selectedEndpoint.operation?.parameters || []) as any[];
-
-    console.debug(LOG_PREFIX, 'updateRequest: pathLevelParams =', pathLevelParams.length,
-      ', operationParams =', operationParams.length,
-      ', pathLevelRaw =', pathLevelParams.map((p: any) => `${p.name}(${p.in})`),
-      ', operationRaw =', operationParams.map((p: any) => `${p.name}(${p.in})`));
 
     // Deduplicate: operation params take precedence over path-level params
     const paramMap = new Map<string, any>();
@@ -371,8 +344,6 @@ export function TryItOutDrawer({
       paramMap.set(`${param.name}:${param.in}`, param);
     }
     const allParameters = Array.from(paramMap.values());
-
-    console.debug(LOG_PREFIX, 'updateRequest: merged params =', allParameters.map((p: any) => `${p.name}(${p.in})`));
 
     // Separate parameters by location
     const paramRows: ParamRow[] = [];
@@ -396,14 +367,8 @@ export function TryItOutDrawer({
           description: param.description,
           paramIn: location as ParamRow['paramIn'],
         });
-      } else {
-        console.warn(LOG_PREFIX, 'updateRequest: unknown param location', location, 'for param', param.name);
       }
     }
-
-    console.debug(LOG_PREFIX, 'updateRequest: paramRows =',
-      paramRows.map(p => `${p.key}(${p.paramIn}, enabled=${p.enabled})`),
-      ', headerParams =', headerParamsFromSpec.map(h => h.key));
 
     // Add empty row for manual input
     paramRows.push({ enabled: false, key: '', value: '', description: undefined });
@@ -451,12 +416,8 @@ export function TryItOutDrawer({
     }
 
     // Merge spec header params with default headers
-    const defaultHeaders: HeaderRow[] = [
-      { enabled: true, key: 'Content-Type', value: 'application/json' },
-      { enabled: true, key: 'Accept', value: 'application/json' },
-    ];
     const mergedHeaders = [
-      ...defaultHeaders,
+      ...DEFAULT_HEADERS.map(h => ({ ...h })),
       ...headerParamsFromSpec,
       { enabled: false, key: '', value: '' }, // empty row for manual input
     ];
@@ -479,18 +440,6 @@ export function TryItOutDrawer({
   }, [selectedEndpoint, selectedServer]);
 
   const handleSendRequest = () => {
-    console.group(LOG_PREFIX, 'handleSendRequest');
-
-    console.debug('request state snapshot:', {
-      method: request.method,
-      url: request.url,
-      params: request.params.map(p => ({
-        key: p.key, value: p.value, paramIn: p.paramIn, enabled: p.enabled,
-      })),
-      headerCount: request.headers.filter(h => h.enabled && h.key).length,
-      bodyLength: request.body?.length ?? 0,
-    });
-
     // Build headers from enabled rows
     const headers: Record<string, string> = {};
     request.headers
@@ -503,26 +452,19 @@ export function TryItOutDrawer({
     // Mitigation for OWASP A07:2025 (Injection): encodeURIComponent prevents URL injection
     let url = request.url;
     const pathParams = request.params.filter(p => p.paramIn === 'path' && p.key && p.value);
-    console.debug('path params to substitute:', pathParams.map(p => `{${p.key}} → ${p.value}`));
     for (const param of pathParams) {
       url = url.replace(`{${param.key}}`, encodeURIComponent(param.value));
     }
-    console.debug('url after path substitution:', url);
-
     // Build query string from query params only (paramIn === 'query' or undefined for user-added)
     const queryParams = request.params.filter(
       p => p.enabled && p.key && p.value && p.paramIn !== 'path' && p.paramIn !== 'header' && p.paramIn !== 'cookie'
     );
-    console.debug('query params:', queryParams.map(p => `${p.key}=${p.value} (paramIn=${p.paramIn})`));
     if (queryParams.length > 0) {
       const queryString = queryParams
         .map(p => `${encodeURIComponent(p.key)}=${encodeURIComponent(p.value)}`)
         .join('&');
       url = `${url}?${queryString}`;
     }
-
-    console.debug('final url:', url);
-    console.debug('final headers:', headers);
 
     // Submit to React Router action
     const requestData = JSON.stringify({
@@ -533,9 +475,6 @@ export function TryItOutDrawer({
       auth: request.auth,
     });
 
-    console.debug('submitting requestData:', requestData);
-    console.groupEnd();
-
     fetcher.submit(requestData, {
       method: 'POST',
       action: '/api/execute-request',
@@ -545,26 +484,12 @@ export function TryItOutDrawer({
 
   // Handle fetcher response
   useEffect(() => {
-    console.debug(LOG_PREFIX, 'fetcher state changed:', {
-      state: fetcher.state,
-      hasData: !!fetcher.data,
-      dataSuccess: fetcher.data?.success,
-      dataError: fetcher.data?.error,
-    });
-
     if (fetcher.state === 'idle' && fetcher.data) {
       if (fetcher.data.success) {
-        console.debug(LOG_PREFIX, 'response received:', {
-          status: fetcher.data.data.status,
-          statusText: fetcher.data.data.statusText,
-          time: fetcher.data.data.time,
-          bodyPreview: JSON.stringify(fetcher.data.data.body)?.substring(0, 200),
-        });
         setResponse(fetcher.data.data);
         toast.success(`Request completed in ${fetcher.data.data.time}ms`);
       } else {
         const errorMessage = fetcher.data.error || 'Request failed';
-        console.error(LOG_PREFIX, 'request error:', errorMessage);
         toast.error(errorMessage);
         setResponse({
           status: 0,
@@ -610,8 +535,8 @@ export function TryItOutDrawer({
       if (startY === 0) startY = e.clientY;
       const deltaY = startY - e.clientY;
       const newHeight = startHeight + deltaY;
-      const minHeight = 400;
-      const maxHeight = window.innerHeight * 0.9;
+      const minHeight = DRAWER_LAYOUT.minHeight;
+      const maxHeight = window.innerHeight * DRAWER_LAYOUT.maxHeightRatio;
       setDrawerHeight(Math.max(minHeight, Math.min(maxHeight, newHeight)));
     };
 
@@ -732,7 +657,7 @@ export function TryItOutDrawer({
         <div className="flex-1 flex overflow-hidden">
           {/* Endpoints Sidebar */}
           {endpointGroups.length > 0 && !isSidebarCollapsed && (
-            <div className="w-72 border-r border-border flex flex-col bg-muted/30 shrink-0">
+            <div className="hidden md:flex w-72 border-r border-border flex-col bg-muted/30 shrink-0">
               {/* Search */}
               <div className="p-3 border-b border-border shrink-0">
                 <div className="relative">
@@ -816,7 +741,7 @@ export function TryItOutDrawer({
           {/* Testing Panel */}
           <div className="flex-1 flex flex-col bg-background min-w-0">
             {/* Request Bar */}
-            <div className="p-4 border-b border-border flex gap-3 shrink-0">
+            <div className="p-4 border-b border-border flex flex-col sm:flex-row gap-2 sm:gap-3 shrink-0">
               <div className="flex-1 flex rounded-md shadow-sm">
                 {/* Method */}
                 <div className="relative">
@@ -846,7 +771,7 @@ export function TryItOutDrawer({
               <button
                 onClick={handleSendRequest}
                 disabled={fetcher.state !== 'idle'}
-                className="h-10 px-6 bg-primary hover:opacity-90 text-primary-foreground text-xs font-semibold rounded-md transition-all flex items-center justify-center gap-2 min-w-[100px] disabled:opacity-50 disabled:cursor-not-allowed"
+                className="h-10 px-6 bg-primary hover:opacity-90 text-primary-foreground text-xs font-semibold rounded-md transition-all flex items-center justify-center gap-2 w-full sm:w-auto min-w-[100px] disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <span>{fetcher.state !== 'idle' ? 'Sending...' : 'Send'}</span>
                 <Play className="w-3.5 h-3.5 fill-current" />
@@ -889,8 +814,8 @@ export function TryItOutDrawer({
                       <div className="text-xs text-muted-foreground mb-2">
                         Query and path parameters for this endpoint
                       </div>
-                      <div className="border border-border rounded-md overflow-hidden">
-                        <table className="w-full text-xs">
+                      <div className="border border-border rounded-md overflow-x-auto">
+                        <table className="w-full text-xs min-w-[400px]">
                           <thead className="bg-muted">
                             <tr>
                               <th className="w-10 p-2 text-left font-medium"></th>
@@ -1070,8 +995,8 @@ export function TryItOutDrawer({
                       <div className="text-xs text-muted-foreground mb-2">
                         HTTP headers to include with the request
                       </div>
-                      <div className="border border-border rounded-md overflow-hidden">
-                        <table className="w-full text-xs">
+                      <div className="border border-border rounded-md overflow-x-auto">
+                        <table className="w-full text-xs min-w-[350px]">
                           <thead className="bg-muted">
                             <tr>
                               <th className="w-10 p-2 text-left font-medium"></th>

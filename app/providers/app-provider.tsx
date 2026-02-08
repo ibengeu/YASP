@@ -36,8 +36,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         await pluginRegistry.init({
           storage: idbStorage,
           events: eventDispatcher,
-          http: null, // TODO: Initialize HTTP client
-          config: null, // TODO: Load config
+          http: null,
+          config: null,
           logger: console,
         });
 

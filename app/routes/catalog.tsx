@@ -14,6 +14,8 @@ import { RegisterApiDrawer } from '@/components/registration/RegisterApiDrawer';
 import { idbStorage } from '@/core/storage/idb-storage';
 import type { OpenApiDocument } from '@/core/storage/storage-schema';
 import { staggerFadeIn, pageTransition } from '@/lib/animations';
+import { SEED_SPEC, SEED_SPEC_METADATA } from '@/lib/seed-data';
+import { getScoreColor } from '@/lib/constants';
 
 export default function CatalogPage() {
   const navigate = useNavigate();
@@ -45,69 +47,11 @@ export default function CatalogPage() {
     try {
       let allSpecs = await idbStorage.getAllSpecs();
 
-      // Add dummy data if empty
+      // Add seed data if empty
       if (allSpecs.length === 0) {
-        const dummySpec = `openapi: 3.1.0
-info:
-  title: E-Commerce API
-  version: 1.0.0
-  description: RESTful API for managing products, orders, and customers
-servers:
-  - url: https://api.example.com/v1
-paths:
-  /products:
-    get:
-      summary: List all products
-      operationId: getProducts
-      responses:
-        '200':
-          description: Successful response
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    id:
-                      type: string
-                    name:
-                      type: string
-                    price:
-                      type: number
-  /orders:
-    post:
-      summary: Create a new order
-      operationId: createOrder
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                productId:
-                  type: string
-                quantity:
-                  type: integer
-      responses:
-        '201':
-          description: Order created
-`;
-
         await idbStorage.createSpec({
-          type: 'openapi',
-          content: dummySpec,
-          title: 'E-Commerce API',
-          version: '1.0.0',
-          description: 'RESTful API for managing products, orders, and customers',
-          metadata: {
-            score: 85,
-            tags: ['ecommerce', 'rest', 'example'],
-            workspaceType: 'personal',
-            syncStatus: 'synced',
-            isDiscoverable: true,
-          },
+          ...SEED_SPEC_METADATA,
+          content: SEED_SPEC,
         });
 
         allSpecs = await idbStorage.getAllSpecs();
@@ -320,9 +264,7 @@ paths:
                             <div className="flex items-center gap-2">
                               <div className="bg-muted rounded-full h-1.5 w-20 overflow-hidden">
                                 <div
-                                  className={`h-full transition-all ${
-                                    score >= 80 ? 'bg-green-500' : score >= 60 ? 'bg-amber-500' : 'bg-red-500'
-                                  }`}
+                                  className={`h-full transition-all ${getScoreColor(score)}`}
                                   style={{ width: `${score}%` }}
                                 />
                               </div>
