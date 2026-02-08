@@ -89,4 +89,17 @@ describe('ApiCard', () => {
     // Should show workspace type (personal, team, etc.)
     expect(screen.getByText(/personal/i)).toBeInTheDocument();
   });
+
+  it('should not render a workflows button', () => {
+    const { container } = render(<ApiCard spec={mockSpec} onClick={vi.fn()} />);
+
+    // Workflows button was removed from ApiCard
+    expect(screen.queryByTitle('Workflows')).not.toBeInTheDocument();
+    // No GitBranch icon button should exist
+    const buttons = container.querySelectorAll('button');
+    const workflowsButton = Array.from(buttons).find(
+      (btn) => btn.getAttribute('title') === 'Workflows'
+    );
+    expect(workflowsButton).toBeUndefined();
+  });
 });

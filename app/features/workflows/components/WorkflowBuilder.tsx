@@ -1,10 +1,10 @@
 /**
- * WorkflowBuilder - Main canvas for building and running workflow chains
- * Vertical step list with railway track, split with results/variables panel
+ * WorkflowBuilder - Power Automate-style canvas for building and running workflows
+ * Dot-grid background, trigger node, step connectors, floating variables, slide-up results
  */
 
-import { useState, useCallback, useRef } from 'react';
-import { Plus } from 'lucide-react';
+import { useState, useCallback, useRef, Fragment } from 'react';
+import { Plus, Settings, Copy, ChevronDown, ChevronUp } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   DndContext,
@@ -19,13 +19,14 @@ import {
   SortableContext,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
-import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
 import { Button } from '@/components/ui/button';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { WorkflowToolbar } from './WorkflowToolbar';
 import { WorkflowStepCard } from './WorkflowStepCard';
+import { TriggerNode } from './TriggerNode';
+import { StepConnector } from './StepConnector';
+import { ExecutionResultsPanel } from './ExecutionResultsPanel';
 import { EndpointPicker } from './EndpointPicker';
-import { VariableScopePanel } from './VariableScopePanel';
-import { WorkflowResults } from './WorkflowResults';
 import { useWorkflowStore } from '../store/workflow.store';
 import { WorkflowEngine } from '../services/workflow-engine';
 import { idbStorage } from '@/core/storage/idb-storage';
@@ -38,6 +39,9 @@ interface WorkflowBuilderProps {
 
 export function WorkflowBuilder({ specs }: WorkflowBuilderProps) {
   const [showEndpointPicker, setShowEndpointPicker] = useState(false);
+  const [insertIndex, setInsertIndex] = useState<number | null>(null);
+  const [showResults, setShowResults] = useState(false);
+  const [varsOpen, setVarsOpen] = useState(true);
   const engineRef = useRef<WorkflowEngine | null>(null);
 
   const {
@@ -47,7 +51,6 @@ export function WorkflowBuilder({ specs }: WorkflowBuilderProps) {
     addStep,
     updateStep,
     removeStep,
-    reorderStep,
     reorderSteps,
     addExtraction,
     removeExtraction,
@@ -79,6 +82,7 @@ export function WorkflowBuilder({ specs }: WorkflowBuilderProps) {
     if (!currentWorkflow) return;
 
     resetExecution();
+    setShowResults(true);
     const engine = new WorkflowEngine();
     engineRef.current = engine;
 
@@ -139,22 +143,35 @@ export function WorkflowBuilder({ specs }: WorkflowBuilderProps) {
   }, [currentWorkflow]);
 
   const handleAddStep = (step: WorkflowStep) => {
-    addStep(step);
+    if (insertIndex !== null) {
+      // Insert at specific position by adding then reordering
+      addStep(step);
+      const newLength = currentWorkflow.steps.length + 1;
+      // The new step was appended at the end, move it to insertIndex
+      if (insertIndex < newLength - 1) {
+        reorderSteps(newLength - 1, insertIndex);
+      }
+      setInsertIndex(null);
+    } else {
+      addStep(step);
+    }
   };
 
-  const handleDuplicate = (step: WorkflowStep) => {
-    addStep({
-      ...step,
-      id: crypto.randomUUID(),
-      name: `${step.name} (copy)`,
-    });
+  const handleConnectorAdd = (index: number) => {
+    setInsertIndex(index);
+    setShowEndpointPicker(true);
   };
 
-  // All variables defined by all steps (for the scope panel)
+  // All variables defined by all steps (for the floating panel)
   const allAvailableVars = getAvailableVariables(currentWorkflow.steps.length);
 
+  const handleCopyVar = (name: string) => {
+    navigator.clipboard.writeText(`{{${name}}}`);
+    toast.success(`Copied {{${name}}} to clipboard`);
+  };
+
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full relative">
       <WorkflowToolbar
         workflow={currentWorkflow}
         isRunning={isRunning}
@@ -169,105 +186,166 @@ export function WorkflowBuilder({ specs }: WorkflowBuilderProps) {
             sharedAuth: updates.sharedAuth,
           });
         }}
+        lastRunAt={execution.completedAt}
       />
 
-      <ResizablePanelGroup orientation="horizontal" className="flex-1 min-h-0">
-        {/* Builder Canvas */}
-        <ResizablePanel defaultSize={60} minSize={35} className="flex flex-col">
-          <div className="flex-1 overflow-y-auto p-4">
-            {currentWorkflow.steps.length === 0 ? (
-              <div className="text-center py-16">
-                <p className="text-sm text-muted-foreground mb-3">
-                  Add your first step from the spec endpoints
-                </p>
-                <Button
-                  onClick={() => setShowEndpointPicker(true)}
-                  size="sm"
-                >
-                  <Plus className="w-4 h-4" />
-                  Add Step
-                </Button>
-              </div>
-            ) : (
-              <DndContext
-                sensors={sensors}
-                collisionDetection={closestCenter}
-                onDragEnd={handleDragEnd}
+      {/* Canvas with dot grid background */}
+      <div className="flex-1 overflow-auto canvas-grid relative flex justify-center p-10">
+        <div className="max-w-xl w-full flex flex-col items-center pb-20">
+          {/* Trigger Node */}
+          <TriggerNode />
+
+          {/* Connector after trigger */}
+          <StepConnector onAddClick={() => handleConnectorAdd(0)} />
+
+          {/* Steps with DnD */}
+          {currentWorkflow.steps.length > 0 ? (
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleDragEnd}
+            >
+              <SortableContext
+                items={currentWorkflow.steps.map((s) => s.id)}
+                strategy={verticalListSortingStrategy}
               >
-                <SortableContext
-                  items={currentWorkflow.steps.map((s) => s.id)}
-                  strategy={verticalListSortingStrategy}
-                >
-                  <div>
-                    {currentWorkflow.steps.map((step, index) => {
-                      const result = execution.results.find((r) => r.stepId === step.id);
-                      const specName = step.specEndpoint?.specId
-                        ? specs.get(step.specEndpoint.specId)?.title
-                        : undefined;
-                      return (
+                <div className="w-full flex flex-col items-center">
+                  {currentWorkflow.steps.map((step, index) => {
+                    const result = execution.results.find((r) => r.stepId === step.id);
+                    const specName = step.specEndpoint?.specId
+                      ? specs.get(step.specEndpoint.specId)?.title
+                      : undefined;
+                    return (
+                      <Fragment key={step.id}>
                         <WorkflowStepCard
-                          key={step.id}
                           step={step}
                           index={index}
-                          totalSteps={currentWorkflow.steps.length}
                           executionResult={result}
                           availableVariables={getAvailableVariables(index)}
                           specName={specName}
                           onUpdate={(updates) => updateStep(step.id, updates)}
                           onRemove={() => removeStep(step.id)}
-                          onReorder={(dir) => reorderStep(step.id, dir)}
-                          onDuplicate={() => handleDuplicate(step)}
                           onAddExtraction={(ext) => addExtraction(step.id, ext)}
                           onRemoveExtraction={(extId) => removeExtraction(step.id, extId)}
                         />
-                      );
-                    })}
-
-                    {/* Add Step button at bottom */}
-                    <div className="flex gap-3">
-                      <div className="flex flex-col items-center">
-                        <div className="w-3 h-3 rounded-full bg-muted-foreground/20 border-2 border-background" />
-                      </div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setShowEndpointPicker(true)}
-                        className="text-xs border-dashed"
-                      >
-                        <Plus className="w-3.5 h-3.5" />
-                        Add Step
-                      </Button>
-                    </div>
-                  </div>
-                </SortableContext>
-              </DndContext>
-            )}
-          </div>
-        </ResizablePanel>
-
-        <ResizableHandle withHandle className="hover:bg-primary transition-colors" />
-
-        {/* Results + Variables Panel */}
-        <ResizablePanel defaultSize={40} minSize={25} className="flex flex-col border-l border-border">
-          <div className="flex-1 overflow-y-auto">
-            <VariableScopePanel
-              variables={execution.variables}
-              availableVariables={allAvailableVars}
-            />
-            <div className="border-t border-border">
-              <WorkflowResults
-                steps={currentWorkflow.steps}
-                results={execution.results}
-              />
+                        <StepConnector onAddClick={() => handleConnectorAdd(index + 1)} />
+                      </Fragment>
+                    );
+                  })}
+                </div>
+              </SortableContext>
+            </DndContext>
+          ) : (
+            /* Empty state — prompt to add first step */
+            <div className="text-center py-4">
+              <p className="text-xs text-muted-foreground mb-2">Add your first step</p>
             </div>
+          )}
+
+          {/* Final add button (always visible) */}
+          <button
+            onClick={() => {
+              setInsertIndex(null);
+              setShowEndpointPicker(true);
+            }}
+            className="w-8 h-8 rounded-full bg-card border border-dashed border-border flex items-center justify-center
+              text-muted-foreground hover:border-primary hover:text-primary transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+
+      {/* Floating Variables Panel — top-right, xl+ screens */}
+      <div className="absolute right-6 top-16 w-72 z-10 hidden xl:block">
+        <Collapsible open={varsOpen} onOpenChange={setVarsOpen}>
+          <div className="glass-panel rounded-xl shadow-2xl overflow-hidden">
+            {/* Header */}
+            <CollapsibleTrigger asChild>
+              <button className="w-full flex items-center justify-between px-4 py-3 hover:bg-muted/30 transition-colors">
+                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  Flow Variables
+                </span>
+                <div className="flex items-center gap-2">
+                  <Settings className="w-3.5 h-3.5 text-muted-foreground hover:text-foreground" />
+                  {varsOpen
+                    ? <ChevronUp className="w-3.5 h-3.5 text-muted-foreground" />
+                    : <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />}
+                </div>
+              </button>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <div className="px-3 pb-3 space-y-2">
+                {allAvailableVars.length === 0 ? (
+                  <p className="text-[10px] text-muted-foreground text-center py-3">
+                    No variables yet. Add extractions to steps.
+                  </p>
+                ) : (
+                  allAvailableVars.map((v) => {
+                    const value = execution.variables[v.name];
+                    const hasValue = value !== undefined;
+                    const displayValue = hasValue
+                      ? typeof value === 'object'
+                        ? JSON.stringify(value)
+                        : String(value)
+                      : undefined;
+
+                    return (
+                      <div
+                        key={`${v.stepId}-${v.name}`}
+                        className="bg-muted/30 rounded-md p-3 border border-border/30 group"
+                      >
+                        {/* Variable label */}
+                        <div className="text-[10px] text-muted-foreground font-mono mb-1.5">
+                          {v.stepName}
+                        </div>
+
+                        {/* Variable name + value */}
+                        <div className="flex items-center gap-2">
+                          <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                            hasValue ? 'bg-emerald-500' : 'bg-muted-foreground/30'
+                          }`} />
+                          <code className="text-xs text-foreground font-mono font-medium truncate flex-1">
+                            {hasValue ? displayValue : v.name}
+                          </code>
+                          <Button
+                            variant="ghost"
+                            size="icon-xs"
+                            onClick={() => handleCopyVar(v.name)}
+                            className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+                            title={`Copy {{${v.name}}}`}
+                          >
+                            <Copy className="w-3 h-3" />
+                          </Button>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </CollapsibleContent>
           </div>
-        </ResizablePanel>
-      </ResizablePanelGroup>
+        </Collapsible>
+      </div>
+
+      {/* Execution Results Panel — slide-up bottom */}
+      <ExecutionResultsPanel
+        steps={currentWorkflow.steps}
+        results={execution.results}
+        isOpen={showResults}
+        onClose={() => setShowResults(false)}
+        startedAt={execution.startedAt}
+        completedAt={execution.completedAt}
+        status={execution.status}
+      />
 
       {/* Endpoint Picker Dialog */}
       <EndpointPicker
         open={showEndpointPicker}
-        onClose={() => setShowEndpointPicker(false)}
+        onClose={() => {
+          setShowEndpointPicker(false);
+          setInsertIndex(null);
+        }}
         specs={specs}
         onSelect={handleAddStep}
       />

@@ -328,7 +328,7 @@ describe('ApiDetailDrawer', () => {
     expect(hasSearchInput).toBeTruthy();
   });
 
-  it('should have an Edit button that navigates to editor', async () => {
+  it('should have a Full Screen button that navigates to editor', async () => {
     mockGetSpec.mockResolvedValue({
       id: 'test-id',
       content: mockSpecContent,
@@ -340,12 +340,50 @@ describe('ApiDetailDrawer', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText('Edit')).toBeInTheDocument();
+      expect(screen.getByText('Full Screen')).toBeInTheDocument();
     });
 
     const user = userEvent.setup();
-    await user.click(screen.getByText('Edit'));
+    await user.click(screen.getByText('Full Screen'));
     expect(mockNavigate).toHaveBeenCalledWith('/editor/test-id');
+  });
+
+  it('should not render a Workflows button', async () => {
+    mockGetSpec.mockResolvedValue({
+      id: 'test-id',
+      content: mockSpecContent,
+      title: 'Test API',
+    });
+
+    renderWithRouter(
+      <ApiDetailDrawer open={true} onClose={vi.fn()} specId="test-id" />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Full Screen')).toBeInTheDocument();
+    });
+
+    // Workflows button should not exist in the drawer
+    expect(screen.queryByText('Workflows')).not.toBeInTheDocument();
+  });
+
+  it('should not render a separate Edit button', async () => {
+    mockGetSpec.mockResolvedValue({
+      id: 'test-id',
+      content: mockSpecContent,
+      title: 'Test API',
+    });
+
+    renderWithRouter(
+      <ApiDetailDrawer open={true} onClose={vi.fn()} specId="test-id" />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Full Screen')).toBeInTheDocument();
+    });
+
+    // Edit button was replaced by Full Screen
+    expect(screen.queryByText('Edit')).not.toBeInTheDocument();
   });
 
   it('should show error state when spec is not found', async () => {

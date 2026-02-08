@@ -1,11 +1,11 @@
 /**
- * WorkflowToolbar - Top toolbar for workflow builder
- * Shows workflow name, run/stop/save buttons, back navigation
+ * WorkflowToolbar - Glass-morphism top toolbar for workflow builder
+ * Status dot with glow, editable title, last-run timestamp, Test + Run Flow buttons,
+ * overflow dropdown menu with save/export/import/settings
  */
 
 import { useState, useRef } from 'react';
-import { useNavigate } from 'react-router';
-import { ArrowLeft, Play, Square, Save, Settings, Download, Upload } from 'lucide-react';
+import { Play, Square, Save, Settings, Download, Upload, MoreHorizontal } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -15,6 +15,13 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import type { WorkflowDocument, WorkflowAuth } from '../types/workflow.types';
@@ -26,6 +33,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { cn } from '@/lib/utils';
 
 interface WorkflowToolbarProps {
   workflow: WorkflowDocument;
@@ -36,6 +44,19 @@ interface WorkflowToolbarProps {
   onSave: () => void;
   onSettingsChange: (updates: { serverUrl?: string; sharedAuth?: WorkflowAuth }) => void;
   onImport?: (workflow: Omit<WorkflowDocument, 'id' | 'created_at' | 'updated_at'>) => void;
+  lastRunAt?: string;
+}
+
+function formatLastRun(dateStr: string): string {
+  const now = Date.now();
+  const then = new Date(dateStr).getTime();
+  const diffMs = now - then;
+  const diffMins = Math.floor(diffMs / 60000);
+  if (diffMins < 1) return 'just now';
+  if (diffMins < 60) return `${diffMins}m ago`;
+  const diffHrs = Math.floor(diffMins / 60);
+  if (diffHrs < 24) return `${diffHrs}h ago`;
+  return `${Math.floor(diffHrs / 24)}d ago`;
 }
 
 export function WorkflowToolbar({
@@ -47,8 +68,8 @@ export function WorkflowToolbar({
   onSave,
   onSettingsChange,
   onImport,
+  lastRunAt,
 }: WorkflowToolbarProps) {
-  const navigate = useNavigate();
   const [showSettings, setShowSettings] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -77,9 +98,9 @@ export function WorkflowToolbar({
       }
     };
     reader.readAsText(file);
-    // Reset file input so same file can be re-imported
     e.target.value = '';
   };
+
   const [serverUrl, setServerUrl] = useState(workflow.serverUrl);
   const [authType, setAuthType] = useState<WorkflowAuth['type']>(
     workflow.sharedAuth?.type || 'none'
@@ -97,29 +118,48 @@ export function WorkflowToolbar({
 
   return (
     <>
-      <div className="h-12 border-b border-border flex items-center justify-between px-4 bg-background shrink-0">
+      <div className="h-14 px-6 border-b border-border/50 bg-card/30 backdrop-blur flex items-center justify-between shrink-0">
+        {/* Left section: status dot + editable name */}
         <div className="flex items-center gap-3">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => navigate(`/catalog`)}
-            className="text-xs text-muted-foreground"
-          >
-            <ArrowLeft className="w-3.5 h-3.5" />
-            Back
-          </Button>
-
-          <div className="h-4 w-px bg-border" />
+          <div className={cn(
+            'w-2 h-2 rounded-full shrink-0',
+            isRunning
+              ? 'bg-blue-500 animate-pulse shadow-[0_0_8px_rgba(59,130,246,0.5)]'
+              : 'bg-muted-foreground/30'
+          )} />
 
           <Input
             value={workflow.name}
             onChange={(e) => onNameChange(e.target.value)}
-            className="h-7 w-48 text-sm font-medium border-transparent hover:border-border focus:border-border"
+            className="h-7 w-64 text-sm font-medium bg-transparent border-transparent hover:border-border focus:border-border"
             placeholder="Workflow name"
           />
         </div>
 
-        <div className="flex items-center gap-2">
+        {/* Right section: last run + Test + Run/Stop + overflow menu */}
+        <div className="flex items-center gap-3">
+          {/* Last run timestamp */}
+          {lastRunAt && (
+            <>
+              <span className="text-xs text-muted-foreground font-mono hidden lg:block">
+                <span>Last run:</span>{' '}
+                <span className="text-foreground">{formatLastRun(lastRunAt)}</span>
+              </span>
+              <div className="h-4 w-px bg-border hidden lg:block" />
+            </>
+          )}
+
+          {/* Test button */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onRun}
+            disabled={workflow.steps.length === 0 || isRunning}
+            className="text-xs border-border/50 bg-card/50 hover:bg-muted"
+          >
+            Test
+          </Button>
+
           {isRunning ? (
             <Button
               variant="destructive"
@@ -135,40 +175,40 @@ export function WorkflowToolbar({
               size="sm"
               onClick={onRun}
               disabled={workflow.steps.length === 0}
-              className="text-xs"
+              className="text-xs bg-foreground text-background hover:bg-foreground/90 shadow-lg shadow-foreground/5 active:scale-95 transition-all"
             >
               <Play className="w-3.5 h-3.5 fill-current" />
-              Run
+              Run Flow
             </Button>
           )}
 
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={onSave}
-            className="text-xs"
-          >
-            <Save className="w-3.5 h-3.5" />
-            Save
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon-xs">
+                <MoreHorizontal className="w-4 h-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={onSave}>
+                <Save className="w-3.5 h-3.5" />
+                Save
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleExport}>
+                <Download className="w-3.5 h-3.5" />
+                Export
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => fileInputRef.current?.click()}>
+                <Upload className="w-3.5 h-3.5" />
+                Import
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => setShowSettings(true)}>
+                <Settings className="w-3.5 h-3.5" />
+                Settings
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
 
-          <Button
-            variant="ghost"
-            size="icon-xs"
-            onClick={handleExport}
-            title="Export workflow"
-          >
-            <Download className="w-4 h-4 text-foreground" />
-          </Button>
-
-          <Button
-            variant="ghost"
-            size="icon-xs"
-            onClick={() => fileInputRef.current?.click()}
-            title="Import workflow"
-          >
-            <Upload className="w-4 h-4 text-foreground" />
-          </Button>
           <input
             ref={fileInputRef}
             type="file"
@@ -176,14 +216,6 @@ export function WorkflowToolbar({
             className="hidden"
             onChange={handleImportFile}
           />
-
-          <Button
-            variant="ghost"
-            size="icon-xs"
-            onClick={() => setShowSettings(true)}
-          >
-            <Settings className="w-4 h-4 text-foreground" />
-          </Button>
         </div>
       </div>
 

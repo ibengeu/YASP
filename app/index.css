@@ -186,3 +186,21 @@ textarea::placeholder {
     color: var(--muted-foreground);
     opacity: 0.5;
 }
+
+/* Workflow canvas dot-grid pattern */
+.canvas-grid {
+    background-size: 20px 20px;
+    background-image: radial-gradient(circle, var(--border) 1px, transparent 1px);
+}
+
+/* Glass-morphism panel for workflow UI */
+.glass-panel {
+    background: oklch(from var(--card) l c h / 0.6);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid oklch(from var(--border) l c h / 0.5);
+}
+
+/* Hide scrollbar for workflow sidebar */
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }

@@ -1,16 +1,18 @@
 /**
  * Workflows Route - /workflows
- * Cross-collection: loads ALL specs from IDB, shows workflow list or builder
- * Query param ?wf=<id> selects a specific workflow
+ * Persistent sidebar + main canvas layout
+ * Cross-collection: loads ALL specs from IDB
  */
 
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router';
+import { GitBranch, Plus } from 'lucide-react';
 import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
 import { idbStorage } from '@/core/storage/idb-storage';
 import { useWorkflowStore } from '@/features/workflows/store/workflow.store';
 import { WorkflowBuilder } from '@/features/workflows/components/WorkflowBuilder';
-import { WorkflowList } from '@/features/workflows/components/WorkflowList';
+import { WorkflowSidebar } from '@/features/workflows/components/WorkflowSidebar';
 import type { WorkflowDocument } from '@/features/workflows/types/workflow.types';
 
 export interface SpecEntry {
@@ -144,7 +146,7 @@ export default function WorkflowsPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-screen bg-background">
+      <div className="flex items-center justify-center h-[calc(100vh-4rem)] bg-background">
         <div className="text-center space-y-3">
           <div className="inline-block h-6 w-6 animate-spin rounded-full border-2 border-solid border-primary border-r-transparent" />
           <p className="text-sm text-muted-foreground">Loading...</p>
@@ -153,24 +155,39 @@ export default function WorkflowsPage() {
     );
   }
 
-  // Show builder if a workflow is selected, otherwise show list
-  if (currentWorkflow) {
-    return (
-      <div className="h-screen flex flex-col bg-background">
-        <WorkflowBuilder specs={specs} />
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen bg-background">
-      <WorkflowList
+    <div className="h-[calc(100vh-4rem)] flex bg-background overflow-hidden">
+      {/* Sidebar — always visible */}
+      <WorkflowSidebar
         workflows={workflows}
+        selectedId={currentWorkflow?.id ?? null}
         onSelect={handleSelectWorkflow}
         onCreate={handleCreateWorkflow}
         onDelete={handleDeleteWorkflow}
         onImport={handleImportWorkflow}
       />
+
+      {/* Main area */}
+      <div className="flex-1 flex flex-col min-w-0">
+        {currentWorkflow ? (
+          <WorkflowBuilder specs={specs} />
+        ) : (
+          /* Empty canvas state */
+          <div className="flex-1 flex items-center justify-center canvas-grid">
+            <div className="text-center">
+              <GitBranch className="w-12 h-12 text-muted-foreground/20 mx-auto mb-4" />
+              <h2 className="text-sm font-medium text-foreground mb-1">No workflow selected</h2>
+              <p className="text-xs text-muted-foreground mb-4">
+                Select a workflow from the sidebar or create a new one
+              </p>
+              <Button onClick={handleCreateWorkflow} size="sm">
+                <Plus className="w-4 h-4" />
+                Create Workflow
+              </Button>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

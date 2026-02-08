@@ -1,12 +1,12 @@
 /**
- * WorkflowStepCard - Individual step in the workflow builder
- * Railway-track dot + method badge + path + extractions + reorder controls
+ * WorkflowStepCard - Glass morphism step card for the workflow canvas
+ * Method icon box + step info + hover actions + execution status badge
  */
 
 import { useState, useRef, useEffect } from 'react';
 import {
-  ChevronUp, ChevronDown, Trash2, Copy, ChevronDown as Expand, ChevronUp as Collapse,
-  Variable, GripVertical,
+  Trash2, ChevronDown as Expand, ChevronUp as Collapse,
+  Variable, GripVertical, CheckCircle, XCircle, Loader2,
 } from 'lucide-react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -22,29 +22,23 @@ import { pulseElement, successFlash, failureShake } from '@/lib/animations';
 interface WorkflowStepCardProps {
   step: WorkflowStep;
   index: number;
-  totalSteps: number;
   executionResult?: StepExecutionResult;
   availableVariables: { name: string; stepName: string; stepId: string }[];
   specName?: string;
   onUpdate: (updates: Partial<WorkflowStep>) => void;
   onRemove: () => void;
-  onReorder: (direction: 'up' | 'down') => void;
-  onDuplicate: () => void;
   onAddExtraction: (extraction: VariableExtraction) => void;
   onRemoveExtraction: (extractionId: string) => void;
 }
 
 export function WorkflowStepCard({
   step,
-  index,
-  totalSteps,
+  index: _index,
   executionResult,
   availableVariables: _availableVariables,
   specName,
   onUpdate,
   onRemove,
-  onReorder,
-  onDuplicate,
   onAddExtraction,
   onRemoveExtraction,
 }: WorkflowStepCardProps) {
@@ -87,18 +81,6 @@ export function WorkflowStepCard({
   const [isExpanded, setIsExpanded] = useState(false);
   const methodColors = getMethodColor(step.request.method);
 
-  // Railway dot color based on execution status
-  const getDotColor = () => {
-    if (!executionResult) return 'bg-muted-foreground/30';
-    switch (executionResult.status) {
-      case 'running': return 'bg-blue-500 animate-pulse';
-      case 'success': return 'bg-emerald-500';
-      case 'failure': return 'bg-destructive';
-      case 'skipped': return 'bg-muted-foreground/20';
-      default: return 'bg-muted-foreground/30';
-    }
-  };
-
   // Variable references in this step
   const usedVars = new Set<string>();
   const varPattern = /\{\{(\w+)\}\}/g;
@@ -116,82 +98,77 @@ export function WorkflowStepCard({
   }
 
   return (
-    <div ref={setNodeRef} style={sortableStyle} {...attributes} className="flex gap-3 group">
-      {/* Railway track */}
-      <div className="flex flex-col items-center pt-4">
-        <div className={cn('w-3 h-3 rounded-full shrink-0 border-2 border-background', getDotColor())} />
-        {index < totalSteps - 1 && (
-          <div className="w-0.5 flex-1 bg-border mt-1" />
+    <div ref={setNodeRef} style={sortableStyle} {...attributes} className="w-full max-w-md group">
+      <div
+        ref={cardRef}
+        className={cn(
+          'relative glass-panel rounded-xl shadow-sm p-4',
+          'hover:border-border transition-all',
+          executionResult?.status === 'failure' && 'border-destructive/50',
+          executionResult?.status === 'success' && 'border-emerald-500/50',
         )}
-      </div>
+      >
+        {/* Execution status badge */}
+        {executionResult?.status && executionResult.status !== 'pending' && (
+          <div className="absolute -right-2 -top-2 w-5 h-5 rounded-full bg-card border border-border shadow-md flex items-center justify-center">
+            {executionResult.status === 'success' && (
+              <CheckCircle className="w-3.5 h-3.5 text-emerald-500" />
+            )}
+            {executionResult.status === 'failure' && (
+              <XCircle className="w-3.5 h-3.5 text-destructive" />
+            )}
+            {executionResult.status === 'running' && (
+              <Loader2 className="w-3 h-3 text-blue-500 animate-spin" />
+            )}
+          </div>
+        )}
 
-      {/* Card */}
-      <div ref={cardRef} className={cn(
-        'flex-1 bg-card rounded-lg border border-border p-3 mb-2',
-        'hover:border-primary/50 transition-colors',
-        executionResult?.status === 'failure' && 'border-destructive/50',
-        executionResult?.status === 'success' && 'border-emerald-500/50',
-      )}>
-        {/* Header row */}
-        <div className="flex items-center gap-2">
+        {/* Header: Method icon + content + hover actions */}
+        <div className="flex items-start gap-3">
           {/* Drag handle */}
           <button
             {...listeners}
-            className="cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity touch-none"
+            className="cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity touch-none mt-1"
             tabIndex={-1}
           >
             <GripVertical className="w-3.5 h-3.5 text-muted-foreground" />
           </button>
 
-          {/* Method badge */}
-          <span className={cn(
-            'px-2 py-0.5 rounded text-[10px] font-bold uppercase',
-            methodColors.bg, methodColors.text, methodColors.border, 'border'
+          {/* Method icon box */}
+          <div className={cn(
+            'w-10 h-10 rounded-lg border flex items-center justify-center shrink-0',
+            methodColors.bg, methodColors.border
           )}>
-            {step.request.method}
-          </span>
-
-          {/* Spec name badge */}
-          {specName && (
-            <span className="px-1.5 py-0.5 rounded text-[10px] bg-muted text-muted-foreground truncate max-w-[120px]">
-              {specName}
+            <span className={cn('text-[10px] font-bold uppercase', methodColors.text)}>
+              {step.request.method}
             </span>
-          )}
+          </div>
 
-          {/* Path (monospace) */}
-          <code className="text-xs text-foreground font-mono truncate flex-1">
-            {step.request.path}
-          </code>
+          {/* Content column */}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium text-foreground truncate">
+                {step.name}
+              </span>
+              {specName && (
+                <span className="px-1.5 py-0.5 rounded text-[10px] bg-muted text-muted-foreground truncate max-w-[100px] shrink-0">
+                  {specName}
+                </span>
+              )}
+            </div>
+            <code className="text-xs text-muted-foreground font-mono truncate block mt-0.5">
+              {step.request.path}
+            </code>
+            {/* Execution time inline */}
+            {executionResult?.response && (
+              <span className="text-[10px] text-muted-foreground">
+                {executionResult.response.status} · {executionResult.response.time}ms
+              </span>
+            )}
+          </div>
 
-          {/* Execution time */}
-          {executionResult?.response && (
-            <span className="text-[10px] text-muted-foreground">
-              {executionResult.response.status} · {executionResult.response.time}ms
-            </span>
-          )}
-
-          {/* Actions */}
-          <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-            <Button
-              variant="ghost" size="icon-xs"
-              onClick={() => onReorder('up')}
-              disabled={index === 0}
-            >
-              <ChevronUp className="w-3.5 h-3.5" />
-            </Button>
-            <Button
-              variant="ghost" size="icon-xs"
-              onClick={() => onReorder('down')}
-              disabled={index === totalSteps - 1}
-            >
-              <ChevronDown className="w-3.5 h-3.5" />
-            </Button>
-            <Button variant="ghost" size="icon-xs" onClick={onDuplicate}>
-              <Copy className="w-3.5 h-3.5" />
-            </Button>
-            <Button variant="ghost" size="icon-xs" onClick={onRemove}>
-              <Trash2 className="w-3.5 h-3.5 text-destructive" />
-            </Button>
+          {/* Hover actions */}
+          <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
             <Button
               variant="ghost" size="icon-xs"
               onClick={() => setIsExpanded(!isExpanded)}
@@ -200,19 +177,14 @@ export function WorkflowStepCard({
                 ? <Collapse className="w-3.5 h-3.5" />
                 : <Expand className="w-3.5 h-3.5" />}
             </Button>
+            <Button variant="ghost" size="icon-xs" onClick={onRemove}>
+              <Trash2 className="w-3.5 h-3.5 text-destructive" />
+            </Button>
           </div>
         </div>
 
-        {/* Step name (editable) */}
-        <Input
-          value={step.name}
-          onChange={(e) => onUpdate({ name: e.target.value })}
-          className="h-6 text-xs border-transparent hover:border-border mt-1 px-1"
-          placeholder="Step name"
-        />
-
         {/* Extraction pills + variable usage indicators */}
-        <div className="flex items-center gap-1 mt-1.5 flex-wrap">
+        <div className="flex items-center gap-1 mt-2.5 flex-wrap">
           {step.extractions.map((ext) => (
             <ExtractionEditor
               key={ext.id}
@@ -244,6 +216,17 @@ export function WorkflowStepCard({
         {/* Expanded config */}
         {isExpanded && (
           <div className="mt-3 space-y-3 border-t border-border pt-3">
+            {/* Editable step name */}
+            <div>
+              <Label className="text-[10px] text-muted-foreground uppercase">Step Name</Label>
+              <Input
+                value={step.name}
+                onChange={(e) => onUpdate({ name: e.target.value })}
+                className="h-7 text-xs mt-1"
+                placeholder="Step name"
+              />
+            </div>
+
             {/* Headers */}
             <div>
               <Label className="text-[10px] text-muted-foreground uppercase">Headers</Label>

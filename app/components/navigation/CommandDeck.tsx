@@ -1,4 +1,4 @@
-import { Shield, Moon, Sun, Library } from 'lucide-react';
+import { Shield, Moon, Sun, Library, GitBranch } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router';
 import { useThemeStore } from '@/stores/theme-store';
 import { cn } from '@/lib/utils';
@@ -10,6 +10,13 @@ const navModules = [
     path: '/catalog',
     icon: Library,
     description: 'Browse and manage API specifications',
+  },
+  {
+    id: 'workflows',
+    label: 'Workflows',
+    path: '/workflows',
+    icon: GitBranch,
+    description: 'Build API request chains',
   },
 ];
 
@@ -32,8 +39,8 @@ export function CommandDeck() {
     return location.pathname.startsWith(path);
   };
 
-  // Determine if we should show breadcrumbs (on editor page)
-  const isEditorPage = location.pathname.startsWith('/editor/');
+  // Determine if we should show breadcrumbs (on editor or workflows pages)
+  const isEditorPage = location.pathname.startsWith('/editor/') || location.pathname.startsWith('/workflows');
 
   // Get collection name from URL or state (you'll need to pass this via state or context)
   // For now, we'll show a placeholder
