@@ -48,7 +48,7 @@ describe('fetchSpec', () => {
       });
 
       const result = await fetchSpec(
-        'https://optiweb.optimusbank.com:8025/account-api-2/swagger/v1/swagger.json'
+        'https://api.example.com:8025/account-api-2/swagger/v1/swagger.json'
       );
 
       expect(result).toEqual({ content: specContent });

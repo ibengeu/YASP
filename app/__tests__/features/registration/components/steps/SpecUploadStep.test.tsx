@@ -70,7 +70,7 @@ describe('SpecUploadStep - URL Import', () => {
 
     // Enter a URL
     const urlInput = screen.getByPlaceholderText(/https:\/\/api\.example\.com/i);
-    await user.type(urlInput, 'https://optiweb.example.com:8025/swagger.json');
+    await user.type(urlInput, 'https://api.example.com:8025/swagger.json');
 
     // Click Import
     await user.click(screen.getByRole('button', { name: /Import/i }));
@@ -80,7 +80,7 @@ describe('SpecUploadStep - URL Import', () => {
       expect(mockFetch).toHaveBeenCalledWith('/api/fetch-spec', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: 'https://optiweb.example.com:8025/swagger.json' }),
+        body: JSON.stringify({ url: 'https://api.example.com:8025/swagger.json' }),
       });
     });
 
@@ -88,7 +88,7 @@ describe('SpecUploadStep - URL Import', () => {
     await waitFor(() => {
       expect(onSpecParsed).toHaveBeenCalledWith(
         specContent,
-        'https://optiweb.example.com:8025/swagger.json'
+        'https://api.example.com:8025/swagger.json'
       );
     });
 
