@@ -130,3 +130,12 @@ export const WORKFLOW_LIMITS = {
 
 /** Regex pattern for {{variable}} template syntax */
 export const WORKFLOW_VARIABLE_PATTERN = /\{\{(\w+)\}\}/g;
+
+/** Body content type options for the request body editor */
+export const BODY_CONTENT_TYPES = [
+  {value: 'json', label: 'JSON', contentType: 'application/json'},
+  {value: 'form-data', label: 'Form Data', contentType: 'multipart/form-data'},
+  {value: 'x-www-form-urlencoded', label: 'URL Encoded', contentType: 'application/x-www-form-urlencoded'},
+  {value: 'binary', label: 'Binary', contentType: 'application/octet-stream'},
+  {value: 'none', label: 'None', contentType: ''},
+] as const;

@@ -32,11 +32,14 @@ vi.mock('@codemirror/view', () => {
   }));
   (EditorView as any).updateListener = { of: () => ({}) };
   (EditorView as any).theme = () => ({});
+  (EditorView as any).editable = { of: () => ({}) };
+  (EditorView as any).lineWrapping = {};
   return { EditorView, lineNumbers: () => ({}) };
 });
 vi.mock('@codemirror/state', () => ({
   EditorState: {
     create: vi.fn().mockReturnValue({}),
+    readOnly: { of: () => ({}) },
   },
 }));
 vi.mock('@codemirror/lang-json', () => ({ json: () => ({}) }));
@@ -93,7 +96,7 @@ beforeEach(() => {
     return style;
   });
 
-  // Polyfill document.styleSheets for react-resizable-panels cursor handling
+  // Polyfill document.styleSheets
   if (!document.styleSheets.length) {
     const styleEl = document.createElement('style');
     document.head.appendChild(styleEl);
@@ -422,7 +425,7 @@ describe('ApiDetailDrawer', () => {
       expect(screen.getByText('Send')).toBeInTheDocument();
     });
 
-    // Should have URL input (method is shown as a static badge)
+    // Should have URL input
     const urlInput = screen.getByPlaceholderText('Enter request URL');
     expect(urlInput).toBeInTheDocument();
   });
@@ -535,4 +538,73 @@ describe('ApiDetailDrawer', () => {
     const drawerContent = document.querySelector('[data-slot="drawer-content"]');
     expect(drawerContent).toBeTruthy();
   });
+
+  // 3-column layout tests
+
+  it('should render request tabs with data-testid attributes', async () => {
+    mockGetSpec.mockResolvedValue({
+      id: 'test-id',
+      content: mockSpecContent,
+      title: 'Test API',
+    });
+
+    renderWithRouter(
+      <ApiDetailDrawer open={true} onClose={vi.fn()} specId="test-id" />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Send')).toBeInTheDocument();
+    });
+
+    // Should have all four request tabs
+    expect(document.querySelector('[data-testid="tab-params"]')).toBeTruthy();
+    expect(document.querySelector('[data-testid="tab-auth"]')).toBeTruthy();
+    expect(document.querySelector('[data-testid="tab-headers"]')).toBeTruthy();
+    expect(document.querySelector('[data-testid="tab-body"]')).toBeTruthy();
+  });
+
+  it('should show response empty state when no request sent', async () => {
+    mockGetSpec.mockResolvedValue({
+      id: 'test-id',
+      content: mockSpecContent,
+      title: 'Test API',
+    });
+
+    renderWithRouter(
+      <ApiDetailDrawer open={true} onClose={vi.fn()} specId="test-id" />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Send')).toBeInTheDocument();
+    });
+
+    // Response panel should show empty state
+    expect(screen.getByText('Send a request to see the response')).toBeInTheDocument();
+  });
+
+  it('should show breadcrumb with tag and endpoint summary', async () => {
+    mockGetSpec.mockResolvedValue({
+      id: 'test-id',
+      content: mockSpecContent,
+      title: 'Test API',
+    });
+
+    renderWithRouter(
+      <ApiDetailDrawer open={true} onClose={vi.fn()} specId="test-id" />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Send')).toBeInTheDocument();
+    });
+
+    // Auto-selected first endpoint (GET /users with tag Users)
+    // Breadcrumb should show the tag (may appear in sidebar too, so use getAllByText)
+    const usersElements = screen.getAllByText('Users');
+    expect(usersElements.length).toBeGreaterThanOrEqual(1);
+    // And the summary
+    expect(screen.getByText('List users')).toBeInTheDocument();
+    // And the OpenAPI version badge
+    expect(screen.getByText('OpenAPI 3.1.0')).toBeInTheDocument();
+  });
+
 });
