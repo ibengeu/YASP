@@ -1,10 +1,9 @@
 /**
- * Tests for SpecUploadStep URL import behavior
- * Verifies that URL imports go through the server-side proxy route
- * to bypass CORS restrictions.
+ * Tests for SpecUploadStep
+ * Verifies spec upload, paste (auto-parse on blur), and URL fetch behavior.
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { SpecUploadStep } from '@/features/registration/components/steps/SpecUploadStep';
@@ -24,10 +23,15 @@ vi.mock('sonner', () => ({
 
 // Mock global fetch
 const mockFetch = vi.fn();
+const originalFetch = globalThis.fetch;
 
 beforeEach(() => {
-  vi.stubGlobal('fetch', mockFetch);
+  globalThis.fetch = mockFetch;
   vi.clearAllMocks();
+});
+
+afterEach(() => {
+  globalThis.fetch = originalFetch;
 });
 
 const defaultFormData: RegistrationFormData = {
@@ -54,8 +58,8 @@ function renderSpecUploadStep(overrides = {}) {
   return props;
 }
 
-describe('SpecUploadStep - URL Import', () => {
-  it('should call server-side /api/fetch-spec route when importing from URL', async () => {
+describe('SpecUploadStep - URL Fetch', () => {
+  it('should call server-side /api/fetch-spec route when fetching from URL', async () => {
     const specContent = '{"openapi":"3.0.0","info":{"title":"Test","version":"1.0"}}';
     mockFetch.mockResolvedValueOnce({
       ok: true,
@@ -72,8 +76,8 @@ describe('SpecUploadStep - URL Import', () => {
     const urlInput = screen.getByPlaceholderText(/https:\/\/api\.example\.com/i);
     await user.type(urlInput, 'https://api.example.com:8025/swagger.json');
 
-    // Click Import
-    await user.click(screen.getByRole('button', { name: /Import/i }));
+    // Click Fetch
+    await user.click(screen.getByRole('button', { name: /Fetch/i }));
 
     // Verify it called the server-side route, NOT the URL directly
     await waitFor(() => {
@@ -113,33 +117,11 @@ describe('SpecUploadStep - URL Import', () => {
     await user.click(screen.getByRole('tab', { name: /URL/i }));
     const urlInput = screen.getByPlaceholderText(/https:\/\/api\.example\.com/i);
     await user.type(urlInput, 'https://api.example.com/nonexistent.json');
-    await user.click(screen.getByRole('button', { name: /Import/i }));
+    await user.click(screen.getByRole('button', { name: /Fetch/i }));
 
     await waitFor(() => {
       expect(mockToast.error).toHaveBeenCalledWith(
         expect.stringContaining('404')
-      );
-    });
-  });
-
-  it('should show success toast on successful import', async () => {
-    const specContent = '{"openapi":"3.0.0"}';
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-      json: () => Promise.resolve({ success: true, content: specContent }),
-    });
-
-    renderSpecUploadStep();
-    const user = userEvent.setup();
-
-    await user.click(screen.getByRole('tab', { name: /URL/i }));
-    const urlInput = screen.getByPlaceholderText(/https:\/\/api\.example\.com/i);
-    await user.type(urlInput, 'https://api.example.com/openapi.json');
-    await user.click(screen.getByRole('button', { name: /Import/i }));
-
-    await waitFor(() => {
-      expect(mockToast.success).toHaveBeenCalledWith(
-        expect.stringContaining('fetched')
       );
     });
   });
@@ -153,21 +135,68 @@ describe('SpecUploadStep - URL Import', () => {
     await user.click(screen.getByRole('tab', { name: /URL/i }));
     const urlInput = screen.getByPlaceholderText(/https:\/\/api\.example\.com/i);
     await user.type(urlInput, 'https://api.example.com/spec.json');
-    await user.click(screen.getByRole('button', { name: /Import/i }));
+    await user.click(screen.getByRole('button', { name: /Fetch/i }));
 
     await waitFor(() => {
       expect(mockToast.error).toHaveBeenCalled();
     });
   });
 
-  it('should not fetch when URL is empty', async () => {
+  it('should disable Fetch button when URL is empty', async () => {
     renderSpecUploadStep();
     const user = userEvent.setup();
 
     await user.click(screen.getByRole('tab', { name: /URL/i }));
 
-    // The Import button should be disabled when URL is empty
-    const importButton = screen.getByRole('button', { name: /Import/i });
-    expect(importButton).toBeDisabled();
+    const fetchButton = screen.getByRole('button', { name: /Fetch/i });
+    expect(fetchButton).toBeDisabled();
+  });
+});
+
+describe('SpecUploadStep - Paste auto-parse', () => {
+  it('should auto-parse when user pastes content from clipboard', async () => {
+    const { setValue, onSpecParsed } = renderSpecUploadStep();
+    const user = userEvent.setup();
+
+    // Switch to Paste tab
+    await user.click(screen.getByRole('tab', { name: /Paste/i }));
+
+    const textarea = screen.getByPlaceholderText(/Paste your spec here/i);
+    await user.click(textarea);
+    // userEvent.paste triggers the native clipboard paste event
+    await user.paste('openapi: 3.0.0');
+
+    await waitFor(() => {
+      expect(setValue).toHaveBeenCalledWith('openapiSpec', {
+        source: 'paste',
+        content: 'openapi: 3.0.0',
+      });
+      expect(onSpecParsed).toHaveBeenCalledWith('openapi: 3.0.0');
+    });
+  });
+});
+
+describe('SpecUploadStep - UI states', () => {
+  it('should show loading state when parsing', () => {
+    renderSpecUploadStep({ isParsingSpec: true });
+
+    expect(screen.getByText(/Reading your spec/i)).toBeInTheDocument();
+  });
+
+  it('should show "Uploaded" badge when spec has content', () => {
+    renderSpecUploadStep({
+      formData: {
+        ...defaultFormData,
+        openapiSpec: { source: 'upload', content: '{"openapi":"3.0.0"}' },
+      },
+    });
+
+    expect(screen.getByText('Uploaded')).toBeInTheDocument();
+  });
+
+  it('should show helper text when no spec is provided', () => {
+    renderSpecUploadStep();
+
+    expect(screen.getByText(/Upload, paste, or fetch your OpenAPI spec/i)).toBeInTheDocument();
   });
 });

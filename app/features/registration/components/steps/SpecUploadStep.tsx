@@ -1,36 +1,33 @@
 /**
- * SpecUploadStep - Step 1 of API Registration Wizard
+ * SpecUploadStep - Spec upload section of the registration form
  *
- * Allows users to upload, paste, or import OpenAPI specifications.
- * Includes auto-inference, loading states, and skip option.
+ * Allows users to upload, paste, or fetch OpenAPI specifications.
+ * Auto-parses on upload, paste blur, and URL fetch.
+ * Spec is required for registration.
  */
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { toast } from 'sonner';
 import {
   Upload,
   ClipboardPaste,
   Link as LinkIcon,
   Loader2,
-  CheckCircle2,
-  AlertCircle,
 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import type { RegistrationFormData } from '@/features/registration/schemas/registration-schema';
-import type { InferredData } from '@/features/registration/utils/spec-inference';
+
 import type { UseFormSetValue } from 'react-hook-form';
 
 export interface SpecUploadStepProps {
   formData: RegistrationFormData;
   setValue: UseFormSetValue<RegistrationFormData>;
   onSpecParsed: (content: string, sourceUrl?: string) => Promise<void>;
-  inferredData: InferredData | null;
   isParsingSpec: boolean;
 }
 
@@ -38,7 +35,6 @@ export function SpecUploadStep({
   formData,
   setValue,
   onSpecParsed,
-  inferredData,
   isParsingSpec,
 }: SpecUploadStepProps) {
   const [pastedContent, setPastedContent] = useState('');
@@ -71,27 +67,35 @@ export function SpecUploadStep({
         fileName: file.name,
       });
       await onSpecParsed(content);
-      toast.success('Specification uploaded and analyzed successfully');
     } catch (error) {
-      toast.error('Failed to read file. Please ensure it\'s a valid YAML or JSON file.');
+      toast.error("Couldn't read that file. Make sure it's valid YAML or JSON.");
       console.error('File upload error:', error);
     } finally {
       setIsImporting(false);
     }
   };
 
-  const handlePaste = async () => {
-    if (!pastedContent.trim()) {
-      toast.error('Please paste your OpenAPI specification');
-      return;
-    }
+  /**
+   * Auto-parse when user pastes content from clipboard.
+   */
+  const handleClipboardPaste = useCallback(async (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    const pasted = e.clipboardData.getData('text');
+    if (!pasted.trim()) return;
 
+    // The onChange will fire after paste, but we need the full content
+    // Combine existing content with pasted text at cursor position
+    const target = e.target as HTMLTextAreaElement;
+    const before = target.value.substring(0, target.selectionStart);
+    const after = target.value.substring(target.selectionEnd);
+    const fullContent = before + pasted + after;
+
+    setPastedContent(fullContent);
     setValue('openapiSpec', {
       source: 'paste',
-      content: pastedContent,
+      content: fullContent,
     });
-    await onSpecParsed(pastedContent);
-  };
+    await onSpecParsed(fullContent);
+  }, [setValue, onSpecParsed]);
 
   const handleUrlImport = async () => {
     if (!url.trim()) {
@@ -103,7 +107,7 @@ export function SpecUploadStep({
     try {
       new URL(url);
     } catch {
-      toast.error('Invalid URL format. Please enter a valid URL starting with https://');
+      toast.error('That doesn\u2019t look like a valid URL. Use https:// or http://localhost.');
       return;
     }
 
@@ -120,7 +124,7 @@ export function SpecUploadStep({
       const result = await response.json();
 
       if (!result.success) {
-        toast.error(result.error || 'Failed to fetch specification from URL');
+        toast.error(result.error || 'Failed to fetch spec from that URL');
         return;
       }
 
@@ -131,9 +135,8 @@ export function SpecUploadStep({
         fileName,
       });
       await onSpecParsed(result.content, url);
-      toast.success('Specification fetched and analyzed successfully');
     } catch (error) {
-      toast.error('Failed to fetch specification from URL. Please check the URL and try again.');
+      toast.error("Couldn't reach that URL. Please check it and try again.");
       console.error('URL import error:', error);
     } finally {
       setIsImporting(false);
@@ -154,42 +157,51 @@ export function SpecUploadStep({
     );
   };
 
+  const hasSpec = !!formData.openapiSpec?.content;
+
   return (
     <div className="space-y-6">
       {/* Loading State */}
       {isParsingSpec && (
         <div className="flex items-center gap-2 text-sm text-muted-foreground p-3 bg-muted/30 rounded-lg">
           <Loader2 className="h-4 w-4 animate-spin" />
-          <span>Analyzing OpenAPI specification...</span>
+          <span>Reading your spec...</span>
         </div>
       )}
 
-      {/* OpenAPI Specification Upload */}
+      {/* Spec Upload */}
       <div>
-        <Label className="block mb-3">OpenAPI Specification (Optional)</Label>
+        <div className="flex items-center gap-2 mb-3">
+          <Label>API Spec</Label>
+          {hasSpec && (
+            <Badge variant="secondary" className="text-xs bg-success/10 text-success">
+              Uploaded
+            </Badge>
+          )}
+        </div>
 
         <Tabs defaultValue="file">
           <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="file" className="gap-2">
-              <Upload className="h-4 w-4" />
+            <TabsTrigger value="file" className="gap-1.5 text-xs sm:text-sm">
+              <Upload className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0" />
               File
             </TabsTrigger>
-            <TabsTrigger value="paste" className="gap-2">
-              <ClipboardPaste className="h-4 w-4" />
+            <TabsTrigger value="paste" className="gap-1.5 text-xs sm:text-sm">
+              <ClipboardPaste className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0" />
               Paste
             </TabsTrigger>
-            <TabsTrigger value="url" className="gap-2">
-              <LinkIcon className="h-4 w-4" />
+            <TabsTrigger value="url" className="gap-1.5 text-xs sm:text-sm">
+              <LinkIcon className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0" />
               URL
             </TabsTrigger>
           </TabsList>
 
           <TabsContent value="file" className="space-y-4 mt-4">
-            <div className="flex items-center justify-center rounded-lg border-2 border-dashed border-border bg-muted/50 p-8">
+            <div className="flex items-center justify-center rounded-lg border-2 border-dashed border-border bg-muted/50 p-6 sm:p-8">
               <label className="cursor-pointer text-center">
-                <Upload className="mx-auto h-10 w-10 text-muted-foreground" />
-                <p className="mt-2 text-sm font-medium">Click to upload or drag and drop</p>
-                <p className="mt-1 text-xs text-muted-foreground">YAML, YML, or JSON files (max 5MB)</p>
+                <Upload className="mx-auto h-8 w-8 sm:h-10 sm:w-10 text-muted-foreground" />
+                <p className="mt-2 text-xs sm:text-sm font-medium">Drop your file here, or click to browse</p>
+                <p className="mt-1 text-[11px] sm:text-xs text-muted-foreground">YAML or JSON · max 5 MB</p>
                 <input
                   type="file"
                   accept=".yaml,.yml,.json"
@@ -205,117 +217,40 @@ export function SpecUploadStep({
             <Textarea
               value={pastedContent}
               onChange={(e) => setPastedContent(e.target.value)}
-              placeholder="Paste your OpenAPI specification here (YAML or JSON)"
-              rows={10}
-              className="font-mono text-xs"
+              onPaste={handleClipboardPaste}
+              placeholder="Paste your spec here — we'll read it automatically"
+              rows={8}
+              className="font-mono text-[11px] sm:text-xs"
             />
-            <Button type="button" onClick={handlePaste} disabled={!pastedContent.trim()}>
-              Analyze Specification
-            </Button>
           </TabsContent>
 
           <TabsContent value="url" className="space-y-4 mt-4">
-            <div className="flex gap-2">
+            <div className="flex flex-col gap-2 sm:flex-row">
               <Input
                 type="url"
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
                 placeholder="https://api.example.com/openapi.yaml"
                 disabled={isImporting}
+                className="flex-1"
               />
-              <Button type="button" onClick={handleUrlImport} disabled={!url.trim() || isImporting}>
-                {isImporting ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Import'}
+              <Button type="button" onClick={handleUrlImport} disabled={!url.trim() || isImporting} className="shrink-0">
+                {isImporting ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Fetch'}
               </Button>
             </div>
           </TabsContent>
         </Tabs>
 
-        <p className="text-xs text-muted-foreground mt-3">
-          Providing an OpenAPI spec enables better API discovery and compliance checking.
-        </p>
-
-        {/* Spec Analysis Card */}
-        {inferredData && (
-          <Card className="mt-4 border-emerald-500/30 bg-emerald-500/5">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm flex items-center gap-2">
-                <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-                Specification Analysis
-              </CardTitle>
-              <CardDescription>
-                Auto-filled {inferredData.fieldsPopulated}/{inferredData.totalFields} fields •{' '}
-                <Badge
-                  variant={
-                    inferredData.confidence === 'high'
-                      ? 'default'
-                      : inferredData.confidence === 'medium'
-                      ? 'secondary'
-                      : 'outline'
-                  }
-                  className="capitalize"
-                >
-                  {inferredData.confidence} confidence
-                </Badge>
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="pb-4">
-              <div className="grid grid-cols-2 gap-3 text-sm">
-                <div className="flex items-center gap-2">
-                  <span className="text-muted-foreground">📋</span>
-                  <span>
-                    {inferredData.endpointCount} endpoint
-                    {inferredData.endpointCount !== 1 ? 's' : ''}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-muted-foreground">🔐</span>
-                  <span>{inferredData.auth?.type || 'No auth'}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-muted-foreground">🌐</span>
-                  <span>
-                    {inferredData.servers.length} server{inferredData.servers.length !== 1 ? 's' : ''}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-muted-foreground">🏷️</span>
-                  <span>
-                    {inferredData.tags.length} tag{inferredData.tags.length !== 1 ? 's' : ''}
-                  </span>
-                </div>
-              </div>
-
-              {inferredData.validationIssues.length > 0 && (
-                <div className="mt-3 pt-3 border-t border-border">
-                  <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400">
-                    <AlertCircle className="h-4 w-4" />
-                    <span className="text-xs font-medium">
-                      {inferredData.validationIssues.length} validation issue
-                      {inferredData.validationIssues.length !== 1 ? 's' : ''} found
-                    </span>
-                  </div>
-                  <ul className="mt-2 space-y-1">
-                    {inferredData.validationIssues.slice(0, 3).map((issue, idx) => (
-                      <li key={idx} className="text-xs text-muted-foreground">
-                        • {issue.message}
-                      </li>
-                    ))}
-                    {inferredData.validationIssues.length > 3 && (
-                      <li className="text-xs text-muted-foreground italic">
-                        ... and {inferredData.validationIssues.length - 3} more
-                      </li>
-                    )}
-                  </ul>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+        {!hasSpec && (
+          <p className="text-xs text-muted-foreground mt-3">
+            Upload, paste, or fetch your OpenAPI spec. We'll use it to fill in the details below.
+          </p>
         )}
       </div>
 
       {/* Tags */}
       <div>
-        <Label className="block mb-2">Tags (Optional)</Label>
+        <Label className="block mb-2">Tags</Label>
         {formData.tags.length > 0 && (
           <div className="flex flex-wrap gap-2 mb-2">
             {formData.tags.map((tag) => (
@@ -339,14 +274,14 @@ export function SpecUploadStep({
             value={tagInput}
             onChange={(e) => setTagInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addTag())}
-            placeholder="Type tag and press Enter"
+            placeholder="Type and press Enter to add"
+            className="flex-1"
           />
-          <Button type="button" onClick={addTag}>
+          <Button type="button" onClick={addTag} className="shrink-0">
             Add
           </Button>
         </div>
       </div>
-
     </div>
   );
 }

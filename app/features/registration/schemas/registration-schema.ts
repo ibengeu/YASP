@@ -60,7 +60,6 @@ export const registrationSchema = z.object({
 
   description: z
     .string()
-    .min(20, 'Description must be at least 20 characters')
     .max(500, 'Description cannot exceed 500 characters'),
 
   version: z
@@ -73,10 +72,10 @@ export const registrationSchema = z.object({
   // Tags
   tags: z.array(z.string().max(50)),
 
-  // OpenAPI Specification
+  // OpenAPI Specification (required)
   openapiSpec: z.object({
     source: z.enum(['upload', 'paste', 'url', '']),
-    content: z.string(),
+    content: z.string().min(1, 'An API spec is required'),
     fileName: z.string().optional(),
   }),
 

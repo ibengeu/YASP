@@ -30,20 +30,54 @@ describe('executeApiRequest', () => {
     expect(result.headers['content-type']).toBe('application/json');
   });
 
-  it('should reject SSRF attempts - localhost', async () => {
-    await expect(executeApiRequest({
+  it('should allow localhost requests', async () => {
+    const mockHeaders = new Headers();
+    mockHeaders.set('content-type', 'application/json');
+
+    (global.fetch as any).mockResolvedValue({
+      ok: true,
+      status: 200,
+      statusText: 'OK',
+      headers: mockHeaders,
+      json: async () => ({ ok: true }),
+    });
+
+    const result = await executeApiRequest({
       method: 'GET',
-      url: 'http://localhost:8080/admin',
+      url: 'http://localhost:8080/api',
       headers: {},
-    })).rejects.toThrow(/Hostname blocked/);
+    });
+
+    expect(result.status).toBe(200);
   });
 
-  it('should reject SSRF attempts - private IP', async () => {
+  it('should allow private IP requests', async () => {
+    const mockHeaders = new Headers();
+    mockHeaders.set('content-type', 'application/json');
+
+    (global.fetch as any).mockResolvedValue({
+      ok: true,
+      status: 200,
+      statusText: 'OK',
+      headers: mockHeaders,
+      json: async () => ({ ok: true }),
+    });
+
+    const result = await executeApiRequest({
+      method: 'GET',
+      url: 'http://192.168.1.1/api',
+      headers: {},
+    });
+
+    expect(result.status).toBe(200);
+  });
+
+  it('should reject cloud metadata endpoint', async () => {
     await expect(executeApiRequest({
       method: 'GET',
-      url: 'http://192.168.1.1/admin',
+      url: 'http://169.254.169.254/latest/meta-data/',
       headers: {},
-    })).rejects.toThrow(/private\/internal range/);
+    })).rejects.toThrow();
   });
 
   it('should add Bearer auth header', async () => {
@@ -167,7 +201,6 @@ describe('executeApiRequest', () => {
   });
 
   it('should handle timeout', async () => {
-    // Mock AbortSignal.timeout if not available (older Node versions)
     if (!AbortSignal.timeout) {
       (AbortSignal as any).timeout = (ms: number) => {
         const controller = new AbortController();
@@ -301,5 +334,180 @@ describe('executeApiRequest', () => {
 
     expect(result.status).toBe(200);
     expect(result.body).toEqual(halBody);
+  });
+
+  describe('response body parsing edge cases', () => {
+    it('should read body as text when no content-type header is set', async () => {
+      const mockHeaders = new Headers();
+      // No content-type set
+
+      (global.fetch as any).mockResolvedValue({
+        ok: false,
+        status: 401,
+        statusText: 'Unauthorized',
+        headers: mockHeaders,
+        text: async () => 'Unauthorized',
+      });
+
+      const result = await executeApiRequest({
+        method: 'GET',
+        url: 'https://api.example.com/protected',
+        headers: {},
+      });
+
+      expect(result.status).toBe(401);
+      expect(result.body).toBe('Unauthorized');
+    });
+
+    it('should read body as text when content-type is empty string', async () => {
+      const mockHeaders = new Headers();
+      mockHeaders.set('content-type', '');
+
+      (global.fetch as any).mockResolvedValue({
+        ok: false,
+        status: 403,
+        statusText: 'Forbidden',
+        headers: mockHeaders,
+        text: async () => 'Access denied',
+      });
+
+      const result = await executeApiRequest({
+        method: 'GET',
+        url: 'https://api.example.com/admin',
+        headers: {},
+      });
+
+      expect(result.status).toBe(403);
+      expect(result.body).toBe('Access denied');
+    });
+
+    it('should try parsing as JSON when body looks like JSON but content-type is missing', async () => {
+      const mockHeaders = new Headers();
+
+      (global.fetch as any).mockResolvedValue({
+        ok: false,
+        status: 401,
+        statusText: 'Unauthorized',
+        headers: mockHeaders,
+        text: async () => '{"error":"invalid_token","message":"Token expired"}',
+      });
+
+      const result = await executeApiRequest({
+        method: 'GET',
+        url: 'https://api.example.com/protected',
+        headers: {},
+      });
+
+      expect(result.status).toBe(401);
+      expect(result.body).toEqual({ error: 'invalid_token', message: 'Token expired' });
+    });
+
+    it('should handle text/html error responses', async () => {
+      const mockHeaders = new Headers();
+      mockHeaders.set('content-type', 'text/html; charset=utf-8');
+
+      (global.fetch as any).mockResolvedValue({
+        ok: false,
+        status: 502,
+        statusText: 'Bad Gateway',
+        headers: mockHeaders,
+        text: async () => '<html><body><h1>502 Bad Gateway</h1></body></html>',
+      });
+
+      const result = await executeApiRequest({
+        method: 'GET',
+        url: 'https://api.example.com/down',
+        headers: {},
+      });
+
+      expect(result.status).toBe(502);
+      expect(result.body).toContain('502 Bad Gateway');
+    });
+
+    it('should handle application/xml responses as text', async () => {
+      const mockHeaders = new Headers();
+      mockHeaders.set('content-type', 'application/xml');
+
+      (global.fetch as any).mockResolvedValue({
+        ok: true,
+        status: 200,
+        statusText: 'OK',
+        headers: mockHeaders,
+        text: async () => '<response><status>ok</status></response>',
+      });
+
+      const result = await executeApiRequest({
+        method: 'GET',
+        url: 'https://api.example.com/xml',
+        headers: {},
+      });
+
+      expect(result.status).toBe(200);
+      expect(result.body).toContain('<status>ok</status>');
+    });
+
+    it('should handle empty response body', async () => {
+      const mockHeaders = new Headers();
+
+      (global.fetch as any).mockResolvedValue({
+        ok: true,
+        status: 204,
+        statusText: 'No Content',
+        headers: mockHeaders,
+        text: async () => '',
+      });
+
+      const result = await executeApiRequest({
+        method: 'DELETE',
+        url: 'https://api.example.com/item/1',
+        headers: {},
+      });
+
+      expect(result.status).toBe(204);
+      expect(result.body).toBe('');
+    });
+
+    it('should only treat image/* and octet-stream as binary', async () => {
+      const mockHeaders = new Headers();
+      mockHeaders.set('content-type', 'image/png');
+
+      (global.fetch as any).mockResolvedValue({
+        ok: true,
+        status: 200,
+        statusText: 'OK',
+        headers: mockHeaders,
+        text: async () => '<binary data>',
+      });
+
+      const result = await executeApiRequest({
+        method: 'GET',
+        url: 'https://api.example.com/avatar.png',
+        headers: {},
+      });
+
+      expect(result.status).toBe(200);
+      expect(result.body.message).toContain('Binary response');
+    });
+
+    it('should treat application/octet-stream as binary', async () => {
+      const mockHeaders = new Headers();
+      mockHeaders.set('content-type', 'application/octet-stream');
+
+      (global.fetch as any).mockResolvedValue({
+        ok: true,
+        status: 200,
+        statusText: 'OK',
+        headers: mockHeaders,
+        text: async () => '<binary data>',
+      });
+
+      const result = await executeApiRequest({
+        method: 'GET',
+        url: 'https://api.example.com/download',
+        headers: {},
+      });
+
+      expect(result.body.message).toContain('Binary response');
+    });
   });
 });

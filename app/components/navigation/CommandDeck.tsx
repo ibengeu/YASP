@@ -1,4 +1,4 @@
-import { Shield, Moon, Sun, Library, GitBranch } from 'lucide-react';
+import { Shield, Moon, Sun, Library } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router';
 import { useThemeStore } from '@/stores/theme-store';
 import { cn } from '@/lib/utils';
@@ -10,13 +10,6 @@ const navModules = [
     path: '/catalog',
     icon: Library,
     description: 'Browse and manage API specifications',
-  },
-  {
-    id: 'workflows',
-    label: 'Workflows',
-    path: '/workflows',
-    icon: GitBranch,
-    description: 'Build API request chains',
   },
 ];
 

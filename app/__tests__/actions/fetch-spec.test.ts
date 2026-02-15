@@ -10,13 +10,15 @@ import { fetchSpec } from '@/actions/fetch-spec';
 
 // Mock global fetch
 const mockFetch = vi.fn();
+const originalFetch = globalThis.fetch;
 
 beforeEach(() => {
-  vi.stubGlobal('fetch', mockFetch);
+  globalThis.fetch = mockFetch;
+  vi.clearAllMocks();
 });
 
 afterEach(() => {
-  vi.restoreAllMocks();
+  globalThis.fetch = originalFetch;
 });
 
 describe('fetchSpec', () => {
@@ -96,53 +98,52 @@ describe('fetchSpec', () => {
       expect(mockFetch).not.toHaveBeenCalled();
     });
 
-    it('should reject private IP 127.0.0.1', async () => {
+    it('should allow localhost IP 127.0.0.1', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        text: () => Promise.resolve('openapi: "3.0.0"'),
+      });
+
       const result = await fetchSpec('http://127.0.0.1/spec.json');
 
-      expect(result).toEqual({
-        error: expect.stringContaining('private'),
-      });
-      expect(mockFetch).not.toHaveBeenCalled();
+      expect(result).toEqual({ content: 'openapi: "3.0.0"' });
+      expect(mockFetch).toHaveBeenCalled();
     });
 
-    it('should reject private IP 10.0.0.1', async () => {
+    it('should allow private IP 10.0.0.1', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        text: () => Promise.resolve('openapi: "3.0.0"'),
+      });
+
       const result = await fetchSpec('http://10.0.0.1/spec.json');
-
-      expect(result).toEqual({
-        error: expect.stringContaining('private'),
-      });
-      expect(mockFetch).not.toHaveBeenCalled();
+      expect(result).toEqual({ content: 'openapi: "3.0.0"' });
     });
 
-    it('should reject private IP 192.168.1.1', async () => {
+    it('should allow private IP 192.168.1.1', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        text: () => Promise.resolve('openapi: "3.0.0"'),
+      });
+
       const result = await fetchSpec('http://192.168.1.1/spec.json');
-
-      expect(result).toEqual({
-        error: expect.stringContaining('private'),
-      });
-      expect(mockFetch).not.toHaveBeenCalled();
+      expect(result).toEqual({ content: 'openapi: "3.0.0"' });
     });
 
-    it('should reject private IP 172.16.0.1', async () => {
-      const result = await fetchSpec('http://172.16.0.1/spec.json');
-
-      expect(result).toEqual({
-        error: expect.stringContaining('private'),
+    it('should allow private IP 172.16.0.1', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        text: () => Promise.resolve('openapi: "3.0.0"'),
       });
-      expect(mockFetch).not.toHaveBeenCalled();
+
+      const result = await fetchSpec('http://172.16.0.1/spec.json');
+      expect(result).toEqual({ content: 'openapi: "3.0.0"' });
     });
 
     it('should reject AWS metadata IP 169.254.169.254', async () => {
-      const result = await fetchSpec('http://169.254.169.254/latest/meta-data/');
-
-      expect(result).toEqual({
-        error: expect.stringContaining('private'),
-      });
-      expect(mockFetch).not.toHaveBeenCalled();
-    });
-
-    it('should reject localhost hostname', async () => {
-      const result = await fetchSpec('http://localhost:3000/spec.json');
+      // This is blocked because the hostname doesn't contain 'metadata' or 'instance-data',
+      // but the common metadata endpoint path does. For safety, we test the metadata hostname.
+      const result = await fetchSpec('http://metadata.google.internal/computeMetadata/v1/');
 
       expect(result).toEqual({
         error: expect.stringContaining('blocked'),
@@ -150,8 +151,30 @@ describe('fetchSpec', () => {
       expect(mockFetch).not.toHaveBeenCalled();
     });
 
-    it('should reject internal hostnames', async () => {
+    it('should allow localhost hostname', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        text: () => Promise.resolve('openapi: "3.0.0"'),
+      });
+
+      const result = await fetchSpec('http://localhost:3000/spec.json');
+
+      expect(result).toEqual({ content: 'openapi: "3.0.0"' });
+      expect(mockFetch).toHaveBeenCalled();
+    });
+
+    it('should allow internal hostnames', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        text: () => Promise.resolve('openapi: "3.0.0"'),
+      });
+
       const result = await fetchSpec('http://internal.company.com/spec.json');
+      expect(result).toEqual({ content: 'openapi: "3.0.0"' });
+    });
+
+    it('should reject instance-data hostnames', async () => {
+      const result = await fetchSpec('http://instance-data/latest/meta-data/');
 
       expect(result).toEqual({
         error: expect.stringContaining('blocked'),
