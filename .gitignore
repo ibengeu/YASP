@@ -96,3 +96,9 @@ test-results.xml
 .turbo
 .vercel
 .netlify
+
+# Claude Code
+.claude/
+
+# Local docs
+docs/
