@@ -31,18 +31,18 @@ export function BasicInfoStep({ register, errors, fieldSources, setFieldSources,
       {/* API Name */}
       <div>
         <div className="flex items-center justify-between mb-2">
-          <Label htmlFor="name">API Name *</Label>
+          <Label htmlFor="name">Name</Label>
           {fieldSources.name === 'inferred' && (
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Badge variant="secondary" className="text-xs bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
                     <CheckCircle2 className="h-3 w-3 mr-1" />
-                    Auto-filled from spec
+                    Filled from spec
                   </Badge>
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p className="text-xs">Auto-filled from your spec. You can edit if needed.</p>
+                  <p className="text-xs">We pulled this from your spec. Feel free to edit it.</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
@@ -53,7 +53,7 @@ export function BasicInfoStep({ register, errors, fieldSources, setFieldSources,
           {...register('name', {
             onChange: () => setFieldSources((prev) => ({ ...prev, name: 'manual' })),
           })}
-          placeholder="my-payment-api"
+          placeholder="e.g. Payments API"
           className={cn(
             fieldSources.name === 'inferred' && 'border-emerald-500 focus-visible:ring-emerald-500',
             fieldSources.name === 'manual' && formValues.name && 'border-blue-500',
@@ -66,18 +66,18 @@ export function BasicInfoStep({ register, errors, fieldSources, setFieldSources,
       {/* Description */}
       <div>
         <div className="flex items-center justify-between mb-2">
-          <Label htmlFor="description">Description *</Label>
+          <Label htmlFor="description">Description</Label>
           {fieldSources.description === 'inferred' && (
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Badge variant="secondary" className="text-xs bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
                     <CheckCircle2 className="h-3 w-3 mr-1" />
-                    Auto-filled from spec
+                    Filled from spec
                   </Badge>
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p className="text-xs">Auto-filled from your spec. You can edit if needed.</p>
+                  <p className="text-xs">We pulled this from your spec. Feel free to edit it.</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
@@ -89,7 +89,7 @@ export function BasicInfoStep({ register, errors, fieldSources, setFieldSources,
             onChange: () => setFieldSources((prev) => ({ ...prev, description: 'manual' })),
           })}
           rows={4}
-          placeholder="Describe what this API does..."
+          placeholder="What does this API do?"
           className={cn(
             fieldSources.description === 'inferred' && 'border-emerald-500 focus-visible:ring-emerald-500',
             fieldSources.description === 'manual' && formValues.description && 'border-blue-500',
@@ -102,18 +102,18 @@ export function BasicInfoStep({ register, errors, fieldSources, setFieldSources,
       {/* Version */}
       <div>
         <div className="flex items-center justify-between mb-2">
-          <Label htmlFor="version">Version *</Label>
+          <Label htmlFor="version">Version</Label>
           {fieldSources.version === 'inferred' && (
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Badge variant="secondary" className="text-xs bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
                     <CheckCircle2 className="h-3 w-3 mr-1" />
-                    Auto-filled from spec
+                    Filled from spec
                   </Badge>
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p className="text-xs">Auto-filled from your spec. You can edit if needed.</p>
+                  <p className="text-xs">We pulled this from your spec. Feel free to edit it.</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
@@ -124,7 +124,7 @@ export function BasicInfoStep({ register, errors, fieldSources, setFieldSources,
           {...register('version', {
             onChange: () => setFieldSources((prev) => ({ ...prev, version: 'manual' })),
           })}
-          placeholder="v1.0.0"
+          placeholder="e.g. 1.0.0"
           className={cn(
             fieldSources.version === 'inferred' && 'border-emerald-500 focus-visible:ring-emerald-500',
             fieldSources.version === 'manual' && formValues.version && 'border-blue-500',
@@ -137,18 +137,18 @@ export function BasicInfoStep({ register, errors, fieldSources, setFieldSources,
       {/* Base URL */}
       <div>
         <div className="flex items-center justify-between mb-2">
-          <Label htmlFor="endpoint">Base URL *</Label>
+          <Label htmlFor="endpoint">Base URL</Label>
           {fieldSources.endpoint === 'inferred' && (
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Badge variant="secondary" className="text-xs bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
                     <CheckCircle2 className="h-3 w-3 mr-1" />
-                    Auto-filled from spec
+                    Filled from spec
                   </Badge>
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p className="text-xs">Auto-filled from your spec. You can edit if needed.</p>
+                  <p className="text-xs">We pulled this from your spec. Feel free to edit it.</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
@@ -167,7 +167,7 @@ export function BasicInfoStep({ register, errors, fieldSources, setFieldSources,
             errors.endpoint && 'border-destructive'
           )}
         />
-        <p className="text-xs text-muted-foreground mt-1">Your API's root URL without any path</p>
+        <p className="text-xs text-muted-foreground mt-1">The root address of your API, e.g. https://api.example.com</p>
         {errors.endpoint && <p className="text-xs text-destructive mt-1">{errors.endpoint.message}</p>}
       </div>
     </div>

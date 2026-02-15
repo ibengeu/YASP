@@ -42,7 +42,7 @@ export function ApiDocumentation({ spec }: ApiDocumentationProps) {
     <div className="max-w-4xl mx-auto">
       {/* API Info Header */}
       <div className="mb-12">
-        <h1 className="text-2xl md:text-3xl font-bold tracking-tight mb-3 text-foreground">
+        <h1 className="text-xl md:text-2xl font-bold tracking-tight mb-3 text-foreground">
           {spec.info.title}
         </h1>
         <div className={`text-base leading-relaxed text-muted-foreground ${PROSE_CLASSES}`}>
@@ -87,7 +87,7 @@ export function ApiDocumentation({ spec }: ApiDocumentationProps) {
                 <div className="h-1 w-16 bg-gradient-to-r from-primary to-secondary mb-4 rounded-full" />
 
                 {/* Operation Summary */}
-                <h2 className="text-xl md:text-2xl uppercase font-bold tracking-tight mb-3 text-foreground">
+                <h2 className="text-xl md:text-xl uppercase font-bold tracking-tight mb-3 text-foreground">
                   {op.summary || `${method.toUpperCase()} ${path}`}
                 </h2>
                 <div className={`text-sm md:text-base leading-relaxed mb-6 text-muted-foreground ${PROSE_CLASSES}`}>

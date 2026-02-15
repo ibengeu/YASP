@@ -144,17 +144,19 @@ export function ApiCard({ spec, onClick, onDelete }: ApiCardProps) {
         </div>
       )}
 
-      {/* Delete Action (optional) */}
+      {/* Action buttons */}
       {onDelete && (
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onDelete(spec.id);
-          }}
-          className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive"
-        >
-          <XCircle className="w-4 h-4" />
-        </button>
+        <div className="absolute top-3 right-3 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete(spec.id);
+            }}
+            className="p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive"
+          >
+            <XCircle className="w-4 h-4" />
+          </button>
+        </div>
       )}
     </div>
   );

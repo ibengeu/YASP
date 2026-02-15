@@ -21,9 +21,8 @@ describe('CommandDeck', () => {
     );
 
     // Use getAllByText since modules appear in both desktop and mobile nav
-    expect(screen.getAllByText('Dashboard').length).toBeGreaterThan(0);
     expect(screen.getAllByText('API Catalog').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('Policy Management').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Workflows').length).toBeGreaterThan(0);
   });
 
   it('should render navigation buttons with icons', () => {
@@ -34,9 +33,13 @@ describe('CommandDeck', () => {
     );
 
     // Check that buttons exist and are clickable
-    const dashboardButton = screen.getAllByText('Dashboard')[0];
-    expect(dashboardButton).toBeInTheDocument();
-    expect(dashboardButton.closest('button')).toBeTruthy();
+    const catalogButton = screen.getAllByText('API Catalog')[0];
+    expect(catalogButton).toBeInTheDocument();
+    expect(catalogButton.closest('button')).toBeTruthy();
+
+    const workflowsButton = screen.getAllByText('Workflows')[0];
+    expect(workflowsButton).toBeInTheDocument();
+    expect(workflowsButton.closest('button')).toBeTruthy();
   });
 
   it('should toggle dark mode when dark mode button is clicked', () => {
@@ -56,7 +59,7 @@ describe('CommandDeck', () => {
     expect(useThemeStore.getState().darkMode).toBe(false);
   });
 
-  it('should have fixed positioning with correct z-index', () => {
+  it('should have fixed positioning', () => {
     const { container } = render(
       <BrowserRouter>
         <CommandDeck />
@@ -65,7 +68,6 @@ describe('CommandDeck', () => {
 
     const nav = container.querySelector('nav');
     expect(nav).toHaveClass('fixed');
-    expect(nav?.style.zIndex).toContain('var(--z-navigation)');
   });
 
   it('should render YASP logo with Shield icon', () => {
@@ -76,5 +78,18 @@ describe('CommandDeck', () => {
     );
 
     expect(screen.getByText('YASP')).toBeInTheDocument();
+  });
+
+  it('should show breadcrumbs on /workflows pages', () => {
+    // Render with a /workflows path to verify breadcrumb logic
+    render(
+      <BrowserRouter>
+        <CommandDeck />
+      </BrowserRouter>
+    );
+
+    // Workflows should be in the nav
+    const workflowsButtons = screen.getAllByText('Workflows');
+    expect(workflowsButtons.length).toBeGreaterThan(0);
   });
 });

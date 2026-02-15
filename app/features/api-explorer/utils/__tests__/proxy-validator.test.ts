@@ -2,8 +2,9 @@
  * Proxy URL Validator Tests
  * Tests for SSRF protection and URL validation
  *
- * Security: OWASP A10:2021 (SSRF)
- * Based on: https://cheatsheetseries.owasp.org/cheatsheets/Server_Side_Request_Forgery_Prevention_Cheat_Sheet.html
+ * Security: OWASP A09:2025 (SSRF)
+ * Policy: Block cloud metadata endpoints and dangerous ports only.
+ * Localhost and private IPs are allowed for local API development.
  */
 
 import { describe, it, expect } from 'vitest';
@@ -25,58 +26,52 @@ describe('ProxyValidator - SSRF Protection', () => {
       expect(result.valid).toBe(true);
     });
 
-    it('should block localhost', async () => {
-      const result = await validateProxyUrl('http://localhost:3000/admin');
-      expect(result.valid).toBe(false);
-      expect(result.error).toContain('localhost');
+    it('should allow localhost', async () => {
+      const result = await validateProxyUrl('http://localhost:3000/api');
+      expect(result.valid).toBe(true);
     });
 
-    it('should block 127.0.0.1 (loopback)', async () => {
+    it('should allow 127.0.0.1 (loopback)', async () => {
       const result = await validateProxyUrl('http://127.0.0.1:8080/api');
-      expect(result.valid).toBe(false);
-      expect(result.error).toContain('private');
+      expect(result.valid).toBe(true);
     });
 
-    it('should block private IP 10.0.0.1', async () => {
+    it('should allow private IP 10.0.0.1', async () => {
       const result = await validateProxyUrl('http://10.0.0.1/internal');
-      expect(result.valid).toBe(false);
-      expect(result.error).toContain('private');
+      expect(result.valid).toBe(true);
     });
 
-    it('should block private IP 192.168.1.1', async () => {
-      const result = await validateProxyUrl('http://192.168.1.1/router');
-      expect(result.valid).toBe(false);
-      expect(result.error).toContain('private');
+    it('should allow private IP 192.168.1.1', async () => {
+      const result = await validateProxyUrl('http://192.168.1.1/api');
+      expect(result.valid).toBe(true);
     });
 
-    it('should block private IP 172.16.0.1', async () => {
-      const result = await validateProxyUrl('http://172.16.0.1/internal');
-      expect(result.valid).toBe(false);
-      expect(result.error).toContain('private');
+    it('should allow private IP 172.16.0.1', async () => {
+      const result = await validateProxyUrl('http://172.16.0.1/api');
+      expect(result.valid).toBe(true);
     });
 
     it('should block AWS metadata endpoint 169.254.169.254', async () => {
       const result = await validateProxyUrl('http://169.254.169.254/latest/meta-data/');
       expect(result.valid).toBe(false);
-      expect(result.error).toContain('private');
+      expect(result.error).toContain('metadata');
     });
 
-    it('should block IPv6 localhost ::1', async () => {
-      const result = await validateProxyUrl('http://[::1]/admin');
+    it('should block hostname containing "metadata"', async () => {
+      const result = await validateProxyUrl('http://metadata.google.internal/computeMetadata/v1/');
       expect(result.valid).toBe(false);
-      expect(result.error).toContain('private');
+      expect(result.error).toContain('Hostname');
     });
 
-    it('should block IPv6 link-local fe80::1', async () => {
-      const result = await validateProxyUrl('http://[fe80::1]/api');
+    it('should block hostname containing "instance-data"', async () => {
+      const result = await validateProxyUrl('http://instance-data/latest/meta-data/');
       expect(result.valid).toBe(false);
-      expect(result.error).toContain('private');
+      expect(result.error).toContain('Hostname');
     });
 
-    it('should block IPv4-mapped IPv6 ::ffff:127.0.0.1', async () => {
-      const result = await validateProxyUrl('http://[::ffff:127.0.0.1]/api');
-      expect(result.valid).toBe(false);
-      expect(result.error).toContain('private');
+    it('should allow internal hostnames', async () => {
+      const result = await validateProxyUrl('http://internal.company.com/api');
+      expect(result.valid).toBe(true);
     });
 
     it('should block file:// protocol', async () => {
@@ -163,21 +158,16 @@ describe('ProxyValidator - SSRF Protection', () => {
       expect(result.error).toContain('Port');
     });
 
-    it('should block hostname containing "internal"', async () => {
-      const result = await validateProxyUrl('http://internal.company.com/api');
-      expect(result.valid).toBe(false);
-      expect(result.error).toContain('Hostname');
-    });
-
-    it('should block hostname containing "metadata"', async () => {
-      const result = await validateProxyUrl('http://metadata.cloud.local/api');
-      expect(result.valid).toBe(false);
-      expect(result.error).toContain('Hostname');
+    it('should allow localhost on common dev ports', async () => {
+      expect((await validateProxyUrl('http://localhost:3000/api')).valid).toBe(true);
+      expect((await validateProxyUrl('http://localhost:5000/api')).valid).toBe(true);
+      expect((await validateProxyUrl('http://localhost:8080/api')).valid).toBe(true);
     });
   });
 
   describe('isPrivateIP', () => {
-    // IPv4 private ranges
+    // These tests verify the helper function still correctly identifies private IPs
+    // (even though the proxy validator no longer blocks them)
     it('should detect 10.0.0.0/8 as private', () => {
       expect(isPrivateIP('10.0.0.1')).toBe(true);
       expect(isPrivateIP('10.255.255.254')).toBe(true);
@@ -201,10 +191,9 @@ describe('ProxyValidator - SSRF Protection', () => {
 
     it('should detect 169.254.0.0/16 as link-local', () => {
       expect(isPrivateIP('169.254.0.1')).toBe(true);
-      expect(isPrivateIP('169.254.169.254')).toBe(true); // AWS metadata
+      expect(isPrivateIP('169.254.169.254')).toBe(true);
     });
 
-    // Public IPs should be allowed
     it('should allow public IP 8.8.8.8 (Google DNS)', () => {
       expect(isPrivateIP('8.8.8.8')).toBe(false);
     });
@@ -213,7 +202,6 @@ describe('ProxyValidator - SSRF Protection', () => {
       expect(isPrivateIP('1.1.1.1')).toBe(false);
     });
 
-    // IPv6 tests
     it('should detect ::1 as loopback', () => {
       expect(isPrivateIP('::1')).toBe(true);
     });

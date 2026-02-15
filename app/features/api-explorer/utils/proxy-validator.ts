@@ -68,12 +68,9 @@ const BLOCKED_PORTS = [
   27017, // MongoDB
 ];
 
-// Mitigation: OWASP A10:2021 (SSRF) - Block dangerous hostname keywords
+// Mitigation: OWASP A09:2025 (SSRF) - Block cloud metadata endpoints only
+// Localhost and private IPs are allowed for local API development and testing
 const BLOCKED_HOSTNAME_KEYWORDS = [
-  'localhost',
-  'local',
-  'internal',
-  'intranet',
   'metadata',
   'instance-data',
 ];
@@ -130,25 +127,20 @@ export async function validateProxyUrl(url: string): Promise<ValidationResult> {
     };
   }
 
-  // Step 5: IP address validation
-  // Mitigation: OWASP A10:2021 - Block private/internal IP addresses
-  // Check if hostname is already an IP address (handles both IPv4 and IPv6)
-  // For IPv6, URL constructor includes brackets [::1], so we need to strip them
+  // Step 5: Block cloud metadata IPs (e.g., AWS 169.254.169.254)
+  // Private IPs and localhost are allowed for local API development and testing
   const hostnameWithoutBrackets = hostname.replace(/^\[|\]$/g, '');
   const ipVersion = isIP(hostnameWithoutBrackets);
-  if (ipVersion !== 0) {
-    // Hostname is an IP address
-    if (isPrivateIP(hostnameWithoutBrackets)) {
+  if (ipVersion === 4) {
+    const parts = hostnameWithoutBrackets.split('.').map(Number);
+    // 169.254.169.254 — AWS/GCP metadata endpoint
+    if (parts[0] === 169 && parts[1] === 254) {
       return {
         valid: false,
-        error: 'Request blocked: IP address is in private/internal range. Only public APIs allowed for security.',
+        error: 'Request blocked: Cloud metadata IP address (SSRF protection)',
       };
     }
   }
-
-  // DNS resolution would happen server-side in production
-  // For now, we validate the direct IP if provided
-  // In full implementation: resolve hostname → validate all IPs → check for DNS rebinding
 
   return { valid: true };
 }

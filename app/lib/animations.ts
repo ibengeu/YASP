@@ -51,3 +51,37 @@ export function pageTransition(target: HTMLElement) {
   });
 }
 
+/**
+ * Pulse animation for a running workflow step (scale 1 → 1.02 → 1)
+ */
+export function pulseElement(target: HTMLElement) {
+  return animate(target, {
+    scale: [1, 1.02, 1],
+    duration: DURATION.complex * 2,
+    easing: EASING.standard,
+    loop: true,
+  });
+}
+
+/**
+ * Brief green border flash for a successful workflow step
+ */
+export function successFlash(target: HTMLElement) {
+  return animate(target, {
+    borderColor: ['oklch(0.72 0.19 142)', 'oklch(0.72 0.19 142)', ''],
+    duration: DURATION.complex * 2,
+    easing: EASING.decelerate,
+  });
+}
+
+/**
+ * Horizontal shake for a failed workflow step
+ */
+export function failureShake(target: HTMLElement) {
+  return animate(target, {
+    translateX: [0, -6, 6, -4, 4, 0],
+    duration: DURATION.standard,
+    easing: EASING.sharp,
+  });
+}
+

@@ -20,8 +20,6 @@ export default function CatalogPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [specs, setSpecs] = useState<OpenApiDocument[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [typeFilter, setTypeFilter] = useState<string>('all');
   const [selectedSpecId, setSelectedSpecId] = useState<string | null>(null);
 
   // Refs for anime.js animations (React pattern)
@@ -56,6 +54,8 @@ export default function CatalogPage() {
 
   const handleDelete = async (id: string) => {
     try {
+      // Clean up workflow steps referencing this spec
+      await idbStorage.removeSpecFromWorkflows(id);
       await idbStorage.deleteSpec(id);
       toast.success('API deleted successfully');
       loadSpecs();
@@ -65,23 +65,14 @@ export default function CatalogPage() {
     }
   };
 
-  // Filter specs based on search and filters
+  // Filter specs based on search
   const filteredSpecs = specs.filter((spec) => {
     const matchesSearch =
       spec.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       spec.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       spec.metadata.tags?.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()));
 
-    const matchesStatus =
-      statusFilter === 'all' ||
-      (statusFilter === 'active' && spec.metadata.syncStatus === 'synced') ||
-      (statusFilter === 'draft' && spec.metadata.syncStatus !== 'synced');
-
-    const matchesType =
-      typeFilter === 'all' ||
-      spec.metadata.workspaceType === typeFilter;
-
-    return matchesSearch && matchesStatus && matchesType;
+    return matchesSearch;
   });
 
   // Animate cards when loaded (following anime.js React docs)
@@ -123,30 +114,6 @@ export default function CatalogPage() {
                 className="w-full pl-9 pr-4 py-2 text-sm bg-card border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary text-foreground placeholder:text-muted-foreground"
               />
             </div>
-
-            {/* Type Filter */}
-            <select
-              value={typeFilter}
-              onChange={(e) => setTypeFilter(e.target.value)}
-              className="px-3 py-2 text-sm bg-card border border-border rounded-md text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-            >
-              <option value="all">All Types</option>
-              <option value="personal">Personal</option>
-              <option value="team">Team</option>
-              <option value="partner">Partner</option>
-              <option value="public">Public</option>
-            </select>
-
-            {/* Status Filter */}
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="px-3 py-2 text-sm bg-card border border-border rounded-md text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-            >
-              <option value="all">All Status</option>
-              <option value="active">Active</option>
-              <option value="draft">Draft</option>
-            </select>
           </div>
         }
       />
@@ -160,11 +127,11 @@ export default function CatalogPage() {
         ) : filteredSpecs.length === 0 ? (
           <div className="p-12 text-center bg-card dark:bg-card rounded-lg border border-border">
             <div className="text-muted-foreground mb-4">
-              {searchQuery || statusFilter !== 'all' || typeFilter !== 'all'
-                ? 'No APIs match your filters. Try adjusting your search or filter criteria.'
+              {searchQuery
+                ? 'No APIs match your search. Try adjusting your search query.'
                 : 'You haven\'t registered any APIs yet. Get started by registering your first API.'}
             </div>
-            {!searchQuery && statusFilter === 'all' && typeFilter === 'all' && (
+            {!searchQuery && (
               <button
                 onClick={() => setShowRegisterDrawer(true)}
                 className="px-4 py-2 text-sm font-medium text-primary-foreground bg-primary rounded-md hover:opacity-90 transition-opacity cursor-pointer"
