@@ -408,14 +408,14 @@ describe('spec-inference', () => {
 
       const result = inferAllData(
         spec,
-        'https://optiweb.optimusbank.com:8025/account-api-2/swagger/v1/swagger.json'
+        'https://api.example.com:8025/account-api-2/swagger/v1/swagger.json'
       );
 
       expect(result.servers[0].url).toBe(
-        'https://optiweb.optimusbank.com:8025/account-api-2'
+        'https://api.example.com:8025/account-api-2'
       );
       expect(result.primaryServerUrl).toBe(
-        'https://optiweb.optimusbank.com:8025/account-api-2'
+        'https://api.example.com:8025/account-api-2'
       );
     });
 

@@ -25,9 +25,9 @@ describe('resolveServerUrl', () => {
   it('should resolve root-relative path against source URL', () => {
     const result = resolveServerUrl(
       '/account-api-2',
-      'https://optiweb.optimusbank.com:8025/account-api-2/swagger/v1/swagger.json'
+      'https://api.example.com:8025/account-api-2/swagger/v1/swagger.json'
     );
-    expect(result).toBe('https://optiweb.optimusbank.com:8025/account-api-2');
+    expect(result).toBe('https://api.example.com:8025/account-api-2');
   });
 
   it('should resolve relative path against source URL (scheme + host + port)', () => {

@@ -1,7 +1,7 @@
 import { Shield, Clock, Tag, CheckCircle, AlertCircle, XCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { OpenApiDocument } from '@/core/storage/storage-schema';
-import { SCORE_THRESHOLDS, getQualityLabel, getScoreColor, getWorkspaceColor } from '@/lib/constants';
+import { SCORE_THRESHOLDS, getQualityLabel, getScoreColor, getWorkspaceColor, API_STATUS_BADGES } from '@/lib/constants';
 
 interface ApiCardProps {
   spec: OpenApiDocument;
@@ -29,13 +29,9 @@ export function ApiCard({ spec, onClick, onDelete }: ApiCardProps) {
 
   // Determine status badge
   const getStatusBadge = () => {
-    if (spec.metadata.syncStatus === 'synced') {
-      return { label: 'Active', color: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20' };
-    }
-    if (spec.content.includes('deprecated: true')) {
-      return { label: 'Deprecated', color: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20' };
-    }
-    return { label: 'Draft', color: 'bg-muted text-muted-foreground border-border' };
+    if (spec.metadata.syncStatus === 'synced') return API_STATUS_BADGES.active;
+    if (spec.content.includes('deprecated: true')) return API_STATUS_BADGES.deprecated;
+    return API_STATUS_BADGES.draft;
   };
 
   // Get quality badge based on score
@@ -60,7 +56,7 @@ export function ApiCard({ spec, onClick, onDelete }: ApiCardProps) {
       role="button"
       onClick={() => onClick(spec)}
       className={cn(
-        'bg-white dark:bg-[#0a0a0a] rounded-lg border border-border',
+        'bg-card rounded-lg border border-border',
         'hover:border-primary transition-all duration-200',
         'p-5 cursor-pointer group relative overflow-hidden',
         'flex flex-col w-full'
@@ -148,17 +144,19 @@ export function ApiCard({ spec, onClick, onDelete }: ApiCardProps) {
         </div>
       )}
 
-      {/* Delete Action (optional) */}
+      {/* Action buttons */}
       {onDelete && (
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onDelete(spec.id);
-          }}
-          className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive"
-        >
-          <XCircle className="w-4 h-4" />
-        </button>
+        <div className="absolute top-3 right-3 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete(spec.id);
+            }}
+            className="p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive"
+          >
+            <XCircle className="w-4 h-4" />
+          </button>
+        </div>
       )}
     </div>
   );

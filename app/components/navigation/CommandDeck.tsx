@@ -32,15 +32,7 @@ export function CommandDeck() {
     return location.pathname.startsWith(path);
   };
 
-  // Determine if we should show breadcrumbs (on editor page)
-  const isEditorPage = location.pathname.startsWith('/editor/');
 
-  // Get collection name from URL or state (you'll need to pass this via state or context)
-  // For now, we'll show a placeholder
-  const getCollectionName = () => {
-    // This will be updated when the editor passes the spec title
-    return 'Collection';
-  };
 
   return (
     <nav
@@ -82,15 +74,7 @@ export function CommandDeck() {
                 );
               })}
 
-                {/* Breadcrumbs - Show on editor page */}
-                {isEditorPage && (
-                    <div className="hidden md:flex items-center gap-2 text-sm">
-                        <span className="text-muted-foreground">/</span>
-                        <span className="text-foreground font-medium" id="editor-breadcrumb-title">
-                  {getCollectionName()}
-                </span>
-                    </div>
-                )}
+
             </div>
 
 

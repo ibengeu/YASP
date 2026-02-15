@@ -19,6 +19,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { idbStorage } from '@/core/storage/idb-storage';
+import { FILE_SIZE_LIMITS, ACCEPTED_SPEC_EXTENSIONS } from '@/lib/constants';
 
 interface ImportSpecDialogProps {
   open: boolean;
@@ -36,13 +37,13 @@ export function ImportSpecDialog({ open, onOpenChange }: ImportSpecDialogProps) 
     if (!file) return;
 
     // Mitigation for OWASP A03:2025 - Injection: Validate file type
-    if (!file.name.match(/\.(yaml|yml|json)$/i)) {
+    if (!file.name.match(ACCEPTED_SPEC_EXTENSIONS)) {
       toast.error('Invalid file type. Please upload a YAML or JSON file.');
       return;
     }
 
     // Mitigation for OWASP A03:2025 - Injection: Limit file size (5MB)
-    if (file.size > 5 * 1024 * 1024) {
+    if (file.size > FILE_SIZE_LIMITS.specUpload) {
       toast.error('File too large. Maximum size is 5MB.');
       return;
     }

@@ -167,7 +167,7 @@ export function EndpointSidebar({
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search endpoints..."
-            className="w-full bg-background border border-border text-foreground text-xs rounded pl-8 pr-3 h-8 focus:outline-none focus:border-primary transition-all placeholder:text-muted-foreground"
+            className="w-full bg-background border border-border text-foreground text-xs rounded pl-8 pr-3 h-8 focus:outline-none focus:border-primary transition-all placeholder:text-muted-foreground cursor-text"
           />
         </div>
       </div>
@@ -193,7 +193,7 @@ export function EndpointSidebar({
                     return next;
                   });
                 }}
-                className="w-full flex items-center gap-2 px-3 py-2 hover:bg-muted/50 text-xs font-medium text-foreground"
+                className="w-full flex items-center gap-2 px-3 py-2 hover:bg-muted/50 text-xs font-medium text-foreground cursor-pointer transition-colors"
               >
                 {expandedGroups.has(group.tag) ? (
                   <FolderOpen className="w-4 h-4 text-foreground" />
@@ -222,22 +222,12 @@ export function EndpointSidebar({
                             operation: endpoint.operation,
                           })
                         }
-                        className={`w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-muted/50 transition-colors ${
+                        className={`w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-muted/50 cursor-pointer transition-colors ${
                           isSelected ? 'bg-muted' : ''
                         }`}
                       >
                         <span
-                          className={`font-bold w-12 ${
-                            endpoint.method === 'GET'
-                              ? 'text-blue-600 dark:text-blue-400'
-                              : endpoint.method === 'POST'
-                                ? 'text-emerald-600 dark:text-emerald-400'
-                                : endpoint.method === 'PUT'
-                                  ? 'text-amber-600 dark:text-amber-400'
-                                  : endpoint.method === 'PATCH'
-                                    ? 'text-secondary'
-                                    : 'text-destructive'
-                          }`}
+                          className={`font-bold w-12 ${getMethodColor(endpoint.method).text}`}
                         >
                           {endpoint.method}
                         </span>
@@ -255,7 +245,7 @@ export function EndpointSidebar({
       </div>
 
       {/* Footer */}
-      <div className="p-3 border-t border-border text-xs text-muted-foreground shrink-0">
+      <div className="p-3 border-t border-border text-xs text-muted-foreground shrink-0 cursor-default">
         <div className="flex items-center justify-between">
           <span>{endpoints.length} endpoints</span>
           <span>{groups.length} groups</span>

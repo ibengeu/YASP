@@ -6,6 +6,7 @@
  */
 
 import type { ServerConfig, AuthConfig } from '@/features/registration/utils/spec-inference';
+import type { WorkflowDocument } from '@/features/workflows/types/workflow.types';
 
 /**
  * OpenAPI Specification Document
@@ -25,10 +26,10 @@ export interface OpenApiDocument {
 
 /**
  * Spec Metadata
- * Additional metadata for organization and governance
+ * Additional metadata for organization and quality tracking
  */
 export interface SpecMetadata {
-  score: number; // Governance score (0-100)
+  score: number; // Quality score (0-100)
   tags: string[]; // User-defined tags
   workspaceType: WorkspaceType; // Workspace classification
   syncStatus: SyncStatus; // Sync state (future feature)
@@ -83,4 +84,5 @@ export interface StorageSchema {
   specs: OpenApiDocument;
   settings: SettingEntry;
   secrets: SecretEntry;
+  workflows: WorkflowDocument;
 }

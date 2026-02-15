@@ -1,19 +1,9 @@
 /**
  * RegisterApiDrawer - API Registration Wizard
  *
- * Composable wizard architecture with:
- * - Reusable Wizard components (Wizard, WizardProgress, WizardStepContainer, WizardNavigation)
- * - Extracted step components (SpecUploadStep, BasicInfoStep, ReviewStep)
- * - Wizard state machine (useWizard hook)
- * - Better code organization and reusability
- *
- * Features:
- * - Type-safe form validation with Zod
- * - Auto-inference from OpenAPI specs
- * - Strict URL validation (SSRF prevention)
- * - Enhanced UX with badges, tooltips, and loading states
- * - Persistent analysis summary
- * - Three-step workflow: Specification → Basic Info → Review
+ * Two-step wizard:
+ * - Step 1 (Details): Spec upload + basic info form fields
+ * - Step 2 (Preview): Review all details before registering
  *
  * Security: OWASP A03:2025 - Input validation
  * Security: OWASP A10:2025 - SSRF prevention
@@ -34,18 +24,16 @@ import {
   DrawerTitle,
 } from '@/components/ui/drawer';
 import { Button } from '@/components/ui/button';
-import { Wizard, WizardProgress, WizardStepContainer } from '@/components/wizard/Wizard';
+import { Wizard, WizardStepContainer } from '@/components/wizard/Wizard';
 import { useWizard } from '@/features/registration/hooks/useWizard';
 import { SpecUploadStep } from '@/features/registration/components/steps/SpecUploadStep';
 import { BasicInfoStep } from '@/features/registration/components/steps/BasicInfoStep';
 import { ReviewStep } from '@/features/registration/components/steps/ReviewStep';
-import { PersistentAnalysisSummary } from '@/features/registration/components/PersistentAnalysisSummary';
 import {
   registrationSchema,
   type RegistrationFormData,
 } from '@/features/registration/schemas/registration-schema';
 import { inferAllData, type InferredData } from '@/features/registration/utils/spec-inference';
-import { generateStubSpec } from '@/features/registration/utils/generate-stub-spec';
 import { patchSpecServers } from '@/features/registration/utils/patch-spec-servers';
 
 interface RegisterApiDrawerProps {
@@ -57,18 +45,13 @@ interface RegisterApiDrawerProps {
 const STEPS = [
   {
     id: 1,
-    title: 'OpenAPI Specification',
-    description: 'Provide your OpenAPI spec to auto-fill API details'
+    title: 'Details',
+    description: 'Upload your API spec and fill in the details'
   },
   {
     id: 2,
-    title: 'Basic Information',
-    description: 'Review auto-filled details and add any missing information'
-  },
-  {
-    id: 3,
-    title: 'Review & Register',
-    description: 'Confirm your API details before registering'
+    title: 'Preview',
+    description: 'Everything look right? You can go back to make changes.'
   },
 ] as const;
 
@@ -113,9 +96,9 @@ export function RegisterApiDrawer({ isOpen, onClose, onSuccess }: RegisterApiDra
     steps: STEPS,
     initialStep: 1,
     validateStep: async (step) => {
-      if (step === 2) {
-        // Validate Basic Information step
-        const isValid = await trigger(['name', 'description', 'version', 'endpoint']);
+      if (step === 1) {
+        // Validate all form fields before moving to preview
+        const isValid = await trigger(['name', 'version', 'endpoint', 'openapiSpec.content']);
         return isValid;
       }
       return true;
@@ -206,26 +189,11 @@ export function RegisterApiDrawer({ isOpen, onClose, onSuccess }: RegisterApiDra
   const onSubmit = handleFormSubmit(async (data) => {
     setIsSubmitting(true);
     try {
-      let specContent = data.openapiSpec?.content || '';
+      let specContent = data.openapiSpec.content;
 
-      // Patch spec content: replace relative server URLs with resolved absolute URLs
-      // so that editor and Try It Out get correct URLs when re-parsing stored content
-      if (specContent && inferredData?.servers) {
-        specContent = patchSpecServers(specContent, inferredData.servers);
-      }
-
-      // If no spec provided, generate stub spec with a health-check endpoint
-      // Gap 2 fix: paths: {} breaks Try It Out; generateStubSpec adds GET /
-      if (!specContent) {
-        const yaml = await import('yaml');
-        const stubSpec = generateStubSpec({
-          name: data.name,
-          version: data.version,
-          description: data.description,
-          endpoint: data.endpoint,
-        });
-        specContent = yaml.stringify(stubSpec);
-      }
+      // Patch spec content: ensure the user's endpoint is in the servers array
+      // so that Try It Out gets correct URLs when re-parsing stored content
+      specContent = patchSpecServers(specContent, inferredData?.servers ?? [], data.endpoint);
 
       // Create OpenAPI document with enhanced metadata
       await idbStorage.createSpec({
@@ -274,67 +242,48 @@ export function RegisterApiDrawer({ isOpen, onClose, onSuccess }: RegisterApiDra
   });
 
   return (
-    <Drawer open={isOpen}  onOpenChange={(open) => !open && onClose()} direction="right">
+    <Drawer open={isOpen}  onOpenChange={(open) => !open && onClose()} direction="right" handleOnly>
       <DrawerContent className="h-full w-full sm:max-w-xl">
         {/* Wizard Provider wraps everything to make context available */}
         <Wizard state={wizard.state} actions={wizard.actions} steps={wizard.steps} className="h-full flex flex-col">
           {/* Header */}
-          <DrawerHeader className="border-b">
-            <DrawerTitle>Register New API</DrawerTitle>
+          <DrawerHeader className="border-b border-input">
+            <DrawerTitle>Add an API</DrawerTitle>
             <DrawerDescription>
-              Add your API to the catalog by providing an OpenAPI specification or entering details manually.
-              We'll auto-fill as much as we can from your spec.
+              {STEPS[wizard.state.currentStep - 1].description}
             </DrawerDescription>
-            <div className="text-xs text-muted-foreground mt-2">
-              Step {wizard.state.currentStep} of {STEPS.length}: {STEPS[wizard.state.currentStep - 1].description}
-            </div>
-
-            {/* Progress steps */}
-            <WizardProgress className="mt-6" />
           </DrawerHeader>
-
-          {/* Persistent Analysis Summary */}
-          {inferredData && (
-            <PersistentAnalysisSummary
-              inferredData={inferredData}
-              currentStep={wizard.state.currentStep}
-              className="border-b px-6 py-3 bg-muted/50"
-            />
-          )}
 
           {/* Wizard Content */}
           <form onSubmit={onSubmit} className="flex-1 flex flex-col overflow-hidden">
-            <div className="flex-1 overflow-y-auto px-6 py-6">
-              {/* Step 1: OpenAPI Specification */}
+            <div className="flex-1 overflow-y-auto px-4 py-4 sm:px-6 sm:py-6">
+              {/* Step 1: Details — spec upload + all form fields */}
               <WizardStepContainer step={1}>
-                <SpecUploadStep
-                  formData={formData}
-                  setValue={setValue}
-                  onSpecParsed={handleSpecParsed}
-                  inferredData={inferredData}
-                  isParsingSpec={isParsingSpec}
-                />
+                <div className="space-y-8">
+                  <SpecUploadStep
+                    formData={formData}
+                    setValue={setValue}
+                    onSpecParsed={handleSpecParsed}
+                    isParsingSpec={isParsingSpec}
+                  />
+                  <BasicInfoStep
+                    register={register}
+                    errors={errors}
+                    fieldSources={fieldSources}
+                    setFieldSources={setFieldSources}
+                    watch={watch}
+                  />
+                </div>
               </WizardStepContainer>
 
-              {/* Step 2: Basic Information */}
+              {/* Step 2: Preview & Submit */}
               <WizardStepContainer step={2}>
-                <BasicInfoStep
-                  register={register}
-                  errors={errors}
-                  fieldSources={fieldSources}
-                  setFieldSources={setFieldSources}
-                  watch={watch}
-                />
-              </WizardStepContainer>
-
-              {/* Step 3: Review & Submit */}
-              <WizardStepContainer step={3}>
                 <ReviewStep formData={formData} />
               </WizardStepContainer>
             </div>
 
             {/* Footer Navigation */}
-            <DrawerFooter className="border-t">
+            <DrawerFooter className="border-t border-input px-4 sm:px-6">
               <div className="flex justify-between gap-3 w-full">
                 {wizard.state.canGoBack ? (
                   <Button
@@ -363,10 +312,10 @@ export function RegisterApiDrawer({ isOpen, onClose, onSuccess }: RegisterApiDra
                   ) : wizard.state.isLastStep ? (
                     <>
                       <Save className="h-4 w-4" />
-                      Register API
+                      Add to catalog
                     </>
                   ) : (
-                    `Next: ${STEPS[wizard.state.currentStep]?.title || 'Continue'}`
+                    'Preview'
                   )}
                 </Button>
               </div>

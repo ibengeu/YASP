@@ -1,6 +1,6 @@
 /**
- * Tests for RegisterApiDrawer (Wizard-based V3)
- * Smoke tests for the 3-step wizard flow: Spec Upload → Basic Info → Review
+ * Tests for RegisterApiDrawer (2-step wizard)
+ * Smoke tests for the 2-step wizard flow: Details → Preview
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -29,7 +29,7 @@ vi.mock('@/core/storage/idb-storage', () => ({
   },
 }));
 
-describe('RegisterApiDrawer - Wizard V3', () => {
+describe('RegisterApiDrawer', () => {
   it('should render when open', () => {
     render(
       <RegisterApiDrawer
@@ -39,8 +39,8 @@ describe('RegisterApiDrawer - Wizard V3', () => {
       />
     );
 
-    expect(screen.getByText('Register New API')).toBeInTheDocument();
-    expect(screen.getByText(/Step 1 of 3/)).toBeInTheDocument();
+    expect(screen.getByText('Add an API')).toBeInTheDocument();
+    expect(screen.getByText(/Upload your API spec and fill in the details/)).toBeInTheDocument();
   });
 
   it('should not render when closed', () => {
@@ -52,10 +52,10 @@ describe('RegisterApiDrawer - Wizard V3', () => {
       />
     );
 
-    expect(screen.queryByText('Register New API')).not.toBeInTheDocument();
+    expect(screen.queryByText('Add an API')).not.toBeInTheDocument();
   });
 
-  it('should show 3-step progress indicator', () => {
+  it('should show step 1 description', () => {
     render(
       <RegisterApiDrawer
         isOpen={true}
@@ -64,8 +64,7 @@ describe('RegisterApiDrawer - Wizard V3', () => {
       />
     );
 
-    // Verify step description is shown
-    expect(screen.getByText(/Provide your OpenAPI spec to auto-fill API details/i)).toBeInTheDocument();
+    expect(screen.getByText(/Upload your API spec and fill in the details/i)).toBeInTheDocument();
   });
 
   it('should display spec upload options on Step 1', () => {
@@ -77,13 +76,13 @@ describe('RegisterApiDrawer - Wizard V3', () => {
       />
     );
 
-    // Check for tab options - tabs are labeled "File", "Paste", "URL"
+    // Check for tab options
     expect(screen.getByRole('tab', { name: /File/i })).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: /Paste/i })).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: /URL/i })).toBeInTheDocument();
   });
 
-  it('should have a Next button on Step 1', () => {
+  it('should have a Preview button on Step 1', () => {
     render(
       <RegisterApiDrawer
         isOpen={true}
@@ -92,8 +91,7 @@ describe('RegisterApiDrawer - Wizard V3', () => {
       />
     );
 
-    // Should have a button to proceed - text includes next step name
-    const nextButton = screen.getByRole('button', { name: /Basic Information/i });
+    const nextButton = screen.getByRole('button', { name: /Preview/i });
     expect(nextButton).toBeInTheDocument();
   });
 });

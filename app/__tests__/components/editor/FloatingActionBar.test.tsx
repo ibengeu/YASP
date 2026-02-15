@@ -3,6 +3,14 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { FloatingActionBar } from '@/components/editor/FloatingActionBar';
 
+// Mock animejs so onComplete callbacks fire immediately in tests
+vi.mock('animejs', () => ({
+  animate: (_targets: any, options: any) => {
+    if (options?.onComplete) options.onComplete();
+    return { pause: vi.fn(), restart: vi.fn() };
+  },
+}));
+
 describe('FloatingActionBar', () => {
   const defaultProps = {
     activeTab: 'editor' as const,
@@ -11,7 +19,6 @@ describe('FloatingActionBar', () => {
     onTabChange: vi.fn(),
     onToggleMaximize: vi.fn(),
     onSave: vi.fn(),
-    onTryItOut: vi.fn(),
   };
 
   beforeEach(() => {
@@ -27,10 +34,10 @@ describe('FloatingActionBar', () => {
       expect(button).toHaveClass('w-14', 'h-14', 'rounded-full');
     });
 
-    it('should show Try It Out icon when on docs tab', () => {
+    it('should show Save icon when on docs tab', () => {
       render(<FloatingActionBar {...defaultProps} activeTab="docs" />);
 
-      const button = screen.getByRole('button', { name: /try it out/i });
+      const button = screen.getByRole('button', { name: /save changes/i });
       expect(button).toBeInTheDocument();
     });
 
@@ -119,22 +126,6 @@ describe('FloatingActionBar', () => {
       expect(defaultProps.onSave).toHaveBeenCalled();
     });
 
-    it('should call onTryItOut when Try It Out menu item clicked', async () => {
-      const user = userEvent.setup();
-      render(<FloatingActionBar {...defaultProps} activeTab="docs" />);
-
-      // Expand
-      const primaryButton = screen.getByRole('button', { name: /try it out/i });
-      await user.click(primaryButton);
-
-      await waitFor(async () => {
-        const tryItOutButton = screen.getByRole('menuitem', { name: /try it out/i });
-        await user.click(tryItOutButton);
-      });
-
-      expect(defaultProps.onTryItOut).toHaveBeenCalled();
-    });
-
     it('should call onTabChange when Docs menu item clicked', async () => {
       const user = userEvent.setup();
       render(<FloatingActionBar {...defaultProps} />);
@@ -156,7 +147,7 @@ describe('FloatingActionBar', () => {
       render(<FloatingActionBar {...defaultProps} activeTab="docs" />);
 
       // Expand
-      const primaryButton = screen.getByRole('button', { name: /try it out/i });
+      const primaryButton = screen.getByRole('button', { name: /save changes/i });
       await user.click(primaryButton);
 
       await waitFor(async () => {

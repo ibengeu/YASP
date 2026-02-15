@@ -8,7 +8,6 @@
  * - OWASP A07:2025 (Injection): URL parsed via new URL(), no string interpolation
  */
 
-import { isPrivateIP } from '@/features/api-explorer/utils/proxy-validator';
 
 export interface FetchSpecResult {
   content?: string;
@@ -19,20 +18,16 @@ const ALLOWED_PROTOCOLS = ['http:', 'https:'];
 const MAX_RESPONSE_SIZE = 5 * 1024 * 1024; // 5MB
 const FETCH_TIMEOUT_MS = 30_000; // 30 seconds
 
-// Mitigation: OWASP A09:2025 (SSRF) - Block dangerous hostname keywords
+// Mitigation: OWASP A09:2025 (SSRF) - Block cloud metadata endpoints only
 const BLOCKED_HOSTNAME_KEYWORDS = [
-  'localhost',
-  'local',
-  'internal',
-  'intranet',
   'metadata',
   'instance-data',
 ];
 
 /**
- * Fetch an OpenAPI specification from an external URL (server-side).
- * Unlike the API proxy (executeApiRequest), this does NOT restrict ports,
- * since Swagger/OpenAPI specs commonly run on non-standard ports (8025, 5000, 3000, etc.).
+ * Fetch an OpenAPI specification from a URL (server-side).
+ * Allows localhost, private IPs, and any hostname — only blocks
+ * cloud metadata endpoints and non-HTTP protocols.
  */
 export async function fetchSpec(url: string): Promise<FetchSpecResult> {
   // Step 1: Parse and validate URL
@@ -51,8 +46,8 @@ export async function fetchSpec(url: string): Promise<FetchSpecResult> {
     };
   }
 
-  // Step 3: Hostname validation
-  // Mitigation: OWASP A09:2025 (SSRF) - Block internal hostnames
+  // Step 3: Block cloud metadata endpoints
+  // Mitigation: OWASP A09:2025 (SSRF) - Prevent access to cloud instance metadata
   const hostname = parsedUrl.hostname.toLowerCase();
   for (const keyword of BLOCKED_HOSTNAME_KEYWORDS) {
     if (hostname.includes(keyword)) {
@@ -60,15 +55,6 @@ export async function fetchSpec(url: string): Promise<FetchSpecResult> {
         error: `Hostname blocked: Contains restricted keyword "${keyword}" (SSRF protection)`,
       };
     }
-  }
-
-  // Step 4: IP address validation
-  // Mitigation: OWASP A09:2025 (SSRF) - Block private/internal IP addresses
-  const hostnameWithoutBrackets = hostname.replace(/^\[|\]$/g, '');
-  if (isPrivateIP(hostnameWithoutBrackets)) {
-    return {
-      error: 'Request blocked: IP address is in private/internal range. Only public APIs allowed for security.',
-    };
   }
 
   // Step 5: Fetch the spec

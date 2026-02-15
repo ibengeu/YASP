@@ -13,7 +13,6 @@ import { ApiDetailDrawer } from '@/components/api-details/ApiDetailDrawer';
 import { idbStorage } from '@/core/storage/idb-storage';
 import type { OpenApiDocument } from '@/core/storage/storage-schema';
 import { staggerFadeIn, pageTransition } from '@/lib/animations';
-import { SEED_SPEC, SEED_SPEC_METADATA } from '@/lib/seed-data';
 import { getScoreColor } from '@/lib/constants';
 
 export default function CatalogPage() {
@@ -21,8 +20,6 @@ export default function CatalogPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [specs, setSpecs] = useState<OpenApiDocument[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [typeFilter, setTypeFilter] = useState<string>('all');
   const [selectedSpecId, setSelectedSpecId] = useState<string | null>(null);
 
   // Refs for anime.js animations (React pattern)
@@ -43,18 +40,7 @@ export default function CatalogPage() {
   const loadSpecs = async () => {
     setIsLoading(true);
     try {
-      let allSpecs = await idbStorage.getAllSpecs();
-
-      // Add seed data if empty
-      if (allSpecs.length === 0) {
-        await idbStorage.createSpec({
-          ...SEED_SPEC_METADATA,
-          content: SEED_SPEC,
-        });
-
-        allSpecs = await idbStorage.getAllSpecs();
-      }
-
+      const allSpecs = await idbStorage.getAllSpecs();
       setSpecs(allSpecs);
     } catch (error) {
       console.error('Failed to load specs:', error);
@@ -68,6 +54,8 @@ export default function CatalogPage() {
 
   const handleDelete = async (id: string) => {
     try {
+      // Clean up workflow steps referencing this spec
+      await idbStorage.removeSpecFromWorkflows(id);
       await idbStorage.deleteSpec(id);
       toast.success('API deleted successfully');
       loadSpecs();
@@ -77,23 +65,14 @@ export default function CatalogPage() {
     }
   };
 
-  // Filter specs based on search and filters
+  // Filter specs based on search
   const filteredSpecs = specs.filter((spec) => {
     const matchesSearch =
       spec.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       spec.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       spec.metadata.tags?.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()));
 
-    const matchesStatus =
-      statusFilter === 'all' ||
-      (statusFilter === 'active' && spec.metadata.syncStatus === 'synced') ||
-      (statusFilter === 'draft' && spec.metadata.syncStatus !== 'synced');
-
-    const matchesType =
-      typeFilter === 'all' ||
-      spec.metadata.workspaceType === typeFilter;
-
-    return matchesSearch && matchesStatus && matchesType;
+    return matchesSearch;
   });
 
   // Animate cards when loaded (following anime.js React docs)
@@ -109,7 +88,7 @@ export default function CatalogPage() {
   }, [isLoading, filteredSpecs.length]);
 
   return (
-    <div ref={pageRef} className="bg-[#FAFBFC] dark:bg-[#0E1420] min-h-screen" style={{ opacity: 0 }}>
+    <div ref={pageRef} className="bg-background min-h-screen" style={{ opacity: 0 }}>
       <PageHeader
         title="API Catalog"
         description={`Browse and manage ${specs.length} registered ${specs.length === 1 ? 'API' : 'APIs'}`}
@@ -135,30 +114,6 @@ export default function CatalogPage() {
                 className="w-full pl-9 pr-4 py-2 text-sm bg-card border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary text-foreground placeholder:text-muted-foreground"
               />
             </div>
-
-            {/* Type Filter */}
-            <select
-              value={typeFilter}
-              onChange={(e) => setTypeFilter(e.target.value)}
-              className="px-3 py-2 text-sm bg-card border border-border rounded-md text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-            >
-              <option value="all">All Types</option>
-              <option value="personal">Personal</option>
-              <option value="team">Team</option>
-              <option value="partner">Partner</option>
-              <option value="public">Public</option>
-            </select>
-
-            {/* Status Filter */}
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="px-3 py-2 text-sm bg-card border border-border rounded-md text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-            >
-              <option value="all">All Status</option>
-              <option value="active">Active</option>
-              <option value="draft">Draft</option>
-            </select>
           </div>
         }
       />
@@ -170,13 +125,13 @@ export default function CatalogPage() {
             <div className="inline-block h-6 w-6 animate-spin rounded-full border-2 border-solid border-border border-r-primary"></div>
           </div>
         ) : filteredSpecs.length === 0 ? (
-          <div className="p-12 text-center bg-white dark:bg-[#0a0a0a] rounded-lg border border-border">
+          <div className="p-12 text-center bg-card dark:bg-card rounded-lg border border-border">
             <div className="text-muted-foreground mb-4">
-              {searchQuery || statusFilter !== 'all' || typeFilter !== 'all'
-                ? 'No APIs match your filters. Try adjusting your search or filter criteria.'
+              {searchQuery
+                ? 'No APIs match your search. Try adjusting your search query.'
                 : 'You haven\'t registered any APIs yet. Get started by registering your first API.'}
             </div>
-            {!searchQuery && statusFilter === 'all' && typeFilter === 'all' && (
+            {!searchQuery && (
               <button
                 onClick={() => setShowRegisterDrawer(true)}
                 className="px-4 py-2 text-sm font-medium text-primary-foreground bg-primary rounded-md hover:opacity-90 transition-opacity cursor-pointer"
@@ -189,7 +144,7 @@ export default function CatalogPage() {
           <>
             {/* Desktop: Table View (lg and above) */}
             <div className="hidden lg:block">
-              <div className="bg-white dark:bg-[#0a0a0a] rounded-lg border border-border overflow-hidden">
+              <div className="bg-card dark:bg-card rounded-lg border border-border overflow-hidden">
                 <table className="w-full">
                   <thead className="bg-muted border-b border-border">
                     <tr>

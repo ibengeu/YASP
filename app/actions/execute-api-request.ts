@@ -10,6 +10,7 @@
  */
 
 import { validateProxyUrl } from '@/features/api-explorer/utils/proxy-validator';
+import { REQUEST_TIMEOUT_MS } from '@/lib/constants';
 
 export interface ApiRequestData {
   method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
@@ -68,7 +69,7 @@ export async function executeApiRequest(request: ApiRequestData): Promise<ApiRes
       body: request.body && ['POST', 'PUT', 'PATCH'].includes(request.method)
         ? request.body
         : undefined,
-      signal: AbortSignal.timeout(30000), // 30 second timeout
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
     });
 
     const time = Date.now() - startTime;
@@ -79,7 +80,7 @@ export async function executeApiRequest(request: ApiRequestData): Promise<ApiRes
       responseHeaders[key] = value;
     });
 
-    // Parse response body
+    // Parse response body based on content-type
     let body: any;
     const contentType = response.headers.get('content-type') || '';
 
@@ -88,14 +89,26 @@ export async function executeApiRequest(request: ApiRequestData): Promise<ApiRes
     // application/hal+json, etc.
     if (contentType.includes('json')) {
       body = await response.json();
-    } else if (contentType.includes('text/')) {
-      body = await response.text();
-    } else {
-      // For binary data, return metadata
+    } else if (isBinaryContentType(contentType)) {
+      // Only treat truly binary types as binary (images, octet-stream, etc.)
       body = {
         type: contentType,
         message: 'Binary response (use Download to save)',
       };
+    } else {
+      // Everything else: read as text (text/*, application/xml, empty content-type, errors, etc.)
+      const text = await response.text();
+
+      // If content-type is missing/empty, try parsing as JSON (many APIs omit content-type on errors)
+      if (!contentType && text) {
+        try {
+          body = JSON.parse(text);
+        } catch {
+          body = text;
+        }
+      } else {
+        body = text;
+      }
     }
 
     // Calculate response size
@@ -126,4 +139,22 @@ export async function executeApiRequest(request: ApiRequestData): Promise<ApiRes
 
     throw new Error(error.message || 'Request failed');
   }
+}
+
+/**
+ * Check if a content-type represents truly binary data that can't be displayed as text.
+ * Only these types get the "Binary response" placeholder — everything else is read as text.
+ */
+function isBinaryContentType(contentType: string): boolean {
+  if (!contentType) return false;
+  return (
+    contentType.startsWith('image/') ||
+    contentType.startsWith('audio/') ||
+    contentType.startsWith('video/') ||
+    contentType.includes('octet-stream') ||
+    contentType.startsWith('font/') ||
+    contentType.includes('application/zip') ||
+    contentType.includes('application/gzip') ||
+    contentType.includes('application/pdf')
+  );
 }

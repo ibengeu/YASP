@@ -1,11 +1,11 @@
 /**
- * ReviewStep - Step 3 of API Registration Wizard
+ * ReviewStep - Step 2 of API Registration Wizard
  *
  * Final review of all registration details before submission.
  */
 
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import type { RegistrationFormData } from '@/features/registration/schemas/registration-schema';
 
 export interface ReviewStepProps {
@@ -17,12 +17,11 @@ export function ReviewStep({ formData }: ReviewStepProps) {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Basic Information</CardTitle>
-          <CardDescription>Review your API details</CardDescription>
+          <CardTitle>Your API</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           <div>
-            <p className="text-sm font-medium text-muted-foreground">API Name</p>
+            <p className="text-sm font-medium text-muted-foreground">Name</p>
             <p className="text-sm">{formData.name || 'Not provided'}</p>
           </div>
           <div>
@@ -34,37 +33,42 @@ export function ReviewStep({ formData }: ReviewStepProps) {
             <p className="text-sm">{formData.version || 'Not provided'}</p>
           </div>
           <div>
-            <p className="text-sm font-medium text-muted-foreground">Endpoint / Base URL</p>
+            <p className="text-sm font-medium text-muted-foreground">Base URL</p>
             <p className="text-sm font-mono text-xs">{formData.endpoint || 'Not provided'}</p>
+          </div>
+          <div>
+            <p className="text-sm font-medium text-muted-foreground">Status</p>
+            <Badge variant={formData.status === 'active' ? 'default' : 'secondary'} className="capitalize mt-1">
+              {formData.status}
+            </Badge>
           </div>
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader>
-          <CardTitle>OpenAPI Specification</CardTitle>
-          <CardDescription>Specification details</CardDescription>
+          <CardTitle>Spec</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           <div>
-            <p className="text-sm font-medium text-muted-foreground">Source</p>
+            <p className="text-sm font-medium text-muted-foreground">How it was added</p>
             <p className="text-sm capitalize">
               {formData.openapiSpec?.source ? (
                 <Badge variant="secondary">{formData.openapiSpec.source}</Badge>
               ) : (
-                'No specification provided'
+                'No spec provided'
               )}
             </p>
           </div>
           {formData.openapiSpec?.fileName && (
             <div>
-              <p className="text-sm font-medium text-muted-foreground">File Name</p>
+              <p className="text-sm font-medium text-muted-foreground">File name</p>
               <p className="text-sm font-mono text-xs">{formData.openapiSpec.fileName}</p>
             </div>
           )}
           {formData.openapiSpec?.content && (
             <div>
-              <p className="text-sm font-medium text-muted-foreground">Specification Size</p>
+              <p className="text-sm font-medium text-muted-foreground">Size</p>
               <p className="text-sm">{(formData.openapiSpec.content.length / 1024).toFixed(2)} KB</p>
             </div>
           )}
@@ -75,7 +79,6 @@ export function ReviewStep({ formData }: ReviewStepProps) {
         <Card>
           <CardHeader>
             <CardTitle>Tags</CardTitle>
-            <CardDescription>Organization and categorization</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="flex flex-wrap gap-2">
@@ -88,18 +91,6 @@ export function ReviewStep({ formData }: ReviewStepProps) {
           </CardContent>
         </Card>
       )}
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Status</CardTitle>
-          <CardDescription>API registration status</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Badge variant={formData.status === 'active' ? 'default' : 'secondary'} className="capitalize">
-            {formData.status}
-          </Badge>
-        </CardContent>
-      </Card>
     </div>
   );
 }
