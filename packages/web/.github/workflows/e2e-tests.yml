@@ -1,0 +1,4 @@
+# This workflow has been superseded by the monorepo-root CI pipeline.
+# See /.github/workflows/ci.yml at the repository root.
+#
+# The e2e job in that workflow handles Playwright tests for this package.
