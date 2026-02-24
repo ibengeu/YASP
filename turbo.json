@@ -1,0 +1,37 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "ui": "tui",
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "inputs": ["src/**", "app/**", "index.html", "vite.config.*", "tsconfig*", "tailwind.config.*", "react-router.config.*", "postcss.config.*"],
+      "outputs": ["build/**", "dist/**", ".react-router/**"]
+    },
+    "typecheck": {
+      "dependsOn": ["^build"],
+      "inputs": ["src/**", "app/**", "tsconfig*"],
+      "outputs": []
+    },
+    "lint": {
+      "inputs": ["src/**", "app/**", "eslint.config.*", ".eslintrc*"],
+      "outputs": []
+    },
+    "test": {
+      "dependsOn": ["^build"],
+      "inputs": ["src/**", "app/**", "**/*.test.*", "**/*.spec.*", "vitest.config.*", "vitest.setup.*"],
+      "outputs": ["coverage/**"]
+    },
+    "test:run": {
+      "dependsOn": ["^build"],
+      "inputs": ["src/**", "app/**", "**/*.test.*", "**/*.spec.*", "vitest.config.*", "vitest.setup.*"],
+      "outputs": ["coverage/**"]
+    },
+    "dev": {
+      "persistent": true,
+      "cache": false
+    },
+    "clean": {
+      "cache": false
+    }
+  }
+}

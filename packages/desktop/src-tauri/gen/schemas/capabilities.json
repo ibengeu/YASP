@@ -1,0 +1,1 @@
+{"default":{"identifier":"default","description":"Default capabilities for YASP desktop","local":true,"windows":["main"],"permissions":["core:default","http:default","updater:default","process:default"]}}

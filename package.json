@@ -1,0 +1,20 @@
+{
+  "name": "yasp",
+  "private": true,
+  "packageManager": "bun@1.3.3",
+  "workspaces": ["packages/*"],
+  "scripts": {
+    "dev:web": "turbo run dev --filter=@yasp/web",
+    "dev:desktop": "turbo run dev --filter=@yasp/desktop",
+    "build": "turbo run build",
+    "build:web": "turbo run build --filter=@yasp/web",
+    "build:desktop": "turbo run build --filter=@yasp/desktop",
+    "test": "turbo run test:run",
+    "typecheck": "turbo run typecheck",
+    "lint": "turbo run lint",
+    "clean": "turbo run clean"
+  },
+  "devDependencies": {
+    "turbo": "2.8.10"
+  }
+}

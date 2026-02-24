@@ -1,0 +1,11 @@
+{
+  // Root tsconfig — used by editors for cross-package go-to-definition
+  // and by `tsc --build` for incremental type checking across the monorepo.
+  // Each package has its own tsconfig for standalone type checking.
+  "files": [],
+  "references": [
+    { "path": "./packages/core" },
+    { "path": "./packages/web" },
+    { "path": "./packages/desktop" }
+  ]
+}

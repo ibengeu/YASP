@@ -1,0 +1,48 @@
+[package]
+name = "yasp-desktop"
+version = "0.1.0"
+description = "YASP — API Catalog Desktop App"
+authors = ["YASP"]
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+name = "yasp_desktop_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[[bin]]
+name = "yasp-desktop"
+path = "src/main.rs"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+tauri-plugin-http = "2"
+tauri-plugin-shell = "2"
+tauri-plugin-updater = "2"
+tauri-plugin-process = "2"
+
+# OWASP A10:2025 – Vulnerable and Outdated Components: pin serde versions
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# HTTP client for API proxy commands
+# OWASP A09:2025 – SSRF: use reqwest with explicit TLS, no redirects to private networks
+reqwest = { version = "0.12", features = ["json", "rustls-tls"], default-features = false }
+tokio = { version = "1", features = ["full"] }
+
+# URL parsing for SSRF validation
+url = "2"
+
+# IP address parsing for SSRF protection
+ipnetwork = "0.20"
+
+[profile.release]
+panic = "abort"
+codegen-units = 1
+opt-level = "s"
+lto = true
+strip = true

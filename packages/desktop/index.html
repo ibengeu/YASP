@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>YASP — API Catalog</title>
+    <!--
+      OWASP A02:2025 – Security Misconfiguration:
+      Tauri desktop CSP is stricter — ipc:// protocol is added to allow Tauri bridge.
+      External network access is controlled by tauri.conf.json http plugin scope.
+    -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' ipc: http://ipc.localhost; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: asset: https://asset.localhost; connect-src 'self' ipc: http://ipc.localhost https:; object-src 'none'; base-uri 'self';" />
+    <meta http-equiv="X-Content-Type-Options" content="nosniff" />
+    <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin" />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

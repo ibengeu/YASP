@@ -1,0 +1,70 @@
+/**
+ * PageLayout - Wraps content with header and footer
+ * Provides consistent layout structure across all pages
+ */
+
+import { ReactNode, useEffect, useState } from 'react';
+import { WorkbenchHeader } from '@/components/workbench/WorkbenchHeader';
+
+interface PageLayoutProps {
+  children: ReactNode;
+  searchQuery?: string;
+  onSearchChange?: (query: string) => void;
+  onOpenRegister?: () => void;
+  onJoinBeta?: () => void;
+}
+
+export function PageLayout({
+  children,
+  searchQuery = '',
+  onSearchChange = () => {},
+  onOpenRegister = () => {},
+  onJoinBeta = () => {},
+}: PageLayoutProps) {
+  return (
+    <div className="flex-1 flex flex-col overflow-hidden">
+      {/* Header */}
+      <WorkbenchHeader
+        searchQuery={searchQuery}
+        onSearchChange={onSearchChange}
+        onOpenRegister={onOpenRegister}
+        onJoinBeta={onJoinBeta}
+      />
+
+      {/* Content */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {children}
+      </div>
+
+      {/* Footer */}
+      <Footer />
+    </div>
+  );
+}
+
+function Footer() {
+  const currentYear = new Date().getFullYear();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) {
+    return null;
+  }
+
+  return (
+    <footer className="h-14 border-t border-border bg-background/80 backdrop-blur-md flex items-center justify-center gap-6 px-6 shrink-0">
+      {/* Left: Logo/branding */}
+      <div className="flex items-center gap-2">
+        <span className="text-sm font-semibold text-foreground">YASP</span>
+      </div>
+
+      {/* Right: Year */}
+      <div className="text-xs text-muted-foreground">
+        © {currentYear} YASP
+      </div>
+    </footer>
+  );
+}
