@@ -1,25 +1,44 @@
-import { useEffect } from 'react';
-import { check } from '@tauri-apps/plugin-updater';
+import { useState, useEffect, useCallback } from 'react';
+import { check, type Update } from '@tauri-apps/plugin-updater';
 import { relaunch } from '@tauri-apps/plugin-process';
 
-export function useUpdateCheck() {
+export interface UpdateState {
+  update: Update | null;
+  isDownloading: boolean;
+  open: boolean;
+  dismiss: () => void;
+  install: () => Promise<void>;
+}
+
+export function useUpdateCheck(): UpdateState {
+  const [update, setUpdate] = useState<Update | null>(null);
+  const [open, setOpen] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
+
   useEffect(() => {
-    // Mitigation for OWASP A09:2025 – SSRF: update endpoint is hardcoded in
-    // tauri.conf.json (controlled by app bundle), not derived from user input.
+    // OWASP A09:2025 – SSRF: update endpoint is hardcoded in tauri.conf.json
+    // (controlled by the app bundle), never derived from user input.
     check()
-      .then(async (update) => {
-        if (!update?.available) return;
-        const yes = window.confirm(
-          `v${update.version} is available.\n\n${update.body ?? ''}\n\nInstall now?`
-        );
-        if (!yes) return;
-        await update.downloadAndInstall();
-        await relaunch();
+      .then((u) => {
+        if (u?.available) {
+          setUpdate(u);
+          setOpen(true);
+        }
       })
       .catch(() => {
-        // Silently ignore: offline, rate-limited, or dev environment.
-        // Mitigation for OWASP A08:2025 – Security Logging: errors are intentionally
-        // swallowed here to avoid exposing network details in the UI.
+        // OWASP A08:2025 – Security Logging: errors intentionally swallowed here
+        // to avoid exposing network details (offline / rate-limited / dev env).
       });
   }, []);
+
+  const dismiss = useCallback(() => setOpen(false), []);
+
+  const install = useCallback(async () => {
+    if (!update) return;
+    setIsDownloading(true);
+    await update.downloadAndInstall();
+    await relaunch();
+  }, [update]);
+
+  return { update, isDownloading, open, dismiss, install };
 }

@@ -3,6 +3,7 @@ import { AppProvider } from "@yasp/core/providers/app-provider";
 import { AppRoutes } from "@yasp/core/AppRoutes";
 import { invoke } from "@tauri-apps/api/core";
 import { useUpdateCheck } from "./hooks/useUpdateCheck";
+import { UpdateDialog } from "./components/UpdateDialog";
 
 // OWASP A09:2025 – SSRF: URL validation is enforced in the Rust `fetch_spec` command.
 // This function is passed as a prop so @yasp/core stays platform-agnostic.
@@ -11,7 +12,7 @@ async function tauriFetchUrl(url: string): Promise<string> {
 }
 
 export default function App() {
-    useUpdateCheck(); // no-ops in dev; checks on every cold start in production
+    const updateState = useUpdateCheck();
     return (
         // HashRouter: required for Tauri — the packaged app has no server to handle /workbench URLs.
         <HashRouter>
@@ -27,6 +28,7 @@ export default function App() {
                         <AppRoutes fetchUrl={tauriFetchUrl} />
                     </div>
                 </div>
+                <UpdateDialog state={updateState} />
             </AppProvider>
         </HashRouter>
     );
