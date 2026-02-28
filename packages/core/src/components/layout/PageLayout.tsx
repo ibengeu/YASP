@@ -12,6 +12,7 @@ interface PageLayoutProps {
   onSearchChange?: (query: string) => void;
   onOpenRegister?: () => void;
   onJoinBeta?: () => void;
+  activeView?: 'collections' | 'workbench';
 }
 
 export function PageLayout({
@@ -20,6 +21,7 @@ export function PageLayout({
   onSearchChange = () => {},
   onOpenRegister = () => {},
   onJoinBeta = () => {},
+  activeView = 'collections',
 }: PageLayoutProps) {
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
@@ -29,6 +31,7 @@ export function PageLayout({
         onSearchChange={onSearchChange}
         onOpenRegister={onOpenRegister}
         onJoinBeta={onJoinBeta}
+        activeView={activeView}
       />
 
       {/* Content */}
@@ -36,8 +39,8 @@ export function PageLayout({
         {children}
       </div>
 
-      {/* Footer */}
-      <Footer />
+      {/* Footer - Hidden in workbench mode as it has its own status bar */}
+      {activeView !== 'workbench' && <Footer />}
     </div>
   );
 }

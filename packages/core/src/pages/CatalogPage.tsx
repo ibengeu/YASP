@@ -107,6 +107,7 @@ export default function CatalogPage({ fetchUrl }: CatalogPageProps) {
       onSearchChange={setSearchQuery}
       onOpenRegister={() => setShowRegisterDrawer(true)}
       onJoinBeta={() => { trackAction(); }}
+      activeView="collections"
     >
       <div ref={pageRef} className="flex-1 overflow-y-auto custom-scroll" style={{ opacity: 0 }}>
         <div className="relative z-10 p-8 max-w-6xl mx-auto w-full">

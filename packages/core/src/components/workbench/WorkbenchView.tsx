@@ -26,7 +26,7 @@ import {
   detectBodyTypeFromSpec,
   bodyTypeToContentType,
 } from '@/components/api-details/utils';
-import type { OperationObject, PathItemObject, ParameterObject, ReferenceObject, RequestBodyObject } from '@/types/openapi-spec';
+import type { OperationObject, PathItemObject, ParameterObject, ReferenceObject, RequestBodyObject, SchemaObject } from '@/types/openapi-spec';
 import type {
   HTTPMethod,
   ParsedOpenAPISpec,
@@ -198,7 +198,7 @@ export function WorkbenchView({ specId }: WorkbenchViewProps) {
       // Resolve $ref on the requestBody object itself
       let requestBody = selectedEndpoint.operation.requestBody;
       if ((requestBody as ReferenceObject).$ref && parsedSpec) {
-        requestBody = resolveRef((requestBody as ReferenceObject).$ref, parsedSpec) ?? requestBody;
+        requestBody = (resolveRef((requestBody as ReferenceObject).$ref, parsedSpec) as RequestBodyObject) ?? requestBody;
       }
       
       const rb = requestBody as RequestBodyObject;

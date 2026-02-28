@@ -49,7 +49,7 @@ import {
     bodyTypeToContentType,
     extractFormFields,
 } from './utils';
-import type {OperationObject, PathItemObject, ParameterObject, ReferenceObject, ServerObject, RequestBodyObject} from '@/types/openapi-spec';
+import type {OperationObject, PathItemObject, ParameterObject, ReferenceObject, ServerObject, RequestBodyObject, SchemaObject} from '@/types/openapi-spec';
 import type {
     HTTPMethod,
     ParsedOpenAPISpec,
@@ -245,8 +245,8 @@ export function ApiDetailDrawer({open, onClose, specId}: ApiDetailDrawerProps) {
             // Mitigation for OWASP A04:2025 – Insecure Design: requestBody may be a $ref per
             // OpenAPI spec; resolve it before accessing .content to avoid silent schema loss.
             let requestBody = selectedEndpoint.operation.requestBody;
-            if ((requestBody as ReferenceObject).$ref && parsedSpec) requestBody = resolveRef((requestBody as ReferenceObject).$ref, parsedSpec) ?? requestBody;
-            
+            if ((requestBody as ReferenceObject).$ref && parsedSpec) requestBody = (resolveRef((requestBody as ReferenceObject).$ref, parsedSpec) as RequestBodyObject) ?? requestBody;
+
             const rb = requestBody as RequestBodyObject;
             const content = rb.content || {};
             const jsonContent = content['application/json'];
@@ -358,7 +358,7 @@ export function ApiDetailDrawer({open, onClose, specId}: ApiDetailDrawerProps) {
             url = `${url}?${queryString}`;
         }
 
-        let requestBody: unknown = undefined;
+        let requestBody: string | FormData | undefined = undefined;
         if (['POST', 'PUT', 'PATCH'].includes(request.method)) {
             if (request.bodyType === 'form-data') {
                 const formData = new FormData();
@@ -731,7 +731,7 @@ export function ApiDetailDrawer({open, onClose, specId}: ApiDetailDrawerProps) {
                                                             let exampleBody = '{\n  \n}';
                                                             if (selectedEndpoint.operation?.requestBody) {
                                                                 let requestBody = selectedEndpoint.operation.requestBody;
-                                                                if ((requestBody as ReferenceObject).$ref && parsedSpec) requestBody = resolveRef((requestBody as ReferenceObject).$ref, parsedSpec) as RequestBodyObject ?? requestBody;
+                                                                if ((requestBody as ReferenceObject).$ref && parsedSpec) requestBody = (resolveRef((requestBody as ReferenceObject).$ref, parsedSpec) as RequestBodyObject) ?? requestBody;
                                                                 const rb = requestBody as RequestBodyObject;
                                                                 const content = rb.content || {};
                                                                 const jsonContent = content['application/json'];

@@ -1,7 +1,7 @@
-import { HashRouter, Routes, Route, Navigate } from "react-router";
+import { HashRouter } from "react-router";
 import { AppProvider } from "@yasp/core/providers/app-provider";
+import { AppRoutes } from "@yasp/core/AppRoutes";
 import { invoke } from "@tauri-apps/api/core";
-import { lazy, Suspense } from "react";
 import { useUpdateCheck } from "./hooks/useUpdateCheck";
 
 // OWASP A09:2025 – SSRF: URL validation is enforced in the Rust `fetch_spec` command.
@@ -10,23 +10,10 @@ async function tauriFetchUrl(url: string): Promise<string> {
     return invoke<string>("fetch_spec", { url });
 }
 
-// Lazy-load route pages from @yasp/core
-const CatalogPage = lazy(() => import("@yasp/core/pages/CatalogPage"));
-const CatalogDocsPage = lazy(() => import("@yasp/core/pages/CatalogDocsPage"));
-const EditorPage = lazy(() => import("@yasp/core/pages/EditorPage"));
-
-function Loading() {
-    return (
-        <div className="h-screen flex items-center justify-center bg-background text-muted-foreground text-sm">
-            Loading…
-        </div>
-    );
-}
-
 export default function App() {
     useUpdateCheck(); // no-ops in dev; checks on every cold start in production
     return (
-        // HashRouter: recommended for Tauri (avoids server-side routing issues in packaged builds)
+        // HashRouter: required for Tauri — the packaged app has no server to handle /workbench URLs.
         <HashRouter>
             <AppProvider>
                 <div className="h-screen flex flex-col overflow-hidden relative">
@@ -37,15 +24,7 @@ export default function App() {
                     </div>
 
                     <div className="relative z-10 flex flex-col h-full">
-                        <Suspense fallback={<Loading />}>
-                            <Routes>
-                                <Route path="/" element={<Navigate to="/catalog" replace />} />
-                                <Route path="/catalog" element={<CatalogPage fetchUrl={tauriFetchUrl} />} />
-                                <Route path="/catalog/:id" element={<CatalogDocsPage />} />
-                                <Route path="/editor/:id" element={<EditorPage />} />
-                                <Route path="*" element={<Navigate to="/catalog" replace />} />
-                            </Routes>
-                        </Suspense>
+                        <AppRoutes fetchUrl={tauriFetchUrl} />
                     </div>
                 </div>
             </AppProvider>

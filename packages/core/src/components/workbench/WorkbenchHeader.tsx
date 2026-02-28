@@ -1,4 +1,5 @@
-import { Upload, Sparkles, Moon, Sun } from 'lucide-react';
+import { useNavigate, useLocation } from 'react-router';
+import { Upload, Sparkles, Moon, Sun, Plus } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -8,39 +9,114 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { cn } from '@/lib/utils';
 
 interface WorkbenchHeaderProps {
   searchQuery: string;
   onSearchChange: (query: string) => void;
   onOpenRegister: () => void;
   onJoinBeta: () => void;
+  activeView?: 'collections' | 'workbench';
 }
 
 export function WorkbenchHeader({
   onOpenRegister,
   onJoinBeta,
+  activeView,
 }: WorkbenchHeaderProps) {
   const { theme, setTheme } = useTheme();
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const handleNavigate = (to: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    navigate(to);
+  };
+
+  const isActive = (path: string) => location.pathname.startsWith(path);
 
   return (
     <header className="h-14 border-b border-border bg-background/80 backdrop-blur-md sticky top-0 z-50 flex items-center justify-between px-6 shrink-0">
-      {/* Left: Logo + Breadcrumb */}
-      <div className="flex items-center gap-4">
-        <div className="flex items-center gap-2 select-none cursor-pointer">
-          <span className="tracking-tighter font-bold text-xl leading-none text-foreground">
+      {/* Left: Logo + Navigation */}
+      <div className="flex items-center gap-10">
+        <div 
+          className="flex items-center gap-2 select-none cursor-pointer group"
+          onClick={() => navigate('/')}
+        >
+          <div className="w-6 h-6 bg-foreground rounded flex items-center justify-center group-hover:bg-primary transition-colors">
+            <span className="text-background text-[10px] font-bold tracking-tighter">
+              OAS
+            </span>
+          </div>
+          <span className="tracking-tighter font-bold text-lg leading-none text-foreground hidden sm:inline">
             YASP
           </span>
         </div>
 
-        <Separator orientation="vertical" className="h-4" />
-
-        <div className="flex items-center gap-2 text-sm font-medium">
-          <span className="text-foreground text-sm">API Catalog</span>
-        </div>
+        <nav className="flex items-center gap-8">
+          <a
+            href="/catalog"
+            onClick={(e) => handleNavigate('/catalog', e)}
+            className={cn(
+              "text-sm font-medium transition-all hover:text-foreground relative py-1",
+              isActive('/catalog') 
+                ? "text-foreground font-semibold" 
+                : "text-muted-foreground"
+            )}
+          >
+            Collections
+            {isActive('/catalog') && (
+              <div className="absolute -bottom-1.5 left-0 right-0 h-0.5 bg-primary rounded-full" />
+            )}
+          </a>
+          <a
+            href="/workbench"
+            onClick={(e) => handleNavigate('/workbench', e)}
+            className={cn(
+              "text-sm font-medium transition-all hover:text-foreground relative py-1",
+              isActive('/workbench') 
+                ? "text-foreground font-semibold" 
+                : "text-muted-foreground"
+            )}
+          >
+            Workbench
+            {isActive('/workbench') && (
+              <div className="absolute -bottom-1.5 left-0 right-0 h-0.5 bg-primary rounded-full" />
+            )}
+          </a>
+        </nav>
       </div>
 
       {/* Right: Actions */}
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-3">
+        {/* Breadcrumb Context (Visible when in Workbench) */}
+        {activeView === 'workbench' && (
+          <div className="hidden lg:flex items-center text-xs gap-1.5 text-muted-foreground mr-4">
+             <span className="hover:text-foreground cursor-pointer transition-colors">Workspace</span>
+             <span className="opacity-40">/</span>
+             <span className="hover:text-foreground cursor-pointer transition-colors font-medium text-foreground">v2-spec.yaml</span>
+          </div>
+        )}
+
+        <div className="flex items-center gap-2 mr-2">
+          <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
+          <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Synced</span>
+        </div>
+
+        {/* Collaboration Avatars */}
+        <div className="hidden md:flex items-center -space-x-1.5 mr-2">
+          <div className="w-6 h-6 rounded-full bg-blue-100 border border-background flex items-center justify-center text-[10px] text-blue-700 font-bold z-20">
+            AL
+          </div>
+          <div className="w-6 h-6 rounded-full bg-amber-100 border border-background flex items-center justify-center text-[10px] text-amber-700 font-bold z-10">
+            JS
+          </div>
+          <div className="w-6 h-6 rounded-full bg-muted border border-background flex items-center justify-center text-muted-foreground z-0">
+            <Plus className="w-3 h-3" />
+          </div>
+        </div>
+
+        <Separator orientation="vertical" className="h-4 hidden sm:block" />
         {/* Join Beta — shadcn Button with reduced opacity */}
         <Button
           variant="outline"

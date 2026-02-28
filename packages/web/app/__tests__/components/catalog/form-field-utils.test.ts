@@ -241,7 +241,7 @@ describe('extractFormFields — full extraction workflow', () => {
       },
     };
 
-    const fields = extractFormFields(endpoint);
+    const fields = extractFormFields(endpoint as any);
 
     expect(fields).toHaveLength(2);
     expect(fields[0]).toMatchObject({

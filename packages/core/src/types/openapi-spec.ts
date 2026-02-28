@@ -10,7 +10,7 @@ export interface OperationObject {
   tags?: string[];
   parameters?: (ParameterObject | ReferenceObject)[];
   requestBody?: RequestBodyObject | ReferenceObject;
-  responses: ResponsesObject;
+  responses?: ResponsesObject;
   deprecated?: boolean;
   security?: SecurityRequirementObject[];
 }
@@ -56,6 +56,9 @@ export interface SchemaObject {
   readOnly?: boolean;
   writeOnly?: boolean;
   example?: any;
+  allOf?: (SchemaObject | ReferenceObject)[];
+  anyOf?: (SchemaObject | ReferenceObject)[];
+  oneOf?: (SchemaObject | ReferenceObject)[];
 }
 
 export interface ResponsesObject {

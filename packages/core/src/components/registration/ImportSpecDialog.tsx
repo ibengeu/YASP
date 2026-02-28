@@ -18,7 +18,6 @@ import {
   UploadCloud,
   CheckCircle2,
   ArrowRight,
-  Info,
   Loader2,
   Globe,
   Settings2
@@ -40,7 +39,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
   Form,
   FormControl,
@@ -303,13 +301,6 @@ export function ImportSpecDialog({ isOpen, onClose, onSuccess, fetchUrl }: Impor
                     </div>
                   </div>
                   
-                  <Alert variant="info" className="border-blue-500/20 bg-blue-500/5 py-3">
-                    <Info className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                    <AlertDescription className="text-sm leading-relaxed text-blue-700 dark:text-blue-300 ml-1">
-                      Ensure the URL is publicly accessible. For private specifications, use the File or Paste options.
-                    </AlertDescription>
-                  </Alert>
-
                   {url && (
                     <Button 
                       type="button" 

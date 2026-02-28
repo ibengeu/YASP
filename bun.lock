@@ -4,13 +4,6 @@
   "workspaces": {
     "": {
       "name": "yasp",
-      "devDependencies": {
-        "turbo": "2.8.10",
-      },
-    },
-    "packages/core": {
-      "name": "@yasp/core",
-      "version": "0.1.0",
       "dependencies": {
         "@codemirror/autocomplete": "^6.20.0",
         "@codemirror/commands": "^6.10.2",
@@ -60,6 +53,13 @@
         "zustand": "^5.0.11",
       },
       "devDependencies": {
+        "turbo": "2.8.10",
+      },
+    },
+    "packages/core": {
+      "name": "@yasp/core",
+      "version": "0.1.0",
+      "devDependencies": {
         "@tailwindcss/vite": "^4.0.4",
         "@testing-library/react": "^16.3.1",
         "@testing-library/user-event": "^14.6.1",
@@ -71,10 +71,6 @@
         "typescript": "^5.9.3",
         "vite": "7.1.11",
         "vitest": "^3.2.4",
-      },
-      "peerDependencies": {
-        "react": "^19.0.0",
-        "react-dom": "^19.1.1",
       },
     },
     "packages/desktop": {

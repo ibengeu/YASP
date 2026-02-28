@@ -11,7 +11,10 @@ export default [
   index("routes/_index.tsx"),
 
   // API Catalog - Browse and manage specifications
-  route("catalog", "routes/catalog.tsx"),
+  route("/catalog", "routes/catalog.tsx"),
+
+  // IDE Workbench - High-fidelity API explorer
+  route("/workbench", "routes/workbench.tsx"),
 
   // Catalog Docs - Full-page documentation view for a single spec
   route("catalog/:id", "routes/catalog.$id.tsx"),

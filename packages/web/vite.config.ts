@@ -30,7 +30,7 @@ export default defineConfig(({ mode }) => ({
     resolve: {
         extensions: ['.js', '.jsx', '.ts', '.tsx'],
         // OWASP A04:2025 - Insecure Design: Ensure consistent module resolution
-        dedupe: ['@codemirror/state', '@codemirror/view'],
+        dedupe: ['@codemirror/state', '@codemirror/view', 'react-router'],
     },
     optimizeDeps: {
         // Pre-bundle CodeMirror packages to avoid instanceof issues

@@ -4,13 +4,16 @@
 
 import {DEFAULT_FALLBACK_URL} from '@/lib/constants';
 import type {BodyContentType, FieldInputType, FormField, ParsedOpenAPISpec} from './types';
-import type {SchemaObject, ReferenceObject, OperationObject, ParameterObject} from '@/types/openapi-spec';
+import type {SchemaObject, ReferenceObject, OperationObject, ParameterObject, RequestBodyObject} from '@/types/openapi-spec';
+
+/** Partial spec shape accepted by utility functions — does not require openapi/info */
+type SpecLike = Partial<ParsedOpenAPISpec> | Record<string, unknown>;
 
 /**
  * Infer input type from field key name and schema property definition
  * Fallback strategy: name hints → schema type → default to text
  */
-export function inferInputType(key: string, schemaProp: SchemaObject | ReferenceObject | undefined): FieldInputType {
+export function inferInputType(key: string, schemaProp: SchemaObject | ReferenceObject | undefined | null): FieldInputType {
     // Normalize inputs for safe access
     const keyLower = (key || '').toLowerCase();
     const prop = schemaProp as SchemaObject;
@@ -85,7 +88,7 @@ export function inferInputType(key: string, schemaProp: SchemaObject | Reference
  * - Non-standard schema structures
  * - Graceful fallbacks
  */
-export function normalizeSchema(schema: SchemaObject | ReferenceObject | undefined): { properties: Record<string, SchemaObject | ReferenceObject> } {
+export function normalizeSchema(schema: unknown): { properties: Record<string, SchemaObject | ReferenceObject> } {
     if (!schema) {
         return { properties: {} };
     }
@@ -127,7 +130,7 @@ export function normalizeSchema(schema: SchemaObject | ReferenceObject | undefin
  */
 export function extractFormFields(
     endpoint: { operation?: OperationObject },
-    spec?: ParsedOpenAPISpec
+    spec?: SpecLike
 ): FormField[] {
     let fields: FormField[] = [];
     let selectedSchema: SchemaObject | ReferenceObject | null = null;
@@ -159,7 +162,7 @@ export function extractFormFields(
         if (formDataParams.length > 0) {
             return formDataParams.map(param => ({
                 key: param.name,
-                value: param.default?.toString() || '',
+                value: (param.example ?? param.schema?.default)?.toString() ?? '',
                 type: inferInputType(param.name, param.schema),
                 required: param.required || false,
                 description: param.description,
@@ -167,7 +170,7 @@ export function extractFormFields(
         }
 
         // Fallback: body parameter if consumes is form-like
-        const consumes = (endpoint.operation as Record<string, unknown>)?.consumes as string[] || [];
+        const consumes = (endpoint.operation as unknown as Record<string, unknown>)?.consumes as string[] || [];
         const isFormType = consumes.some(
             (c: string) => c.includes('form-data') || c.includes('urlencoded')
         );
@@ -184,17 +187,17 @@ export function extractFormFields(
     if (selectedSchema) {
         // Resolve top-level ref if present
         if ((selectedSchema as ReferenceObject).$ref && spec) {
-            selectedSchema = resolveRef((selectedSchema as ReferenceObject).$ref, spec);
+            selectedSchema = (resolveRef((selectedSchema as ReferenceObject).$ref, spec) as SchemaObject | ReferenceObject) ?? null;
         }
 
-        const normalized = normalizeSchema(selectedSchema);
+        const normalized = normalizeSchema(selectedSchema ?? undefined);
         const requiredFields = (selectedSchema as SchemaObject)?.required || [];
 
         fields = Object.entries(normalized.properties).map(([key, propSchema]) => {
             let prop = propSchema;
             // Resolve property-level ref if present
             if ((prop as ReferenceObject).$ref && spec) {
-                prop = resolveRef((prop as ReferenceObject).$ref, spec);
+                prop = (resolveRef((prop as ReferenceObject).$ref, spec) as SchemaObject | ReferenceObject) ?? prop;
             }
 
             const p = prop as SchemaObject;
@@ -209,7 +212,7 @@ export function extractFormFields(
                 key,
                 value: stringValue,
                 type: inferInputType(key, p),
-                required: requiredFields.includes(key) || p?.required || false,
+                required: requiredFields.includes(key) || false,
                 description: p?.description,
             };
         });
@@ -222,7 +225,7 @@ export function extractFormFields(
  * Resolve a $ref pointer within the spec
  * Handles local references like '#/components/schemas/Pet'
  */
-export function resolveRef(ref: string, spec: ParsedOpenAPISpec): unknown {
+export function resolveRef(ref: string, spec: SpecLike): unknown {
     if (!ref || !ref.startsWith('#/')) return null;
     const parts = ref.slice(2).split('/');
     let current: unknown = spec;
@@ -239,7 +242,7 @@ export function resolveRef(ref: string, spec: ParsedOpenAPISpec): unknown {
  *
  * Handles: $ref, allOf/anyOf/oneOf, nested objects, arrays, primitives, examples.
  */
-export function generateExampleFromSchema(schema: SchemaObject | ReferenceObject | undefined, depth = 0, spec?: ParsedOpenAPISpec): string {
+export function generateExampleFromSchema(schema: SchemaObject | ReferenceObject | undefined, depth = 0, spec?: SpecLike): string {
     if (depth > 5) return '{}';
     if (!schema || typeof schema !== 'object') return '{}';
 
@@ -346,9 +349,10 @@ export function generateExampleFromSchema(schema: SchemaObject | ReferenceObject
     return '{}';
 }
 
-export function detectAuthFromSpec(spec: ParsedOpenAPISpec | null): { type: 'none' | 'api-key' | 'bearer' | 'basic' } {
-    const securitySchemes = spec?.components?.securitySchemes as Record<string, { type?: string; scheme?: string }>;
-    const globalSecurity = spec?.security;
+export function detectAuthFromSpec(spec: SpecLike | null): { type: 'none' | 'api-key' | 'bearer' | 'basic' } {
+    const components = spec?.components as Record<string, unknown> | undefined;
+    const securitySchemes = components?.securitySchemes as Record<string, { type?: string; scheme?: string }> | undefined;
+    const globalSecurity = spec?.security as Record<string, string[]>[] | undefined;
     if (!securitySchemes || !globalSecurity || globalSecurity.length === 0) return {type: 'none'};
     const firstName = Object.keys(globalSecurity[0])[0];
     const scheme = securitySchemes[firstName];
@@ -359,15 +363,16 @@ export function detectAuthFromSpec(spec: ParsedOpenAPISpec | null): { type: 'non
     return {type: 'none'};
 }
 
-export function isDummyFallbackUrl(url: string, spec: ParsedOpenAPISpec | null): boolean {
-    return url === DEFAULT_FALLBACK_URL && (!spec?.servers || spec.servers.length === 0);
+export function isDummyFallbackUrl(url: string, spec: SpecLike | null): boolean {
+    const servers = (spec as Partial<ParsedOpenAPISpec>)?.servers;
+    return url === DEFAULT_FALLBACK_URL && (!servers || servers.length === 0);
 }
 
 /**
  * Detect the initial body content type from the spec's requestBody content keys
  * Handles both OpenAPI 3.x (requestBody) and Swagger 2.0 (body parameter or formData)
  */
-export function detectBodyTypeFromSpec(operation: OperationObject | undefined, spec?: ParsedOpenAPISpec): BodyContentType {
+export function detectBodyTypeFromSpec(operation: OperationObject | undefined, spec?: SpecLike): BodyContentType {
     // 1. OpenAPI 3.x: requestBody
     let requestBody = operation?.requestBody;
     if (requestBody) {
@@ -395,7 +400,7 @@ export function detectBodyTypeFromSpec(operation: OperationObject | undefined, s
     // 2. Swagger 2.0: formData parameters
     const params = (operation?.parameters as (ParameterObject | ReferenceObject)[]) || [];
     const hasFormDataParams = params.some((p) => (p as ParameterObject).in === ('formData' as unknown));
-    const consumes = (operation as Record<string, unknown>)?.consumes as string[] || [];
+    const consumes = (operation as unknown as Record<string, unknown>)?.consumes as string[] || [];
 
     if (hasFormDataParams) {
         if (consumes.some((c: string) => c.includes('x-www-form-urlencoded'))) return 'x-www-form-urlencoded';

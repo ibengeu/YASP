@@ -470,7 +470,7 @@ describe('DocsRightPanel — DELETE with requestBody', () => {
   });
 
   it('sends the request body when executing a DELETE with requestBody', async () => {
-    mockExecute.mockResolvedValueOnce({ status: 204, statusText: 'No Content', body: '' });
+    mockExecute.mockResolvedValueOnce({ status: 204, statusText: 'No Content', body: '', headers: {}, time: 0, size: 0 });
 
     render(
       <DocsRightPanel
