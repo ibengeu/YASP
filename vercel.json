@@ -1,5 +1,5 @@
 {
-  "installCommand": "NODE_ENV=development bun install",
+  "installCommand": "bun install",
   "buildCommand": "bun run build:web",
   "outputDirectory": "packages/web/build"
 }
