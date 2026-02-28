@@ -64,17 +64,26 @@ interface ImportSpecDialogProps {
 
 export function ImportSpecDialog({ isOpen, onClose, onSuccess, fetchUrl }: ImportSpecDialogProps) {
   const { activeWorkspaceId, addSpecToWorkspace } = useWorkspaceStore();
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isParsingSpec, setIsParsingSpec] = useState(false);
-  const [isImporting, setIsImporting] = useState(false);
+
+  // Status machine: replaces 3 separate boolean useState (isSubmitting, isParsingSpec, isImporting)
+  type DialogStatus = 'idle' | 'importing' | 'parsing' | 'submitting';
+  const [status, setStatus] = useState<DialogStatus>('idle');
+  const isSubmitting = status === 'submitting';
+  const isParsingSpec = status === 'parsing';
+  const isImporting = status === 'importing';
+
   const [url, setUrl] = useState('');
   const [pastedContent, setPastedContent] = useState('');
-  
-  // Detection state
-  const [specType, setSpecType] = useState<'OpenAPI' | 'AsyncAPI' | null>(null);
-  const [inferredData, setInferredData] = useState<InferredData | null>(null);
-  const [fieldSources, setFieldSources] = useState<Record<string, 'manual' | 'inferred'>>({});
-  const [specSourceUrl, setSpecSourceUrl] = useState<string | undefined>(undefined);
+
+  // Detection state — grouped as a single object to reduce useState count
+  const [parseResult, setParseResult] = useState<{
+    specType: 'OpenAPI' | 'AsyncAPI' | null;
+    inferredData: InferredData | null;
+    fieldSources: Record<string, 'manual' | 'inferred'>;
+    specSourceUrl: string | undefined;
+  }>({ specType: null, inferredData: null, fieldSources: {}, specSourceUrl: undefined });
+
+  const { specType, inferredData, fieldSources, specSourceUrl } = parseResult;
 
   const form = useForm<RegistrationFormData>({
     resolver: zodResolver(registrationSchema),
@@ -105,19 +114,17 @@ export function ImportSpecDialog({ isOpen, onClose, onSuccess, fetchUrl }: Impor
   useEffect(() => {
     if (!isOpen) {
       reset();
-      setInferredData(null);
-      setFieldSources({});
-      setSpecSourceUrl(undefined);
+      setParseResult({ specType: null, inferredData: null, fieldSources: {}, specSourceUrl: undefined });
       setUrl('');
       setPastedContent('');
-      setSpecType(null);
+      setStatus('idle');
     }
   }, [isOpen, reset]);
 
   const handleSpecParsed = async (specContent: string, sourceUrl?: string) => {
     if (!specContent.trim()) return;
-    setIsParsingSpec(true);
-    setSpecSourceUrl(sourceUrl);
+    setStatus('parsing');
+    setParseResult((prev) => ({ ...prev, specSourceUrl: sourceUrl }));
     try {
       let parsed;
       try {
@@ -127,16 +134,16 @@ export function ImportSpecDialog({ isOpen, onClose, onSuccess, fetchUrl }: Impor
         parsed = yaml.parse(specContent);
       }
 
+      let detectedType: 'OpenAPI' | 'AsyncAPI' | null = null;
       if (parsed.asyncapi) {
-        setSpecType('AsyncAPI');
+        detectedType = 'AsyncAPI';
       } else if (parsed.openapi || parsed.swagger) {
-        setSpecType('OpenAPI');
+        detectedType = 'OpenAPI';
       } else {
         throw new Error('Invalid specification format. Please provide a valid OpenAPI or AsyncAPI document.');
       }
 
       const inferred = inferAllData(parsed, sourceUrl);
-      setInferredData(inferred);
 
       // Track source of information
       const updatedSources: Record<string, 'manual' | 'inferred'> = {};
@@ -152,24 +159,29 @@ export function ImportSpecDialog({ isOpen, onClose, onSuccess, fetchUrl }: Impor
       setInferredField('name', inferred.name || 'Unnamed API');
       setInferredField('version', inferred.version || '1.0.0');
       setInferredField('endpoint', inferred.primaryServerUrl);
-      
+
       if (inferred.description && !fieldSources.description && !formData.description) {
         setValue('description', inferred.description, { shouldDirty: true });
         updatedSources.description = 'inferred';
       }
-      
+
       if (inferred.tags.length > 0 && !fieldSources.tags && formData.tags.length === 0) {
         setValue('tags', inferred.tags, { shouldDirty: true });
         updatedSources.tags = 'inferred';
       }
 
-      setFieldSources((prev) => ({ ...prev, ...updatedSources }));
-      toast.success(`${specType} analyzed successfully`);
+      setParseResult((prev) => ({
+        ...prev,
+        specType: detectedType,
+        inferredData: inferred,
+        fieldSources: { ...prev.fieldSources, ...updatedSources },
+      }));
+      toast.success(`${detectedType} retrieved successfully`);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to parse spec');
-      setSpecType(null);
+      setParseResult((prev) => ({ ...prev, specType: null }));
     } finally {
-      setIsParsingSpec(false);
+      setStatus('idle');
     }
   };
 
@@ -186,7 +198,7 @@ export function ImportSpecDialog({ isOpen, onClose, onSuccess, fetchUrl }: Impor
   };
 
   const handleUrlImport = async () => {
-    setIsImporting(true);
+    setStatus('importing');
     try {
       // OWASP A09:2025 – SSRF: URL validation is enforced by the fetchUrl implementation
       // provided by each platform (Rust command on Tauri, server action on web).
@@ -195,13 +207,12 @@ export function ImportSpecDialog({ isOpen, onClose, onSuccess, fetchUrl }: Impor
       await handleSpecParsed(content, url);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : typeof error === 'string' ? error : 'Failed to fetch URL');
-    } finally {
-      setIsImporting(false);
+      setStatus('idle');
     }
   };
 
   const onSubmit = form.handleSubmit(async (data) => {
-    setIsSubmitting(true);
+    setStatus('submitting');
     try {
       const specContent = patchSpecServers(data.openapiSpec.content, inferredData?.servers ?? [], data.endpoint);
       const createdSpec = await idbStorage.createSpec({
@@ -231,9 +242,9 @@ export function ImportSpecDialog({ isOpen, onClose, onSuccess, fetchUrl }: Impor
       onSuccess?.();
       onClose();
     } catch (error) {
-      toast.error('Failed to import API');
+      toast.error(error instanceof Error ? error.message : 'Failed to import API');
     } finally {
-      setIsSubmitting(false);
+      setStatus('idle');
     }
   });
 
@@ -288,30 +299,29 @@ export function ImportSpecDialog({ isOpen, onClose, onSuccess, fetchUrl }: Impor
                     <FormLabel className="text-sm font-bold text-foreground/90">
                       Specification URL
                     </FormLabel>
-                    <div className="relative">
-                      <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                      <Input
-                        type="url"
-                        value={url}
-                        onChange={(e) => setUrl(e.target.value)}
-                        placeholder="https://api.example.com/openapi.json"
-                        className="w-full text-sm pl-9 h-11 bg-background border-border/60 shadow-none"
-                      />
+                    <div className="flex gap-2">
+                      <div className="relative flex-1">
+                        <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                        <Input
+                          type="url"
+                          value={url}
+                          onChange={(e) => setUrl(e.target.value)}
+                          placeholder="https://api.example.com/openapi.json"
+                          className="w-full text-sm pl-9 h-11 bg-background border-border/60 shadow-none"
+                        />
+                      </div>
+                      <Button 
+                        type="button" 
+                        onClick={handleUrlImport} 
+                        disabled={!url || isImporting || isParsingSpec}
+                        size="default"
+                        className="h-11 bg-foreground text-background hover:bg-foreground/90 font-bold text-sm shadow-none px-6 shrink-0 flex items-center gap-2"
+                      >
+                        {isImporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Globe className="h-4 w-4" />}
+                        {isImporting ? 'Fetching…' : 'Fetch'}
+                      </Button>
                     </div>
                   </div>
-                  
-                  {url && (
-                    <Button 
-                      type="button" 
-                      onClick={handleUrlImport} 
-                      disabled={isImporting || isParsingSpec}
-                      size="lg"
-                      className="w-full h-11 bg-foreground text-background hover:bg-foreground/90 font-bold text-sm shadow-none"
-                    >
-                      {isImporting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Globe className="h-4 w-4 mr-2" />}
-                      Fetch Specification
-                    </Button>
-                  )}
                 </TabsContent>
 
                 <TabsContent value="file" className="mt-6 space-y-4 outline-none">
@@ -362,7 +372,7 @@ export function ImportSpecDialog({ isOpen, onClose, onSuccess, fetchUrl }: Impor
                       <FormLabel className="text-sm font-bold text-foreground/90 flex items-center gap-2">
                         {specType === 'AsyncAPI' ? 'Broker / Host URL' : 'Base Endpoint URL'}
                       </FormLabel>
-                      {isParsingSpec && <div className="flex items-center gap-2 text-xs text-muted-foreground animate-pulse font-bold uppercase tracking-tight"><Loader2 className="h-3 w-3 animate-spin" /> Analyzing...</div>}
+                      {isParsingSpec && <div className="flex items-center gap-2 text-xs text-muted-foreground animate-pulse font-bold uppercase tracking-tight"><Loader2 className="h-3 w-3 animate-spin" /> Retrieving...</div>}
                     </div>
                     <FormControl>
                       <div className="relative">
@@ -370,7 +380,7 @@ export function ImportSpecDialog({ isOpen, onClose, onSuccess, fetchUrl }: Impor
                           {...field}
                           onChange={(e) => {
                             field.onChange(e);
-                            setFieldSources((prev) => ({ ...prev, endpoint: 'manual' }));
+                            setParseResult((prev) => ({ ...prev, fieldSources: { ...prev.fieldSources, endpoint: 'manual' } }));
                           }}
                           placeholder={specType === 'AsyncAPI' ? "broker.example.com:9092" : "https://api.example.com"} 
                           className="w-full text-sm pl-3 pr-10 h-11 bg-background font-mono border-border/60 shadow-none"
