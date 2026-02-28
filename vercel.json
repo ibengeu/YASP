@@ -1,5 +1,5 @@
 {
-  "installCommand": "bun install",
+  "installCommand": "bun install --production=false",
   "buildCommand": "bun run build:web",
   "outputDirectory": "packages/web/build"
 }
