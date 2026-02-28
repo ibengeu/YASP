@@ -51,7 +51,7 @@
     "updater": {
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDI3NkQzODE5N0Y5ODQ2NTYKUldSV1JwaC9HVGh0SjNtSlVkVzFnNW9zaEZZbXpJRVRmRWI2ZUJXWlNXS0xjckFkVDlQU3lYcHcK",
       "endpoints": [
-        "https://github.com/YOUR_ORG/YOUR_REPO/releases/latest/download/latest.json"
+        "https://github.com/ibengeu/YASP/releases/latest/download/latest.json"
       ],
       "dialog": false
     }
