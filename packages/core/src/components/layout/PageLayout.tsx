@@ -34,6 +34,7 @@ export function PageLayout({
         onSearchChange={onSearchChange}
         onOpenRegister={onOpenRegister}
         onJoinBeta={onJoinBeta}
+        activeView={activeView}
       />
 
       {/* Content */}
@@ -60,7 +61,7 @@ function Footer() {
   }
 
   return (
-    <footer className="h-14 border-t border-border bg-background/80 backdrop-blur-md flex items-center justify-center gap-6 px-6 shrink-0">
+    <footer className="h-14 border-t border-border/60 bg-background/80 backdrop-blur-md flex items-center justify-center gap-6 px-6 shrink-0">
       {/* Left: Logo/branding */}
       <div className="flex items-center gap-2">
         <span className="text-sm font-semibold text-foreground">YASP</span>

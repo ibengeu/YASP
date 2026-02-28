@@ -55,7 +55,7 @@ export function CollectionsView() {
               key={workspace.id}
               className={cn(
                 'cursor-pointer hover:border-primary/30 transition-colors group',
-                'border-muted/50' // Lighter grey border
+                'border-border/60'
               )}
             >
               <CardHeader className="pb-3">
@@ -79,7 +79,7 @@ export function CollectionsView() {
             </Card>
           ))
         ) : (
-          <div className="col-span-full p-12 text-center bg-card/50 rounded-lg border border-muted/50">
+          <div className="col-span-full p-12 text-center bg-card/50 rounded-lg border border-border/60">
             <FolderOpen className="w-12 h-12 text-muted-foreground/40 mx-auto mb-3" />
             <p className="text-muted-foreground font-medium mb-3">
               {searchQuery

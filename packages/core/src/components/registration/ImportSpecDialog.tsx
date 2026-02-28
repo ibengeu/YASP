@@ -20,7 +20,6 @@ import {
   ArrowRight,
   Loader2,
   Globe,
-  Settings2
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { idbStorage } from '@/core/storage/idb-storage';
@@ -361,7 +360,6 @@ export function ImportSpecDialog({ isOpen, onClose, onSuccess, fetchUrl }: Impor
                   <FormItem className="space-y-3">
                     <div className="flex items-center justify-between">
                       <FormLabel className="text-sm font-bold text-foreground/90 flex items-center gap-2">
-                        <Settings2 className="h-5 w-5 text-muted-foreground" /> 
                         {specType === 'AsyncAPI' ? 'Broker / Host URL' : 'Base Endpoint URL'}
                       </FormLabel>
                       {isParsingSpec && <div className="flex items-center gap-2 text-xs text-muted-foreground animate-pulse font-bold uppercase tracking-tight"><Loader2 className="h-3 w-3 animate-spin" /> Analyzing...</div>}

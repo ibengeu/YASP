@@ -21,8 +21,8 @@ import { searchKeymap } from '@codemirror/search';
 import { autocompletion, completionKeymap } from '@codemirror/autocomplete';
 import { lintKeymap } from '@codemirror/lint';
 import { oneDark } from '@codemirror/theme-one-dark';
+import { useTheme } from 'next-themes';
 import { useEditorStore } from '../store/editor.store';
-import { EDITOR_THEME } from '@/lib/constants';
 
 export interface CodeEditorProps {
   language?: 'yaml' | 'json';
@@ -43,6 +43,7 @@ export const CodeEditor = forwardRef<CodeEditorRef, CodeEditorProps>(function Co
 }, ref) {
   const editorRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
+  const { theme } = useTheme();
   const content = useEditorStore((state) => state.content);
   const setContent = useEditorStore((state) => state.setContent);
   const isUserEditRef = useRef(false);
@@ -70,7 +71,7 @@ export const CodeEditor = forwardRef<CodeEditorRef, CodeEditorProps>(function Co
     },
   }));
 
-  // Initialize editor once
+  // Initialize editor once or when theme changes
   useEffect(() => {
     if (!editorRef.current) return;
 
@@ -92,8 +93,8 @@ export const CodeEditor = forwardRef<CodeEditorRef, CodeEditorProps>(function Co
         // Language support
         language === 'yaml' ? yaml() : json(),
 
-        // Theme
-        oneDark,
+        // Theme (reactive)
+        theme === 'dark' ? oneDark : [],
 
         // Line numbers
         lineNumbers(),
@@ -138,8 +139,8 @@ export const CodeEditor = forwardRef<CodeEditorRef, CodeEditorProps>(function Co
             padding: '16px 0',
           },
           '.cm-gutters': {
-            backgroundColor: EDITOR_THEME.gutterBackground,
-            color: EDITOR_THEME.gutterForeground,
+            backgroundColor: 'var(--muted)',
+            color: 'var(--muted-foreground)',
             border: 'none',
           },
           '.cm-lineNumbers .cm-gutterElement': {
@@ -162,7 +163,7 @@ export const CodeEditor = forwardRef<CodeEditorRef, CodeEditorProps>(function Co
       view.destroy();
       viewRef.current = null;
     };
-  }, []);
+  }, [theme]); // Re-initialize when theme changes
 
   // Update content when changed externally (not from user typing)
   useEffect(() => {
@@ -189,8 +190,8 @@ export const CodeEditor = forwardRef<CodeEditorRef, CodeEditorProps>(function Co
   return (
     <div
       ref={editorRef}
-      className="h-full w-full overflow-auto"
-      style={{ backgroundColor: EDITOR_THEME.background, height }}
+      className="h-full w-full overflow-auto bg-background"
+      style={{ height }}
     />
   );
 });

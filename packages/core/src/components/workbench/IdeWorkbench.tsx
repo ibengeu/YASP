@@ -1,219 +1,247 @@
 import { useState } from 'react';
 import {
-  FileCode,
-  Search,
   ChevronsLeft,
   ChevronsRight,
   Bug,
-  Eye,
-  GitBranch,
-  Users,
-  Plus,
-  ChevronDown,
-  ChevronRight,
-  FolderOpen,
+  CheckCircle2,
+  AlertCircle,
+  AlertTriangle,
+  Info,
+  Loader2,
 } from 'lucide-react';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import { CodeEditor } from '@/features/editor/components/CodeEditor';
 import { useEditorStore } from '@/features/editor/store/editor.store';
+import { useWorkbenchStore } from '@/stores/workbench-store';
+import { useAutoValidation } from '@/features/editor/hooks/useSpectralValidation';
+import type { ISpectralDiagnostic } from '@/core/events/event-types';
+
+// ── Severity helpers ──────────────────────────────────────────────────────────
+
+const SEVERITY_LABELS = ['Error', 'Warning', 'Info', 'Hint'] as const;
+type SeverityLabel = typeof SEVERITY_LABELS[number];
+
+function severityLabel(s: 0 | 1 | 2 | 3): SeverityLabel {
+  return SEVERITY_LABELS[s];
+}
+
+function SeverityIcon({ severity }: { severity: 0 | 1 | 2 | 3 }) {
+  if (severity === 0)
+    return <AlertCircle className="w-3.5 h-3.5 shrink-0 text-destructive" />;
+  if (severity === 1)
+    return <AlertTriangle className="w-3.5 h-3.5 shrink-0 text-yellow-500" />;
+  return <Info className="w-3.5 h-3.5 shrink-0 text-blue-400" />;
+}
+
+// ── Issue Item ────────────────────────────────────────────────────────────────
+
+function IssueItem({ diag }: { diag: ISpectralDiagnostic }) {
+  const label = severityLabel(diag.severity);
+  const line = diag.range.start.line + 1;
+  const pathStr = diag.path.length > 0 ? diag.path.join(' › ') : null;
+
+  return (
+    <div className="px-4 py-3 border-b border-border/40 hover:bg-muted/20 transition-colors group">
+      <div className="flex items-start gap-2">
+        <SeverityIcon severity={diag.severity} />
+        <div className="flex-1 min-w-0">
+          <p className="text-xs text-foreground/90 leading-snug">{diag.message}</p>
+          {pathStr && (
+            <p className="text-[10px] text-muted-foreground mt-0.5 truncate font-mono">{pathStr}</p>
+          )}
+          <p className="text-[10px] text-muted-foreground mt-0.5">
+            <span
+              className={cn(
+                'font-medium mr-1',
+                diag.severity === 0 && 'text-destructive',
+                diag.severity === 1 && 'text-yellow-500',
+                diag.severity >= 2 && 'text-blue-400'
+              )}
+            >
+              {label}
+            </span>
+            · Line {line} · {diag.code}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Issue Summary Counts ──────────────────────────────────────────────────────
+
+function IssueSummary({ diagnostics }: { diagnostics: ISpectralDiagnostic[] }) {
+  const errors = diagnostics.filter((d) => d.severity === 0).length;
+  const warnings = diagnostics.filter((d) => d.severity === 1).length;
+  const infos = diagnostics.filter((d) => d.severity >= 2).length;
+
+  return (
+    <div className="flex items-center gap-3 text-xs text-muted-foreground">
+      {errors > 0 && (
+        <span className="flex items-center gap-1 text-destructive font-medium">
+          <AlertCircle className="w-3 h-3" />
+          {errors}
+        </span>
+      )}
+      {warnings > 0 && (
+        <span className="flex items-center gap-1 text-yellow-500 font-medium">
+          <AlertTriangle className="w-3 h-3" />
+          {warnings}
+        </span>
+      )}
+      {infos > 0 && (
+        <span className="flex items-center gap-1 text-blue-400 font-medium">
+          <Info className="w-3 h-3" />
+          {infos}
+        </span>
+      )}
+    </div>
+  );
+}
+
+// ── Component ────────────────────────────────────────────────────────────────
 
 export function IdeWorkbench() {
-  const [leftCollapsed, setLeftCollapsed] = useState(false);
   const [rightCollapsed, setRightCollapsed] = useState(false);
   const content = useEditorStore((s) => s.content);
+  const { diagnostics, isValidating, score } = useWorkbenchStore();
 
-  const language: 'yaml' | 'json' = content.trimStart().startsWith('{') ? 'json' : 'yaml';
+  // Auto-validate on content change (debounced)
+  useAutoValidation();
+
+  // Auto-detect language based on content
+  const trimmed = content.trimStart();
+  const currentLanguage: 'yaml' | 'json' =
+    trimmed.startsWith('{') || trimmed.startsWith('[') ? 'json' : 'yaml';
+
+  const errors = diagnostics.filter((d) => d.severity === 0).length;
+  const hasIssues = diagnostics.length > 0;
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden bg-background text-foreground">
       <div className="flex-1 flex overflow-hidden">
 
-        {/* Left Sidebar */}
-        <aside
-          className={cn(
-            'border-r flex flex-col bg-muted/30 shrink-0 transition-all duration-200 overflow-hidden',
-            leftCollapsed ? 'w-10' : 'w-64'
-          )}
-        >
-          {leftCollapsed ? (
-            <div className="flex flex-col items-center py-2">
-              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setLeftCollapsed(false)}>
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-            </div>
-          ) : (
-            <Tabs defaultValue="files" className="flex-1 flex flex-col overflow-hidden">
-              <div className="flex items-center justify-between border-b px-2 h-10 shrink-0">
-                <TabsList variant="line" className="h-full">
-                  <TabsTrigger value="files" className="text-xs">Files</TabsTrigger>
-                  <TabsTrigger value="history" className="text-xs">History</TabsTrigger>
-                </TabsList>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 text-muted-foreground hover:text-foreground"
-                  onClick={() => setLeftCollapsed(true)}
-                >
-                  <ChevronsLeft className="h-4 w-4" />
-                </Button>
-              </div>
-
-              <TabsContent value="files" className="flex-1 flex flex-col m-0 overflow-hidden">
-                <div className="p-3 border-b shrink-0">
-                  <div className="relative flex items-center">
-                    <Search className="absolute left-2.5 h-3.5 w-3.5 text-muted-foreground" />
-                    <Input placeholder="Search spec..." className="h-8 pl-8 text-xs bg-background" />
-                  </div>
-                </div>
-                <div className="flex-1 overflow-y-auto">
-                  {content ? (
-                    <div className="py-2 px-1">
-                      <div className="group flex items-center gap-1.5 px-2 py-1.5 text-sm hover:bg-accent rounded cursor-pointer transition-colors">
-                        <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
-                        <FolderOpen className="h-4 w-4 text-primary" />
-                        <span className="truncate">workspace</span>
-                      </div>
-                      <div className="pl-6">
-                        <div className="flex items-center gap-2 px-2 py-1.5 text-sm bg-accent/50 rounded cursor-pointer">
-                          <FileCode className="h-4 w-4 text-muted-foreground" />
-                          <span className="truncate font-medium">spec.{language === 'json' ? 'json' : 'yaml'}</span>
-                        </div>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="p-4 text-center text-xs text-muted-foreground">
-                      No spec loaded. Import one from Collections.
-                    </div>
-                  )}
-                </div>
-              </TabsContent>
-
-              <TabsContent value="history" className="flex-1 flex flex-col m-0 overflow-hidden">
-                <div className="flex-1 flex items-center justify-center p-4">
-                  <p className="text-xs text-muted-foreground text-center">
-                    Edit history will appear here.
-                  </p>
-                </div>
-              </TabsContent>
-            </Tabs>
-          )}
-        </aside>
-
         {/* Center Editor */}
-        <section className="flex-1 flex flex-col min-w-0 border-r">
-          {/* Editor Tabs */}
-          <div className="flex items-center border-b bg-muted/20 overflow-x-auto shrink-0 h-10 no-scrollbar">
-            {content ? (
-              <div className="flex items-center gap-2 px-4 h-full bg-background border-r border-t-2 border-t-primary cursor-pointer min-w-max">
-                <FileCode className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm font-medium">spec.{language === 'json' ? 'json' : 'yaml'}</span>
-              </div>
-            ) : (
-              <div className="px-4 h-full flex items-center text-xs text-muted-foreground">
-                No file open
-              </div>
-            )}
-            <Button variant="ghost" size="icon" className="h-full w-10 border-r rounded-none ml-auto">
-              <Plus className="h-4 w-4" />
-            </Button>
-          </div>
-
-          {/* Code area */}
-          <div className="flex-1 relative overflow-hidden">
-            {content ? (
-              <CodeEditor language={language} />
-            ) : (
-              <div className="h-full flex items-center justify-center text-sm text-muted-foreground">
-                <p>Open a spec from Collections to start editing.</p>
-              </div>
-            )}
+        <section className="flex-1 flex flex-col min-w-0 border-r border-border/60 bg-background/50">
+          <div className="flex-1 relative overflow-hidden bg-background">
+            <CodeEditor language={currentLanguage} />
           </div>
         </section>
 
-        {/* Right Sidebar */}
+        {/* Right Sidebar: Issues */}
         <aside
           className={cn(
-            'border-l flex flex-col bg-muted/30 shrink-0 transition-all duration-200 overflow-hidden',
-            rightCollapsed ? 'w-10' : 'w-80'
+            'border-l border-border/60 flex flex-col bg-muted/10 shrink-0 transition-all duration-200 overflow-hidden relative z-10',
+            rightCollapsed ? 'w-10' : 'w-80 md:w-96'
           )}
         >
           {rightCollapsed ? (
-            <div className="flex flex-col items-center py-2">
-              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setRightCollapsed(false)}>
+            <div className="flex flex-col items-center py-3 gap-4">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-muted-foreground hover:text-foreground cursor-pointer"
+                onClick={() => setRightCollapsed(false)}
+              >
                 <ChevronsLeft className="h-4 w-4" />
               </Button>
+              <Separator className="w-6 mx-auto bg-border/40" />
+              <div className="flex flex-col gap-3 items-center">
+                <Bug className="w-4 h-4 text-muted-foreground" />
+                {errors > 0 && (
+                  <span className="text-xs font-bold bg-destructive/10 text-destructive px-1 rounded-full">
+                    {errors}
+                  </span>
+                )}
+              </div>
             </div>
           ) : (
-            <Tabs defaultValue="issues" className="flex-1 flex flex-col overflow-hidden">
-              <div className="flex items-center justify-between border-b px-2 h-10 shrink-0 bg-background">
-                <TabsList variant="line" className="h-full">
-                  <TabsTrigger value="preview" className="text-xs gap-1.5">
-                    <Eye className="h-3.5 w-3.5" />
-                    Preview
-                  </TabsTrigger>
-                  <TabsTrigger value="issues" className="text-xs gap-1.5">
-                    <Bug className="h-3.5 w-3.5" />
-                    Issues
-                  </TabsTrigger>
-                </TabsList>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 text-muted-foreground hover:text-foreground"
+            <div className="flex-1 flex flex-col overflow-hidden">
+              {/* Issues Toolbar */}
+              <div className="h-12 flex items-center justify-between px-4 shrink-0 bg-muted/20">
+                <div className="flex items-center gap-2 font-normal text-foreground text-sm">
+                  <Bug className="w-4 h-4 text-muted-foreground" />
+                  Issues
+                  {isValidating && (
+                    <Loader2 className="w-3 h-3 animate-spin text-muted-foreground" />
+                  )}
+                  {!isValidating && hasIssues && (
+                    <IssueSummary diagnostics={diagnostics} />
+                  )}
+                </div>
+                <button
+                  className="p-1.5 text-muted-foreground hover:text-foreground rounded hover:bg-muted transition-colors cursor-pointer"
                   onClick={() => setRightCollapsed(true)}
                 >
-                  <ChevronsRight className="h-4 w-4" />
-                </Button>
+                  <ChevronsRight className="w-4 h-4" />
+                </button>
               </div>
 
-              <TabsContent value="preview" className="flex-1 m-0">
-                <div className="h-full flex items-center justify-center p-4">
-                  <p className="text-sm text-muted-foreground text-center">
-                    Documentation preview coming soon.
+              {/* Issues Content */}
+              <div className={cn('flex-1 overflow-hidden', hasIssues ? 'overflow-y-auto' : 'flex items-center justify-center p-8 bg-background/30')}>
+                {isValidating && !hasIssues ? (
+                  <div className="flex flex-col items-center gap-3">
+                    <Loader2 className="w-6 h-6 animate-spin text-muted-foreground/40" />
+                    <p className="text-muted-foreground text-sm italic text-center font-normal">
+                      Validating spec…
+                    </p>
+                  </div>
+                ) : !content ? (
+                  <p className="text-muted-foreground text-sm italic text-center font-normal">
+                    Paste a specification to start validation.
                   </p>
-                </div>
-              </TabsContent>
-
-              <TabsContent value="issues" className="flex-1 flex flex-col m-0 overflow-hidden">
-                <div className="flex-1 flex items-center justify-center p-4">
-                  <p className="text-xs text-muted-foreground text-center">
-                    {content ? 'No issues detected.' : 'Load a spec to run validation.'}
-                  </p>
-                </div>
-              </TabsContent>
-            </Tabs>
+                ) : !hasIssues ? (
+                  <div className="flex flex-col items-center gap-3">
+                    <CheckCircle2 className="w-8 h-8 text-emerald-500/40" />
+                    <p className="text-muted-foreground text-sm italic text-center font-normal">
+                      All clear! No issues found.
+                    </p>
+                    {score < 100 && (
+                      <p className="text-xs text-muted-foreground">Score: {score}/100</p>
+                    )}
+                  </div>
+                ) : (
+                  <div className="w-full">
+                    {diagnostics.map((diag, i) => (
+                      <IssueItem key={`${diag.code}-${i}`} diag={diag} />
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
           )}
         </aside>
       </div>
 
-      {/* Status Bar */}
-      <footer className="h-8 border-t bg-background flex items-center justify-between px-3 text-[11px] text-muted-foreground shrink-0">
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-1.5">
-            <GitBranch className="h-3.5 w-3.5" />
-            <span>main</span>
-          </div>
-          {content && (
-            <span className="hidden sm:inline uppercase font-medium">
-              {language}
+      {/* Footer / Status Bar */}
+      <footer className="h-7 border-t border-border/60 bg-background flex items-center justify-between px-4 text-xs text-muted-foreground shrink-0 select-none">
+        <div className="flex items-center gap-3">
+          {isValidating ? (
+            <span className="flex items-center gap-1">
+              <Loader2 className="w-3 h-3 animate-spin" />
+              Validating…
             </span>
-          )}
+          ) : hasIssues ? (
+            <span className="flex items-center gap-1">
+              {errors > 0 ? (
+                <AlertCircle className="w-3 h-3 text-destructive" />
+              ) : (
+                <AlertTriangle className="w-3 h-3 text-yellow-500" />
+              )}
+              {errors > 0 ? `${errors} error${errors !== 1 ? 's' : ''}` : `${diagnostics.length - errors} warning${diagnostics.length - errors !== 1 ? 's' : ''}`}
+            </span>
+          ) : content ? (
+            <span className="flex items-center gap-1 text-emerald-500/60">
+              <CheckCircle2 className="w-3 h-3" />
+              Valid · Score {score}/100
+            </span>
+          ) : null}
         </div>
-        <div className="flex items-center gap-4">
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Users className="h-4 w-4 text-muted-foreground hover:text-foreground cursor-help" />
-              </TooltipTrigger>
-              <TooltipContent side="top">
-                <p className="text-xs">Collaboration coming soon</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+        <div className="flex items-center gap-5">
+          <span className="font-normal uppercase">UTF-8</span>
+          <span className="font-medium text-foreground/70 uppercase">{currentLanguage}</span>
         </div>
       </footer>
     </div>

@@ -112,7 +112,7 @@ export default function CatalogPage({ fetchUrl }: CatalogPageProps) {
       <div ref={pageRef} className="flex-1 overflow-y-auto custom-scroll" style={{ opacity: 0 }}>
         <div className="relative z-10 p-8 max-w-6xl mx-auto w-full">
           {/* Page header */}
-          <div className="flex items-end justify-between mb-8 pb-6 border-b border-border">
+          <div className="flex items-end justify-between mb-8 pb-6 border-b border-border/60">
             <div>
               <h1 className="text-3xl font-bold text-foreground">API Collections</h1>
               <p className="text-base text-muted-foreground mt-2 max-w-lg leading-relaxed">
@@ -130,7 +130,7 @@ export default function CatalogPage({ fetchUrl }: CatalogPageProps) {
                   "h-9 w-9 border transition-all",
                   viewMode === 'list' 
                     ? "bg-primary text-primary-foreground border-primary shadow-lg shadow-primary/20 hover:bg-primary/90" 
-                    : "bg-muted/50 border-border text-muted-foreground hover:text-foreground"
+                    : "bg-muted/50 border-border/60 text-muted-foreground hover:text-foreground"
                 )}
                 title="List view"
               >
@@ -144,7 +144,7 @@ export default function CatalogPage({ fetchUrl }: CatalogPageProps) {
                   "h-9 w-9 border transition-all",
                   viewMode === 'grid' 
                     ? "bg-primary text-primary-foreground border-primary shadow-lg shadow-primary/20 hover:bg-primary/90" 
-                    : "bg-muted/50 border-border text-muted-foreground hover:text-foreground"
+                    : "bg-muted/50 border-border/60 text-muted-foreground hover:text-foreground"
                 )}
                 title="Grid view"
               >
@@ -158,7 +158,7 @@ export default function CatalogPage({ fetchUrl }: CatalogPageProps) {
               <div className="inline-block h-6 w-6 animate-spin rounded-full border-2 border-solid border-primary border-r-transparent" />
             </div>
           ) : filteredSpecs.length === 0 ? (
-            <div className="col-span-full p-16 text-center rounded-xl border border-border bg-card/30">
+            <div className="col-span-full p-16 text-center rounded-xl border border-border/60 bg-card/30">
               <FileCode className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
               <p className="text-muted-foreground font-medium mb-4">
                 {searchQuery ? 'No APIs match your search.' : 'No APIs registered yet. Import your first spec to get started.'}
