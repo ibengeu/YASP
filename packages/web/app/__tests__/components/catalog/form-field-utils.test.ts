@@ -151,7 +151,7 @@ describe('normalizeSchema — schema edge case handling', () => {
 
   it('wraps non-standard schema as properties', () => {
     const schema = { description: 'not a standard schema' };
-    expect(normalizeSchema(schema)).toEqual({ properties: schema });
+    expect(normalizeSchema(schema)).toEqual({ properties: { value: { description: 'not a standard schema' } } });
   });
 });
 

@@ -40,7 +40,7 @@ describe('RegisterApiDrawer', () => {
     );
 
     expect(screen.getByText('Add an API')).toBeInTheDocument();
-    expect(screen.getByText(/Upload your API spec and fill in the details/)).toBeInTheDocument();
+    expect(screen.getByText(/Configure your API specification and endpoint/)).toBeInTheDocument();
   });
 
   it('should not render when closed', () => {
@@ -64,7 +64,7 @@ describe('RegisterApiDrawer', () => {
       />
     );
 
-    expect(screen.getByText(/Upload your API spec and fill in the details/i)).toBeInTheDocument();
+    expect(screen.getByText(/Configure your API specification and endpoint/i)).toBeInTheDocument();
   });
 
   it('should display spec upload options on Step 1', () => {
