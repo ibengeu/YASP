@@ -12,9 +12,7 @@ let storage: IDBStorage;
 
 beforeEach(async () => {
   localStorage.clear();
-  // Close previous storage if any
   if (storage) storage.close();
-  // Delete existing DB to avoid test leakage
   await new Promise<void>((resolve) => {
     const req = indexedDB.deleteDatabase('yasp_db_v1');
     req.onsuccess = () => resolve();
@@ -77,66 +75,32 @@ describe('useWorkspaceStore', () => {
       expect(state.workspaces).toHaveLength(2);
       expect(state.workspaces.find((w) => w.name === 'Project Alpha')).toBeDefined();
 
-      // Verify IDB persistence
       const allDocs = await storage.getAllWorkspaceDocs();
       expect(allDocs).toHaveLength(2);
     });
-  });
 
-  describe('renameWorkspace', () => {
-    it('should rename a workspace', async () => {
+    it('should reject a duplicate name (case-insensitive)', async () => {
       await useWorkspaceStore.getState().ensureDefaultWorkspace(storage);
-      await useWorkspaceStore.getState().createWorkspace(storage, 'Old Name');
+      await useWorkspaceStore.getState().createWorkspace(storage, 'Team APIs');
 
-      const ws = useWorkspaceStore.getState().workspaces.find((w) => w.name === 'Old Name')!;
-      await useWorkspaceStore.getState().renameWorkspace(storage, ws.id, 'New Name');
+      await expect(
+        useWorkspaceStore.getState().createWorkspace(storage, 'team apis')
+      ).rejects.toThrow(/already exists/i);
 
-      const renamed = useWorkspaceStore.getState().workspaces.find((w) => w.id === ws.id);
-      expect(renamed!.name).toBe('New Name');
+      expect(useWorkspaceStore.getState().workspaces).toHaveLength(2);
+    });
+
+    it('should trim whitespace from the name before duplicate check', async () => {
+      await useWorkspaceStore.getState().ensureDefaultWorkspace(storage);
+      await useWorkspaceStore.getState().createWorkspace(storage, 'My Collection');
+
+      await expect(
+        useWorkspaceStore.getState().createWorkspace(storage, '  My Collection  ')
+      ).rejects.toThrow(/already exists/i);
     });
   });
 
-  describe('deleteWorkspace', () => {
-    it('should delete a non-default workspace', async () => {
-      await useWorkspaceStore.getState().ensureDefaultWorkspace(storage);
-      await useWorkspaceStore.getState().createWorkspace(storage, 'Temp');
-
-      const temp = useWorkspaceStore.getState().workspaces.find((w) => w.name === 'Temp')!;
-      await useWorkspaceStore.getState().deleteWorkspace(storage, temp.id);
-
-      const state = useWorkspaceStore.getState();
-      expect(state.workspaces).toHaveLength(1);
-      expect(state.workspaces[0].name).toBe('Personal');
-    });
-
-    it('should switch active to default when active workspace is deleted', async () => {
-      await useWorkspaceStore.getState().ensureDefaultWorkspace(storage);
-      await useWorkspaceStore.getState().createWorkspace(storage, 'Active One');
-
-      const active = useWorkspaceStore.getState().workspaces.find((w) => w.name === 'Active One')!;
-      useWorkspaceStore.setState({ activeWorkspaceId: active.id });
-
-      await useWorkspaceStore.getState().deleteWorkspace(storage, active.id);
-
-      const state = useWorkspaceStore.getState();
-      const defaultWs = state.workspaces.find((w) => w.isDefault);
-      expect(state.activeWorkspaceId).toBe(defaultWs!.id);
-    });
-  });
-
-  describe('setActiveWorkspace', () => {
-    it('should set activeWorkspaceId', async () => {
-      await useWorkspaceStore.getState().ensureDefaultWorkspace(storage);
-      await useWorkspaceStore.getState().createWorkspace(storage, 'Second');
-
-      const second = useWorkspaceStore.getState().workspaces.find((w) => w.name === 'Second')!;
-      useWorkspaceStore.getState().setActiveWorkspace(second.id);
-
-      expect(useWorkspaceStore.getState().activeWorkspaceId).toBe(second.id);
-    });
-  });
-
-  describe('addSpecToWorkspace / removeSpecFromWorkspace', () => {
+  describe('addSpecToWorkspace', () => {
     it('should add spec to workspace specIds', async () => {
       await useWorkspaceStore.getState().ensureDefaultWorkspace(storage);
       const wsId = useWorkspaceStore.getState().activeWorkspaceId!;
@@ -156,17 +120,6 @@ describe('useWorkspaceStore', () => {
 
       const ws = useWorkspaceStore.getState().workspaces.find((w) => w.id === wsId)!;
       expect(ws.specIds.filter((id) => id === 'spec-1')).toHaveLength(1);
-    });
-
-    it('should remove spec from workspace specIds', async () => {
-      await useWorkspaceStore.getState().ensureDefaultWorkspace(storage);
-      const wsId = useWorkspaceStore.getState().activeWorkspaceId!;
-
-      await useWorkspaceStore.getState().addSpecToWorkspace(storage, wsId, 'spec-1');
-      await useWorkspaceStore.getState().removeSpecFromWorkspace(storage, wsId, 'spec-1');
-
-      const ws = useWorkspaceStore.getState().workspaces.find((w) => w.id === wsId)!;
-      expect(ws.specIds).not.toContain('spec-1');
     });
   });
 });

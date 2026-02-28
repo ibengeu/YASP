@@ -8,8 +8,6 @@
 
 import type {
   OpenApiDocument,
-  SecretEntry,
-  SettingEntry,
   WorkspaceDocument,
 } from './storage-schema';
 import type { WorkflowDocument } from '@/features/workflows/types/workflow.types';
@@ -97,6 +95,12 @@ export class IDBStorage {
    */
 
   async createSpec(spec: Omit<OpenApiDocument, 'id' | 'created_at' | 'updated_at'>): Promise<OpenApiDocument> {
+    const existing = await this.getAllSpecs();
+    const titleLower = spec.title.trim().toLowerCase();
+    if (existing.some((s) => s.title.trim().toLowerCase() === titleLower)) {
+      throw new Error(`A collection named "${spec.title}" already exists.`);
+    }
+
     const db = await this.init();
     const id = crypto.randomUUID();
     const now = new Date().toISOString();
@@ -188,105 +192,6 @@ export class IDBStorage {
 
       request.onsuccess = () => resolve();
       request.onerror = () => reject(new Error(`Failed to delete spec: ${request.error?.message}`));
-    });
-  }
-
-  /**
-   * Search specs by title (uses index)
-   */
-  async searchSpecsByTitle(query: string): Promise<OpenApiDocument[]> {
-    const allSpecs = await this.getAllSpecs();
-    const lowerQuery = query.toLowerCase();
-
-    return allSpecs.filter((spec) =>
-      spec.title.toLowerCase().includes(lowerQuery) ||
-      spec.description?.toLowerCase().includes(lowerQuery)
-    );
-  }
-
-  /**
-   * === Settings Store Operations ===
-   */
-
-  async getSetting<T = any>(key: string): Promise<T | null> {
-    const db = await this.init();
-
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction(['settings'], 'readonly');
-      const store = tx.objectStore('settings');
-      const request = store.get(key);
-
-      request.onsuccess = () => {
-        const entry = request.result as SettingEntry | undefined;
-        resolve(entry ? entry.value : null);
-      };
-      request.onerror = () => reject(new Error(`Failed to get setting: ${request.error?.message}`));
-    });
-  }
-
-  async setSetting<T = any>(key: string, value: T): Promise<void> {
-    const db = await this.init();
-
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction(['settings'], 'readwrite');
-      const store = tx.objectStore('settings');
-      const entry: SettingEntry = { key, value };
-      const request = store.put(entry);
-
-      request.onsuccess = () => resolve();
-      request.onerror = () => reject(new Error(`Failed to set setting: ${request.error?.message}`));
-    });
-  }
-
-  /**
-   * === Secrets Store Operations ===
-   * Note: Values are encrypted before storage (see core/security/crypto.ts)
-   */
-
-  async createSecret(secret: Omit<SecretEntry, 'key_id' | 'created_at'>): Promise<SecretEntry> {
-    const db = await this.init();
-    const key_id = crypto.randomUUID();
-    const created_at = new Date().toISOString();
-
-    const entry: SecretEntry = {
-      ...secret,
-      key_id,
-      created_at,
-    };
-
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction(['secrets'], 'readwrite');
-      const store = tx.objectStore('secrets');
-      const request = store.add(entry);
-
-      request.onsuccess = () => resolve(entry);
-      request.onerror = () => reject(new Error(`Failed to create secret: ${request.error?.message}`));
-    });
-  }
-
-  async getAllSecrets(): Promise<SecretEntry[]> {
-    const db = await this.init();
-
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction(['secrets'], 'readonly');
-      const store = tx.objectStore('secrets');
-      const request = store.getAll();
-
-      request.onsuccess = () => resolve(request.result || []);
-      request.onerror = () => reject(new Error(`Failed to get secrets: ${request.error?.message}`));
-    });
-  }
-
-  async deleteSecret(key_id: string): Promise<void> {
-    const db = await this.init();
-
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction(['secrets'], 'readwrite');
-      const store = tx.objectStore('secrets');
-      const request = store.delete(key_id);
-
-      request.onsuccess = () => resolve();
-      request.onerror = () => reject(new Error(`Failed to delete secret: ${request.error?.message}`));
     });
   }
 
@@ -489,20 +394,6 @@ export class IDBStorage {
     });
   }
 
-  async deleteWorkspaceDoc(id: string): Promise<void> {
-    const db = await this.init();
-
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction(['workspaces'], 'readwrite');
-      const store = tx.objectStore('workspaces');
-      const request = store.delete(id);
-
-      request.onsuccess = () => resolve();
-      request.onerror = () =>
-        reject(new Error(`Failed to delete workspace: ${request.error?.message}`));
-    });
-  }
-
   /**
    * Remove a specId from all workspace specIds arrays.
    * Used when a spec is deleted to clean up workspace references.
@@ -515,28 +406,6 @@ export class IDBStorage {
         await this.updateWorkspaceDoc(workspace.id, { specIds: filtered });
       }
     }
-  }
-
-  /**
-   * === Favorites Operations ===
-   * Uses settings store with key 'favoriteSpecIds'
-   */
-
-  private static readonly FAVORITES_KEY = 'favoriteSpecIds';
-
-  async getFavoriteSpecIds(): Promise<string[]> {
-    const ids = await this.getSetting<string[]>(IDBStorage.FAVORITES_KEY);
-    return ids ?? [];
-  }
-
-  async toggleFavoriteSpec(specId: string): Promise<string[]> {
-    const current = await this.getFavoriteSpecIds();
-    const index = current.indexOf(specId);
-    const updated = index >= 0
-      ? current.filter((id) => id !== specId)
-      : [...current, specId];
-    await this.setSetting(IDBStorage.FAVORITES_KEY, updated);
-    return updated;
   }
 
   /**

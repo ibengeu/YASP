@@ -118,20 +118,6 @@ describe('IDBStorage — Workspace CRUD', () => {
     });
   });
 
-  describe('deleteWorkspaceDoc', () => {
-    it('should remove workspace from store', async () => {
-      const ws = await storage.createWorkspaceDoc({
-        name: 'ToDelete',
-        specIds: [],
-        isDefault: false,
-      });
-
-      await storage.deleteWorkspaceDoc(ws.id);
-      const result = await storage.getWorkspaceDoc(ws.id);
-      expect(result).toBeNull();
-    });
-  });
-
   describe('removeSpecFromWorkspaces', () => {
     it('should remove specId from all workspaces containing it', async () => {
       const ws1 = await storage.createWorkspaceDoc({

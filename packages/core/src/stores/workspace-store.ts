@@ -11,11 +11,7 @@ interface WorkspaceStore {
   loadWorkspaces: (storage: IDBStorage) => Promise<void>;
   ensureDefaultWorkspace: (storage: IDBStorage) => Promise<void>;
   createWorkspace: (storage: IDBStorage, name: string, description?: string) => Promise<WorkspaceDocument>;
-  renameWorkspace: (storage: IDBStorage, id: string, name: string) => Promise<void>;
-  deleteWorkspace: (storage: IDBStorage, id: string) => Promise<void>;
-  setActiveWorkspace: (id: string) => void;
   addSpecToWorkspace: (storage: IDBStorage, workspaceId: string, specId: string) => Promise<void>;
-  removeSpecFromWorkspace: (storage: IDBStorage, workspaceId: string, specId: string) => Promise<void>;
 }
 
 export const useWorkspaceStore = create<WorkspaceStore>()(
@@ -49,8 +45,15 @@ export const useWorkspaceStore = create<WorkspaceStore>()(
       },
 
       createWorkspace: async (storage, name, description) => {
+        const { workspaces } = get();
+        const nameLower = name.trim().toLowerCase();
+
+        if (workspaces.some((w) => w.name.trim().toLowerCase() === nameLower)) {
+          throw new Error(`A collection named "${name}" already exists.`);
+        }
+
         const ws = await storage.createWorkspaceDoc({
-          name,
+          name: name.trim(),
           description,
           specIds: [],
           isDefault: false,
@@ -60,53 +63,12 @@ export const useWorkspaceStore = create<WorkspaceStore>()(
         return ws;
       },
 
-      renameWorkspace: async (storage, id, name) => {
-        await storage.updateWorkspaceDoc(id, { name });
-        set((state) => ({
-          workspaces: state.workspaces.map((w) =>
-            w.id === id ? { ...w, name } : w
-          ),
-        }));
-      },
-
-      deleteWorkspace: async (storage, id) => {
-        await storage.deleteWorkspaceDoc(id);
-        set((state) => {
-          const remaining = state.workspaces.filter((w) => w.id !== id);
-          const needsSwitch = state.activeWorkspaceId === id;
-          const defaultWs = remaining.find((w) => w.isDefault);
-          return {
-            workspaces: remaining,
-            activeWorkspaceId: needsSwitch
-              ? (defaultWs?.id ?? remaining[0]?.id ?? null)
-              : state.activeWorkspaceId,
-          };
-        });
-      },
-
-      setActiveWorkspace: (id) => {
-        set({ activeWorkspaceId: id });
-      },
-
       addSpecToWorkspace: async (storage, workspaceId, specId) => {
         const ws = get().workspaces.find((w) => w.id === workspaceId);
         if (!ws) return;
         if (ws.specIds.includes(specId)) return;
 
         const updatedSpecIds = [...ws.specIds, specId];
-        await storage.updateWorkspaceDoc(workspaceId, { specIds: updatedSpecIds });
-        set((state) => ({
-          workspaces: state.workspaces.map((w) =>
-            w.id === workspaceId ? { ...w, specIds: updatedSpecIds } : w
-          ),
-        }));
-      },
-
-      removeSpecFromWorkspace: async (storage, workspaceId, specId) => {
-        const ws = get().workspaces.find((w) => w.id === workspaceId);
-        if (!ws) return;
-
-        const updatedSpecIds = ws.specIds.filter((id) => id !== specId);
         await storage.updateWorkspaceDoc(workspaceId, { specIds: updatedSpecIds });
         set((state) => ({
           workspaces: state.workspaces.map((w) =>

@@ -38,7 +38,7 @@ export default function CatalogPage({ fetchUrl }: CatalogPageProps) {
   const pageRef = useRef<HTMLDivElement>(null);
   const cardsRef = useRef<(HTMLDivElement | null)[]>([]);
 
-  useEffect(() => { loadSpecs(); loadFavorites(); }, []);
+  useEffect(() => { loadSpecs(); }, []);
 
   useEffect(() => {
     if (pageRef.current) {
@@ -57,12 +57,6 @@ export default function CatalogPage({ fetchUrl }: CatalogPageProps) {
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const loadFavorites = async () => {
-    try {
-      await idbStorage.getFavoriteSpecIds();
-    } catch { /* non-critical */ }
   };
 
   const handleDelete = async (id: string) => {
