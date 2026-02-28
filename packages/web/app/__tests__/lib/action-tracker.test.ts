@@ -32,15 +32,11 @@ describe('action-tracker', () => {
   });
 
   describe('shouldShowEmailGate', () => {
-    it('should return false when action count < 3', () => {
-      incrementAction();
-      incrementAction();
+    it('should return false when action count < 1', () => {
       expect(shouldShowEmailGate()).toBe(false);
     });
 
-    it('should return true when action count >= 3', () => {
-      incrementAction();
-      incrementAction();
+    it('should return true when action count >= 1', () => {
       incrementAction();
       expect(shouldShowEmailGate()).toBe(true);
     });
@@ -61,10 +57,8 @@ describe('action-tracker', () => {
       expect(shouldShowEmailGate()).toBe(false);
     });
 
-    it('should re-prompt after 3 more actions post-dismiss', () => {
-      // First round: 3 actions → gate
-      incrementAction();
-      incrementAction();
+    it('should re-prompt after 1 more action post-dismiss', () => {
+      // First round: 1 action → gate
       incrementAction();
       expect(shouldShowEmailGate()).toBe(true);
 
@@ -72,12 +66,7 @@ describe('action-tracker', () => {
       dismissEmailGate();
       expect(shouldShowEmailGate()).toBe(false);
 
-      // 2 more actions — not enough
-      incrementAction();
-      incrementAction();
-      expect(shouldShowEmailGate()).toBe(false);
-
-      // 3rd action after dismiss — gate again
+      // 1 more action after dismiss — gate again
       incrementAction();
       expect(shouldShowEmailGate()).toBe(true);
     });

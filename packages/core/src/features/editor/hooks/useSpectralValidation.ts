@@ -18,7 +18,7 @@ let workerInstance: Worker | null = null;
 function getWorker(): Worker {
   if (!workerInstance) {
     workerInstance = new Worker(
-      new URL('@/core/workers/spectral.worker.ts', import.meta.url),
+      new URL('../../../core/workers/spectral.worker.ts', import.meta.url),
       { type: 'module' }
     );
   }

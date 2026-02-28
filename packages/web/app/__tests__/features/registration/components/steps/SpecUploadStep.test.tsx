@@ -77,7 +77,7 @@ describe('SpecUploadStep - URL Fetch', () => {
     await user.click(screen.getByRole('tab', { name: /URL/i }));
 
     // Enter a URL
-    const urlInput = screen.getByPlaceholderText(/https:\/\/api\.example\.com/i);
+    const urlInput = screen.getByPlaceholderText(/https:\/\/api\.example\.com\/openapi\.yaml/i);
     await user.type(urlInput, 'https://api.example.com:8025/swagger.json');
 
     // Click Fetch
@@ -119,7 +119,7 @@ describe('SpecUploadStep - URL Fetch', () => {
 
     // Switch to URL tab and enter URL
     await user.click(screen.getByRole('tab', { name: /URL/i }));
-    const urlInput = screen.getByPlaceholderText(/https:\/\/api\.example\.com/i);
+    const urlInput = screen.getByPlaceholderText(/https:\/\/api\.example\.com\/openapi\.yaml/i);
     await user.type(urlInput, 'https://api.example.com/nonexistent.json');
     await user.click(screen.getByRole('button', { name: /Fetch/i }));
 
@@ -137,7 +137,7 @@ describe('SpecUploadStep - URL Fetch', () => {
     const user = userEvent.setup();
 
     await user.click(screen.getByRole('tab', { name: /URL/i }));
-    const urlInput = screen.getByPlaceholderText(/https:\/\/api\.example\.com/i);
+    const urlInput = screen.getByPlaceholderText(/https:\/\/api\.example\.com\/openapi\.yaml/i);
     await user.type(urlInput, 'https://api.example.com/spec.json');
     await user.click(screen.getByRole('button', { name: /Fetch/i }));
 
@@ -201,6 +201,6 @@ describe('SpecUploadStep - UI states', () => {
   it('should show helper text when no spec is provided', () => {
     renderSpecUploadStep();
 
-    expect(screen.getByText(/Upload, paste, or fetch your OpenAPI spec/i)).toBeInTheDocument();
+    expect(screen.getByText(/Upload, paste, or fetch your OpenAPI\/AsyncAPI spec/i)).toBeInTheDocument();
   });
 });
