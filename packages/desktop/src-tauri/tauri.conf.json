@@ -1,7 +1,7 @@
 {
   "productName": "YASP",
   "version": "0.1.0",
-  "identifier": "com.yasp.app",
+  "identifier": "com.yasp.desktop",
   "build": {
     "frontendDist": "../dist",
     "devUrl": "http://localhost:5173",
