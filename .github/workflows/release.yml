@@ -2,6 +2,9 @@ name: Release
 
 on:
   push:
+    branches:
+      - master
+      - main
     tags:
       - 'v*'
 
@@ -56,6 +59,18 @@ jobs:
       - name: Install JS dependencies
         run: bun install --frozen-lockfile
 
+      - name: Resolve tag name
+        id: tag
+        shell: bash
+        run: |
+          if [[ "${{ github.ref_type }}" == "tag" ]]; then
+            echo "name=${{ github.ref_name }}" >> $GITHUB_OUTPUT
+            echo "prerelease=false" >> $GITHUB_OUTPUT
+          else
+            echo "name=nightly" >> $GITHUB_OUTPUT
+            echo "prerelease=true" >> $GITHUB_OUTPUT
+          fi
+
       - name: Build & publish release
         uses: tauri-apps/tauri-action@v0
         env:
@@ -65,9 +80,9 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
           projectPath: packages/desktop
-          tagName: ${{ github.ref_name }}
-          releaseName: 'YASP ${{ github.ref_name }}'
+          tagName: ${{ steps.tag.outputs.name }}
+          releaseName: 'YASP ${{ steps.tag.outputs.name }}'
           releaseBody: 'See the assets below to download this version of YASP.'
-          releaseDraft: true
-          prerelease: false
+          releaseDraft: ${{ github.ref_type != 'tag' }}
+          prerelease: ${{ steps.tag.outputs.prerelease }}
           args: ${{ matrix.args }}
