@@ -25,7 +25,7 @@ export function UpdateDialog({ state }: { state: UpdateState }) {
         </DialogHeader>
 
         {update.body && (
-          <div className="text-sm text-muted-foreground whitespace-pre-wrap max-h-48 overflow-y-auto rounded border p-3">
+          <div className="text-sm text-muted-foreground whitespace-pre-wrap max-h-48 overflow-y-auto rounded border border-slate-100 p-3">
             {update.body}
           </div>
         )}

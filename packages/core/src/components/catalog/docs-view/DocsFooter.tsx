@@ -15,13 +15,9 @@ export function DocsFooter() {
   if (!mounted) return null;
 
   return (
-    <footer className="h-14 border-t border-border bg-background/80 backdrop-blur-md flex items-center justify-center gap-6 px-6 shrink-0">
-      <div className="flex items-center gap-2">
-        <span className="text-sm font-semibold text-foreground">YASP</span>
-      </div>
-
+    <footer className="h-14 border-t border-border bg-background/80 backdrop-blur-md flex items-center justify-center px-6 shrink-0">
       <div className="text-xs text-muted-foreground">
-        © {currentYear} YASP
+        © {currentYear} yasp
       </div>
     </footer>
   );

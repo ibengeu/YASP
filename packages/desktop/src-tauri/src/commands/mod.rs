@@ -29,7 +29,11 @@ fn validate_url(url: &str) -> Result<url::Url, String> {
     // OWASP A09:2025: Restrict to safe outbound protocols
     match parsed.scheme() {
         "http" | "https" => {}
-        scheme => return Err(format!("Disallowed URL scheme: '{scheme}'. Only http/https are permitted.")),
+        scheme => {
+            return Err(format!(
+                "Disallowed URL scheme: '{scheme}'. Only http/https are permitted."
+            ))
+        }
     }
 
     let host = parsed
@@ -39,13 +43,15 @@ fn validate_url(url: &str) -> Result<url::Url, String> {
     // Block cloud metadata endpoints
     // OWASP A09:2025: Cloud metadata services can expose credentials
     let blocked_hosts = [
-        "169.254.169.254",  // AWS/GCP/Azure IMDS
+        "169.254.169.254", // AWS/GCP/Azure IMDS
         "metadata.google.internal",
-        "fd00:ec2::254",    // AWS IPv6 IMDS
-        "100.100.100.200",  // Alibaba Cloud metadata
+        "fd00:ec2::254",   // AWS IPv6 IMDS
+        "100.100.100.200", // Alibaba Cloud metadata
     ];
     if blocked_hosts.contains(&host) {
-        return Err(format!("Blocked host: '{host}' is a cloud metadata endpoint."));
+        return Err(format!(
+            "Blocked host: '{host}' is a cloud metadata endpoint."
+        ));
     }
 
     // Resolve and block private/loopback IP ranges
@@ -67,7 +73,9 @@ fn validate_url(url: &str) -> Result<url::Url, String> {
     if let Some(port) = parsed.port() {
         let dangerous_ports = [22, 23, 25, 110, 143, 3306, 5432, 6379, 27017];
         if dangerous_ports.contains(&port) {
-            return Err(format!("Blocked port: {port} is not allowed for outbound requests."));
+            return Err(format!(
+                "Blocked port: {port} is not allowed for outbound requests."
+            ));
         }
     }
 
@@ -79,14 +87,14 @@ fn check_ip_allowed(ip: &IpAddr) -> Result<(), String> {
         "10.0.0.0/8",
         "172.16.0.0/12",
         "192.168.0.0/16",
-        "127.0.0.0/8",       // loopback
-        "::1/128",           // IPv6 loopback
-        "169.254.0.0/16",    // link-local
-        "fc00::/7",          // IPv6 ULA
-        "fe80::/10",         // IPv6 link-local
-        "100.64.0.0/10",     // Carrier-grade NAT
-        "198.51.100.0/24",   // TEST-NET-2
-        "203.0.113.0/24",    // TEST-NET-3
+        "127.0.0.0/8",     // loopback
+        "::1/128",         // IPv6 loopback
+        "169.254.0.0/16",  // link-local
+        "fc00::/7",        // IPv6 ULA
+        "fe80::/10",       // IPv6 link-local
+        "100.64.0.0/10",   // Carrier-grade NAT
+        "198.51.100.0/24", // TEST-NET-2
+        "203.0.113.0/24",  // TEST-NET-3
     ];
 
     for range in private_ranges {
@@ -159,7 +167,10 @@ pub async fn execute_api_request(
     }
 
     let start = std::time::Instant::now();
-    let response = request.send().await.map_err(|e| format!("Request failed: {e}"))?;
+    let response = request
+        .send()
+        .await
+        .map_err(|e| format!("Request failed: {e}"))?;
     let duration_ms = start.elapsed().as_millis() as u64;
 
     let status = response.status();
@@ -176,7 +187,10 @@ pub async fn execute_api_request(
 
     // OWASP A04:2025 – Insecure Design: enforce a 10MB response limit to prevent
     // memory exhaustion from unexpectedly large responses
-    let body_bytes = response.bytes().await.map_err(|e| format!("Failed to read body: {e}"))?;
+    let body_bytes = response
+        .bytes()
+        .await
+        .map_err(|e| format!("Failed to read body: {e}"))?;
     const MAX_BODY_BYTES: usize = 10 * 1024 * 1024; // 10 MB
     if body_bytes.len() > MAX_BODY_BYTES {
         return Err("Response body exceeds 10MB limit.".to_string());
@@ -213,7 +227,10 @@ pub async fn fetch_spec(url: String) -> Result<String, String> {
     let response = client
         .get(parsed_url)
         // Only request YAML/JSON content types for spec files
-        .header("Accept", "application/json, application/yaml, text/yaml, text/plain, */*")
+        .header(
+            "Accept",
+            "application/json, application/yaml, text/yaml, text/plain, */*",
+        )
         .send()
         .await
         .map_err(|e| format!("Failed to fetch spec: {e}"))?;
@@ -226,7 +243,10 @@ pub async fn fetch_spec(url: String) -> Result<String, String> {
     }
 
     // OWASP A04:2025 – Insecure Design: enforce 5MB limit for spec files
-    let body_bytes = response.bytes().await.map_err(|e| format!("Failed to read spec: {e}"))?;
+    let body_bytes = response
+        .bytes()
+        .await
+        .map_err(|e| format!("Failed to read spec: {e}"))?;
     const MAX_SPEC_BYTES: usize = 5 * 1024 * 1024; // 5 MB
     if body_bytes.len() > MAX_SPEC_BYTES {
         return Err("Spec file exceeds 5MB limit.".to_string());

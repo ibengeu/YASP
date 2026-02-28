@@ -15,27 +15,13 @@ import { RequestHeadersTable } from '@/components/api-details/RequestHeadersTabl
 import { RequestAuthPanel } from '@/components/api-details/RequestAuthPanel';
 import { RequestBodyEditor } from '@/components/api-details/RequestBodyEditor';
 import { ResponsePanel } from '@/components/api-details/ResponsePanel';
-import { idbStorage } from '@/core/storage/idb-storage';
-import { STORAGE_KEYS, DEFAULT_HEADERS, DEFAULT_FALLBACK_URL } from '@/lib/constants';
+import { STORAGE_KEYS, DEFAULT_FALLBACK_URL } from '@/lib/constants';
 import { incrementAction } from '@/lib/action-tracker';
-import {
-  generateExampleFromSchema,
-  resolveRef,
-  detectAuthFromSpec,
-  isDummyFallbackUrl,
-  detectBodyTypeFromSpec,
-  bodyTypeToContentType,
-} from '@/components/api-details/utils';
-import type { OperationObject, PathItemObject, ParameterObject, ReferenceObject, RequestBodyObject, SchemaObject } from '@/types/openapi-spec';
-import type {
-  HTTPMethod,
-  ParsedOpenAPISpec,
-  ParamRow,
-  HeaderRow,
-  TestRequest,
-  TestResponse,
-  BodyContentType,
-} from '@/components/api-details/types';
+import { detectAuthFromSpec, isDummyFallbackUrl } from '@/components/api-details/utils';
+import { useSpecLoader } from '@/features/api-explorer/hooks/useSpecLoader';
+import { useRequestBuilder } from '@/features/api-explorer/hooks/useRequestBuilder';
+import type { OperationObject, PathItemObject } from '@/types/openapi-spec';
+import type { TestResponse } from '@/components/api-details/types';
 
 interface WorkbenchViewProps {
   specId: string;
@@ -44,18 +30,17 @@ interface WorkbenchViewProps {
 export function WorkbenchView({ specId }: WorkbenchViewProps) {
   const fetcher = useFetcher();
 
-  const [isLoading, setIsLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
-  const [parsedSpec, setParsedSpec] = useState<ParsedOpenAPISpec | null>(null);
+  // ── Spec loading (replaces 3 useState + useEffect) ─────────────────────
+  const specState = useSpecLoader(specId);
+  const parsedSpec = specState.status === 'ready' ? specState.spec : null;
 
+  // ── Component-owned state ──────────────────────────────────────────────
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [selectedEndpoint, setSelectedEndpoint] = useState<{
     path: string;
     method: string;
     operation: OperationObject;
   } | null>(null);
-
-  const [activeTab, setActiveTab] = useState<string>('params');
   const [response, setResponse] = useState<TestResponse | null>(null);
 
   const baseUrl = parsedSpec?.servers?.[0]?.url || DEFAULT_FALLBACK_URL;
@@ -63,82 +48,39 @@ export function WorkbenchView({ specId }: WorkbenchViewProps) {
 
   const detectedAuth = detectAuthFromSpec(parsedSpec);
 
-  const [request, setRequest] = useState<TestRequest>({
-    method: 'GET',
-    url: '',
-    params: [],
-    headers: [...DEFAULT_HEADERS.map((h) => ({ ...h })), { enabled: false, key: '', value: '' }],
-    auth: { type: 'none' },
-    body: '{\n  \n}',
-    bodyType: 'json',
-  });
+  // ── Request building (replaces 2 useState + 80-line useEffect) ─────────
+  const {
+    request, setRequest, activeTab, setActiveTab, handleBodyTypeChange,
+  } = useRequestBuilder(selectedEndpoint, selectedServer, parsedSpec);
 
-  // Load spec
+  // ── Auto-select first endpoint + server when spec loads ────────────────
   useEffect(() => {
-    if (!specId) return;
+    if (specState.status !== 'ready') return;
+    const spec = specState.spec;
 
-    let cancelled = false;
-    setIsLoading(true);
-    setLoadError(null);
+    const serverUrl = spec.servers?.[0]?.url || DEFAULT_FALLBACK_URL;
+    setSelectedServer(serverUrl);
 
-    const loadSpec = async () => {
-      try {
-        const spec = await idbStorage.getSpec(specId);
-        if (cancelled) return;
+    const auth = detectAuthFromSpec(spec);
+    setRequest((prev) => ({ ...prev, auth }));
 
-        if (!spec) {
-          setLoadError('Specification not found');
-          setParsedSpec(null);
-          setIsLoading(false);
-          return;
+    if (spec.paths) {
+      const firstPath = Object.keys(spec.paths)[0];
+      if (firstPath) {
+        const pathItem = spec.paths[firstPath] as PathItemObject;
+        const firstMethod = ['get', 'post', 'put', 'delete', 'patch'].find(
+          (m) => pathItem[m as keyof PathItemObject]
+        );
+        if (firstMethod) {
+          setSelectedEndpoint({
+            path: firstPath,
+            method: firstMethod,
+            operation: pathItem[firstMethod as keyof PathItemObject] as OperationObject,
+          });
         }
-
-        // Support both JSON and YAML content
-        let parsed: ParsedOpenAPISpec;
-        try {
-          parsed = JSON.parse(spec.content);
-        } catch {
-          const yaml = await import('yaml');
-          parsed = yaml.parse(spec.content) as ParsedOpenAPISpec;
-        }
-        setParsedSpec(parsed);
-
-        const serverUrl = parsed.servers?.[0]?.url || DEFAULT_FALLBACK_URL;
-        setSelectedServer(serverUrl);
-
-        const auth = detectAuthFromSpec(parsed);
-        setRequest((prev) => ({ ...prev, auth }));
-
-        // Auto-select first endpoint
-        if (parsed.paths) {
-          const firstPath = Object.keys(parsed.paths)[0];
-          if (firstPath) {
-            const pathItem = parsed.paths[firstPath] as PathItemObject;
-            const firstMethod = ['get', 'post', 'put', 'delete', 'patch'].find(
-              (m) => pathItem[m as keyof PathItemObject]
-            );
-            if (firstMethod) {
-              setSelectedEndpoint({
-                path: firstPath,
-                method: firstMethod,
-                operation: pathItem[firstMethod as keyof PathItemObject] as OperationObject,
-              });
-            }
-          }
-        }
-      } catch (error) {
-        if (!cancelled) {
-          setLoadError('Failed to parse specification');
-          console.error('Failed to load spec:', error);
-        }
-      } finally {
-        if (!cancelled) setIsLoading(false);
       }
-    };
-
-    loadSpec();
-    return () => { cancelled = true; };
-  }, [specId]);
+    }
+  }, [specState.status]);
 
   // Sidebar persistence
   useEffect(() => {
@@ -148,141 +90,6 @@ export function WorkbenchView({ specId }: WorkbenchViewProps) {
   useEffect(() => {
     localStorage.setItem(STORAGE_KEYS.sidebarCollapsed, isSidebarCollapsed.toString());
   }, [isSidebarCollapsed]);
-
-  // Build request from endpoint/server selection
-  useEffect(() => {
-    if (!selectedEndpoint || !parsedSpec) return;
-
-    const fullUrl = `${selectedServer}${selectedEndpoint.path}`;
-
-    const pathLevelParams = (parsedSpec?.paths?.[selectedEndpoint.path]?.parameters || []) as (ParameterObject | ReferenceObject)[];
-    const operationParams = (selectedEndpoint.operation?.parameters || []) as (ParameterObject | ReferenceObject)[];
-
-    const paramMap = new Map<string, ParameterObject | ReferenceObject>();
-    for (const paramOrRef of pathLevelParams) {
-      const param = paramOrRef as ParameterObject;
-      paramMap.set(`${param.name}:${param.in}`, paramOrRef);
-    }
-    for (const paramOrRef of operationParams) {
-      const param = paramOrRef as ParameterObject;
-      paramMap.set(`${param.name}:${param.in}`, paramOrRef);
-    }
-    const allParameters = Array.from(paramMap.values());
-
-    const paramRows: ParamRow[] = [];
-    const headerParamsFromSpec: HeaderRow[] = [];
-
-    for (const paramOrRef of allParameters) {
-      const param = paramOrRef as ParameterObject;
-      const location = param.in as string;
-      if (location === 'header') {
-        headerParamsFromSpec.push({
-          enabled: param.required || true,
-          key: param.name,
-          value: (param.schema as SchemaObject)?.default || '',
-        });
-      } else if (location === 'query' || location === 'path' || location === 'cookie') {
-        paramRows.push({
-          enabled: location === 'path' ? true : (param.required || false),
-          key: param.name,
-          value: (param.schema as SchemaObject)?.default?.toString() || '',
-          description: param.description,
-          paramIn: location as ParamRow['paramIn'],
-        });
-      }
-    }
-    paramRows.push({ enabled: false, key: '', value: '', description: undefined });
-
-    let exampleBody = '{\n  \n}';
-    if (selectedEndpoint.operation?.requestBody) {
-      // Resolve $ref on the requestBody object itself
-      let requestBody = selectedEndpoint.operation.requestBody;
-      if ((requestBody as ReferenceObject).$ref && parsedSpec) {
-        requestBody = (resolveRef((requestBody as ReferenceObject).$ref, parsedSpec) as RequestBodyObject) ?? requestBody;
-      }
-      
-      const rb = requestBody as RequestBodyObject;
-      const content = rb.content || {};
-      const jsonContent = content['application/json'];
-      const formContent = content['application/x-www-form-urlencoded'];
-      const textContent = content['text/plain'];
-      const firstContentType = Object.keys(content)[0];
-
-      if (jsonContent) {
-        if (jsonContent.schema) exampleBody = generateExampleFromSchema(jsonContent.schema, 0, parsedSpec);
-        else if (jsonContent.example) exampleBody = JSON.stringify(jsonContent.example, null, 2);
-      } else if (formContent) {
-        if (formContent.schema && (formContent.schema as SchemaObject).properties) {
-          const properties = (formContent.schema as SchemaObject).properties!;
-          const params = Object.keys(properties).map((key) => `${key}=value`).join('&');
-          exampleBody = params || 'key=value';
-        } else exampleBody = 'key=value&key2=value2';
-      } else if (textContent) {
-        exampleBody = textContent.example || 'Plain text content';
-      } else if (firstContentType && content[firstContentType]) {
-        const firstContent = content[firstContentType];
-        if (firstContent.example) {
-          exampleBody = typeof firstContent.example === 'string'
-            ? firstContent.example
-            : JSON.stringify(firstContent.example, null, 2);
-        }
-      }
-    }
-    // Swagger 2.0: body parameter
-    else if (selectedEndpoint.operation?.parameters) {
-      const bodyParam = (selectedEndpoint.operation.parameters as (ParameterObject | ReferenceObject)[]).find((p) => (p as ParameterObject).in === ('body' as unknown)) as ParameterObject;
-      if (bodyParam?.schema) {
-        exampleBody = generateExampleFromSchema(bodyParam.schema, 0, parsedSpec);
-      } else if (bodyParam?.example) {
-        exampleBody = typeof bodyParam.example === 'string'
-          ? bodyParam.example
-          : JSON.stringify(bodyParam.example, null, 2);
-      }
-    }
-
-    const detectedBodyType = detectBodyTypeFromSpec(selectedEndpoint.operation, parsedSpec);
-
-    const mergedHeaders = [
-      ...DEFAULT_HEADERS.map((h) => ({ ...h })),
-      ...headerParamsFromSpec,
-      { enabled: false, key: '', value: '' },
-    ];
-
-    const contentTypeValue = bodyTypeToContentType(detectedBodyType);
-    if (contentTypeValue) {
-      const ctIndex = mergedHeaders.findIndex((h) => h.key.toLowerCase() === 'content-type');
-      if (ctIndex >= 0) {
-        mergedHeaders[ctIndex] = { ...mergedHeaders[ctIndex], value: contentTypeValue };
-      }
-    }
-
-    setRequest((prev) => ({
-      ...prev,
-      method: selectedEndpoint.method.toUpperCase() as HTTPMethod,
-      url: fullUrl,
-      params: paramRows,
-      headers: mergedHeaders,
-      body: exampleBody,
-      bodyType: detectedBodyType,
-    }));
-
-    if (['POST', 'PUT', 'PATCH'].includes(selectedEndpoint.method.toUpperCase())) {
-      setActiveTab('body');
-    } else {
-      setActiveTab('params');
-    }
-  }, [selectedEndpoint, selectedServer]);
-
-  const handleBodyTypeChange = (newType: BodyContentType) => {
-    const contentTypeValue = bodyTypeToContentType(newType);
-    const newHeaders = request.headers.map((h) => {
-      if (h.key.toLowerCase() === 'content-type') {
-        return { ...h, value: contentTypeValue, enabled: contentTypeValue !== '' };
-      }
-      return h;
-    });
-    setRequest((prev) => ({ ...prev, bodyType: newType, headers: newHeaders }));
-  };
 
   // Mitigation for OWASP A07:2025 (Injection): encodeURIComponent prevents URL injection
   const handleSendRequest = () => {
@@ -355,7 +162,7 @@ export function WorkbenchView({ specId }: WorkbenchViewProps) {
     { id: 'body', label: 'Body', badge: null },
   ];
 
-  if (isLoading) {
+  if (specState.status === 'loading') {
     return (
       <div className="flex-1 flex items-center justify-center bg-background/50">
         <div className="text-center space-y-3">
@@ -366,10 +173,10 @@ export function WorkbenchView({ specId }: WorkbenchViewProps) {
     );
   }
 
-  if (loadError) {
+  if (specState.status === 'error') {
     return (
       <div className="flex-1 flex items-center justify-center bg-background/50">
-        <p className="text-sm text-muted-foreground">{loadError}</p>
+        <p className="text-sm text-muted-foreground">{specState.message}</p>
       </div>
     );
   }

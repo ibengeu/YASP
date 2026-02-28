@@ -35,29 +35,21 @@ import {RequestHeadersTable} from './RequestHeadersTable';
 import {RequestAuthPanel} from './RequestAuthPanel';
 import {RequestBodyEditor} from './RequestBodyEditor';
 import {ResponsePanel} from './ResponsePanel';
-import {idbStorage} from '@/core/storage/idb-storage';
 import {executeApiRequest} from '@/actions/execute-api-request';
 import {getMethodColor as getMethodColorFromConstants} from '@/lib/constants';
-import {STORAGE_KEYS, DEFAULT_HEADERS, DEFAULT_FALLBACK_URL} from '@/lib/constants';
+import {STORAGE_KEYS, DEFAULT_FALLBACK_URL} from '@/lib/constants';
 import {pressAnimation} from '@/lib/animations';
 import {
     generateExampleFromSchema,
     resolveRef,
     detectAuthFromSpec,
     isDummyFallbackUrl,
-    detectBodyTypeFromSpec,
-    bodyTypeToContentType,
-    extractFormFields,
 } from './utils';
-import type {OperationObject, PathItemObject, ParameterObject, ReferenceObject, ServerObject, RequestBodyObject, SchemaObject} from '@/types/openapi-spec';
+import {useSpecLoader} from '@/features/api-explorer/hooks/useSpecLoader';
+import {useRequestBuilder} from '@/features/api-explorer/hooks/useRequestBuilder';
+import type {OperationObject, PathItemObject, ParameterObject, ReferenceObject, RequestBodyObject, ServerObject} from '@/types/openapi-spec';
 import type {
-    HTTPMethod,
-    ParsedOpenAPISpec,
-    ParamRow,
-    HeaderRow,
-    TestRequest,
     TestResponse,
-    BodyContentType,
 } from './types';
 
 interface ApiDetailDrawerProps {
@@ -70,29 +62,27 @@ export function ApiDetailDrawer({open, onClose, specId}: ApiDetailDrawerProps) {
     const navigate = useNavigate();
     const fetcher = useFetcher();
 
-    // Loading state
-    const [isLoading, setIsLoading] = useState(true);
-    const [loadError, setLoadError] = useState<string | null>(null);
-    const [parsedSpec, setParsedSpec] = useState<ParsedOpenAPISpec | null>(null);
+    // ── Spec loading (replaces 3 useState + useEffect) ───────────────────
+    const specState = useSpecLoader(open ? specId : undefined);
+    const parsedSpec = specState.status === 'ready' ? specState.spec : null;
 
-    // View state — defaults to Try It Out
+    // ── View state ───────────────────────────────────────────────────────
     const [activeView, setActiveView] = useState<'docs' | 'tryitout'>('tryitout');
 
-    // Sidebar state
+    // ── Sidebar state ────────────────────────────────────────────────────
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
-    // Endpoint state
+    // ── Endpoint state ───────────────────────────────────────────────────
     const [selectedEndpoint, setSelectedEndpoint] = useState<{
         path: string;
         method: string;
         operation: OperationObject;
     } | null>(null);
 
-    // Try It Out state
-    const [activeTab, setActiveTab] = useState<string>('params');
+    // ── Response state ───────────────────────────────────────────────────
     const [response, setResponse] = useState<TestResponse | null>(null);
 
-    // Server state
+    // ── Server state ─────────────────────────────────────────────────────
     const baseUrl = parsedSpec?.servers?.[0]?.url || DEFAULT_FALLBACK_URL;
     const servers = parsedSpec?.servers || [];
     const [selectedServer, setSelectedServer] = useState<string>(baseUrl);
@@ -100,77 +90,39 @@ export function ApiDetailDrawer({open, onClose, specId}: ApiDetailDrawerProps) {
     // Auth state
     const detectedAuth = detectAuthFromSpec(parsedSpec);
 
-    const [request, setRequest] = useState<TestRequest>({
-        method: 'GET',
-        url: '',
-        params: [],
-        headers: [...DEFAULT_HEADERS.map((h) => ({...h})), {enabled: false, key: '', value: ''}],
-        auth: {type: 'none'},
-        body: '{\n  \n}',
-        bodyType: 'json',
-    });
+    // ── Request building (replaces 2 useState + 80-line useEffect) ───────
+    const {
+        request, setRequest, activeTab, setActiveTab, handleBodyTypeChange,
+    } = useRequestBuilder(selectedEndpoint, selectedServer, parsedSpec);
 
-    // ── Spec loading ──────────────────────────────────────────────────────
-
+    // ── Auto-select first endpoint + server when spec loads ──────────────
     useEffect(() => {
-        if (!open || !specId) return;
+        if (specState.status !== 'ready') return;
+        const spec = specState.spec;
 
-        let cancelled = false;
-        setIsLoading(true);
-        setLoadError(null);
+        const serverUrl = spec.servers?.[0]?.url || DEFAULT_FALLBACK_URL;
+        setSelectedServer(serverUrl);
 
-        const loadSpec = async () => {
-            try {
-                const spec = await idbStorage.getSpec(specId);
-                if (cancelled) return;
+        const auth = detectAuthFromSpec(spec);
+        setRequest((prev) => ({...prev, auth}));
 
-                if (!spec) {
-                    setLoadError('Specification not found');
-                    setParsedSpec(null);
-                    setIsLoading(false);
-                    return;
+        if (spec.paths) {
+            const firstPath = Object.keys(spec.paths)[0];
+            if (firstPath) {
+                const pathItem = spec.paths[firstPath] as PathItemObject;
+                const firstMethod = ['get', 'post', 'put', 'delete', 'patch'].find(
+                    (m) => pathItem[m as keyof PathItemObject]
+                );
+                if (firstMethod) {
+                    setSelectedEndpoint({
+                        path: firstPath,
+                        method: firstMethod,
+                        operation: pathItem[firstMethod as keyof PathItemObject] as OperationObject,
+                    });
                 }
-
-                const yaml = await import('yaml');
-                const parsed = yaml.parse(spec.content) as ParsedOpenAPISpec;
-                setParsedSpec(parsed);
-
-                const serverUrl = parsed.servers?.[0]?.url || DEFAULT_FALLBACK_URL;
-                setSelectedServer(serverUrl);
-
-                const auth = detectAuthFromSpec(parsed);
-                setRequest((prev) => ({...prev, auth}));
-
-                // Auto-select first endpoint
-                if (parsed.paths) {
-                    const firstPath = Object.keys(parsed.paths)[0];
-                    if (firstPath) {
-                        const pathItem = parsed.paths[firstPath] as PathItemObject;
-                        const firstMethod = ['get', 'post', 'put', 'delete', 'patch'].find(
-                            (m) => pathItem[m as keyof PathItemObject]
-                        );
-                        if (firstMethod) {
-                            setSelectedEndpoint({
-                                path: firstPath,
-                                method: firstMethod,
-                                operation: pathItem[firstMethod as keyof PathItemObject] as OperationObject,
-                            });
-                        }
-                    }
-                }
-            } catch (error) {
-                if (!cancelled) {
-                    setLoadError('Failed to parse specification');
-                    console.error('Failed to load spec:', error);
-                }
-            } finally {
-                if (!cancelled) setIsLoading(false);
             }
-        };
-
-        loadSpec();
-        return () => { cancelled = true; };
-    }, [open, specId]);
+        }
+    }, [specState.status]);
 
     // Reset state when drawer closes
     useEffect(() => {
@@ -178,9 +130,6 @@ export function ApiDetailDrawer({open, onClose, specId}: ApiDetailDrawerProps) {
             setActiveView('tryitout');
             setResponse(null);
             setSelectedEndpoint(null);
-            setParsedSpec(null);
-            setIsLoading(true);
-            setLoadError(null);
         }
     }, [open]);
 
@@ -192,146 +141,6 @@ export function ApiDetailDrawer({open, onClose, specId}: ApiDetailDrawerProps) {
     useEffect(() => {
         localStorage.setItem(STORAGE_KEYS.sidebarCollapsed, isSidebarCollapsed.toString());
     }, [isSidebarCollapsed]);
-
-    // ── Request building from endpoint/server ─────────────────────────────
-
-    useEffect(() => {
-        if (!selectedEndpoint || !parsedSpec) return;
-
-        const fullUrl = `${selectedServer}${selectedEndpoint.path}`;
-
-        const pathLevelParams = (parsedSpec?.paths?.[selectedEndpoint.path]?.parameters || []) as (ParameterObject | ReferenceObject)[];
-        const operationParams = (selectedEndpoint.operation?.parameters || []) as (ParameterObject | ReferenceObject)[];
-
-        const paramMap = new Map<string, ParameterObject | ReferenceObject>();
-        for (const paramOrRef of pathLevelParams) {
-            const param = paramOrRef as ParameterObject;
-            paramMap.set(`${param.name}:${param.in}`, paramOrRef);
-        }
-        for (const paramOrRef of operationParams) {
-            const param = paramOrRef as ParameterObject;
-            paramMap.set(`${param.name}:${param.in}`, paramOrRef);
-        }
-        const allParameters = Array.from(paramMap.values());
-
-        const paramRows: ParamRow[] = [];
-        const headerParamsFromSpec: HeaderRow[] = [];
-
-        for (const paramOrRef of allParameters) {
-            const param = paramOrRef as ParameterObject;
-            const location = param.in as string;
-            if (location === 'header') {
-                headerParamsFromSpec.push({
-                    enabled: param.required || true,
-                    key: param.name,
-                    value: (param.schema as SchemaObject)?.default || '',
-                });
-            } else if (location === 'query' || location === 'path' || location === 'cookie') {
-                paramRows.push({
-                    enabled: location === 'path' ? true : (param.required || false),
-                    key: param.name,
-                    value: (param.schema as SchemaObject)?.default?.toString() || '',
-                    description: param.description,
-                    paramIn: location as ParamRow['paramIn'],
-                });
-            }
-        }
-        paramRows.push({enabled: false, key: '', value: '', description: undefined});
-
-        let exampleBody = '{\n  \n}';
-
-        // OpenAPI 3.x: requestBody
-        if (selectedEndpoint.operation?.requestBody) {
-            // Mitigation for OWASP A04:2025 – Insecure Design: requestBody may be a $ref per
-            // OpenAPI spec; resolve it before accessing .content to avoid silent schema loss.
-            let requestBody = selectedEndpoint.operation.requestBody;
-            if ((requestBody as ReferenceObject).$ref && parsedSpec) requestBody = (resolveRef((requestBody as ReferenceObject).$ref, parsedSpec) as RequestBodyObject) ?? requestBody;
-
-            const rb = requestBody as RequestBodyObject;
-            const content = rb.content || {};
-            const jsonContent = content['application/json'];
-            const formContent = content['application/x-www-form-urlencoded'];
-            const textContent = content['text/plain'];
-            const firstContentType = Object.keys(content)[0];
-
-            if (jsonContent) {
-                if (jsonContent.schema) exampleBody = generateExampleFromSchema(jsonContent.schema, 0, parsedSpec);
-                else if (jsonContent.example) exampleBody = JSON.stringify(jsonContent.example, null, 2);
-            } else if (formContent) {
-                if (formContent.schema && (formContent.schema as SchemaObject).properties) {
-                    const params = Object.keys((formContent.schema as SchemaObject).properties!).map((key) => `${key}=value`).join('&');
-                    exampleBody = params || 'key=value';
-                } else exampleBody = 'key=value&key2=value2';
-            } else if (textContent) {
-                exampleBody = textContent.example || 'Plain text content';
-            } else if (firstContentType && content[firstContentType]) {
-                const firstContent = content[firstContentType];
-                if (firstContent.example) {
-                    exampleBody = typeof firstContent.example === 'string'
-                        ? firstContent.example
-                        : JSON.stringify(firstContent.example, null, 2);
-                }
-            }
-        }
-        // Swagger 2.0: body parameter
-        else if (selectedEndpoint.operation?.parameters) {
-            const bodyParam = (selectedEndpoint.operation.parameters as (ParameterObject | ReferenceObject)[]).find((p) => (p as ParameterObject).in === ('body' as unknown)) as ParameterObject;
-            if (bodyParam?.schema) {
-                exampleBody = generateExampleFromSchema(bodyParam.schema, 0, parsedSpec);
-            } else if (bodyParam?.example) {
-                exampleBody = typeof bodyParam.example === 'string'
-                    ? bodyParam.example
-                    : JSON.stringify(bodyParam.example, null, 2);
-            }
-        }
-
-        const detectedBodyType = detectBodyTypeFromSpec(selectedEndpoint.operation, parsedSpec);
-        const bodyFields = extractFormFields(selectedEndpoint, parsedSpec);
-
-        const mergedHeaders = [
-            ...DEFAULT_HEADERS.map((h) => ({...h})),
-            ...headerParamsFromSpec,
-            {enabled: false, key: '', value: ''},
-        ];
-
-        const contentTypeValue = bodyTypeToContentType(detectedBodyType);
-        if (contentTypeValue) {
-            const ctIndex = mergedHeaders.findIndex((h) => h.key.toLowerCase() === 'content-type');
-            if (ctIndex >= 0) {
-                mergedHeaders[ctIndex] = {...mergedHeaders[ctIndex], value: contentTypeValue};
-            }
-        }
-
-        setRequest((prev) => ({
-            ...prev,
-            method: selectedEndpoint.method.toUpperCase() as HTTPMethod,
-            url: fullUrl,
-            params: paramRows,
-            headers: mergedHeaders,
-            body: exampleBody,
-            bodyFields: bodyFields,
-            bodyType: detectedBodyType,
-        }));
-
-        if (['POST', 'PUT', 'PATCH'].includes(selectedEndpoint.method.toUpperCase())) {
-            setActiveTab('body');
-        } else {
-            setActiveTab('params');
-        }
-    }, [selectedEndpoint, selectedServer]);
-
-    // ── Body type change → update Content-Type header ─────────────────────
-
-    const handleBodyTypeChange = (newType: BodyContentType) => {
-        const contentTypeValue = bodyTypeToContentType(newType);
-        const newHeaders = request.headers.map((h) => {
-            if (h.key.toLowerCase() === 'content-type') {
-                return {...h, value: contentTypeValue, enabled: contentTypeValue !== ''};
-            }
-            return h;
-        });
-        setRequest((prev) => ({...prev, bodyType: newType, headers: newHeaders}));
-    };
 
     // ── Send request ──────────────────────────────────────────────────────
     // Mitigation for OWASP A07:2025 (Injection): encodeURIComponent prevents URL injection
@@ -446,6 +255,9 @@ export function ApiDetailDrawer({open, onClose, specId}: ApiDetailDrawerProps) {
         {id: 'headers', label: 'Headers', badge: enabledHeadersCount > 0 ? enabledHeadersCount : null},
         {id: 'body', label: 'Body', badge: null},
     ];
+
+    const isLoading = specState.status === 'loading';
+    const loadError = specState.status === 'error' ? specState.message : null;
 
     return (
         <Drawer open={open} onOpenChange={(isOpen) => { if (!isOpen) onClose(); }} direction="bottom" handleOnly>
@@ -593,7 +405,6 @@ export function ApiDetailDrawer({open, onClose, specId}: ApiDetailDrawerProps) {
                 )}
 
                 {/* ── Main 3-column body ───────────────────────────────── */}
-                {/* Mockup: flex-col on mobile, flex-row on md+ */}
                 <div className="flex-1 flex flex-col md:flex-row overflow-auto md:overflow-hidden">
                     {/* Loading / Error states */}
                     {isLoading ? (
@@ -610,7 +421,6 @@ export function ApiDetailDrawer({open, onClose, specId}: ApiDetailDrawerProps) {
                     ) : parsedSpec ? (
                         <>
                             {/* ── LEFT: Endpoint Sidebar ─────────────────── */}
-                            {/* Mockup: w-64, border-r, hidden on mobile, flex-shrink-0 */}
                             {!isSidebarCollapsed && parsedSpec.paths && Object.keys(parsedSpec.paths).length > 0 && (
                                 <aside className="w-full md:w-64 border-b md:border-b-0 md:border-r border-border flex-shrink-0 hidden md:flex">
                                     <EndpointSidebar
@@ -631,26 +441,22 @@ export function ApiDetailDrawer({open, onClose, specId}: ApiDetailDrawerProps) {
                             ) : (
                                 <>
                                     {/* ── CENTER: Request Builder ──────────── */}
-                                    {/* Mockup: flex-1, flex-col, min-w-0 */}
                                     <main className="flex-1 flex flex-col min-w-0 min-h-[60vh] md:min-h-0">
                                         {/* URL bar — unified input group */}
                                         <div className="p-4 border-b border-border shrink-0">
                                             <div className="flex items-stretch h-10 rounded-lg border border-border bg-muted/30 focus-within:border-ring focus-within:ring-1 focus-within:ring-ring/20 transition-all">
-                                                {/* Method label — static, no dropdown since it's derived from the selected endpoint */}
                                                 <div className="flex items-center px-3 border-r border-border rounded-l-lg cursor-default">
                                                     <span className={`text-sm font-bold ${methodColors.text}`}>
                                                         {request.method}
                                                     </span>
                                                 </div>
-                                                {/* URL input */}
                                                 <input
                                                     type="text"
                                                     value={request.url}
-                                                    onChange={(e) => setRequest({...request, url: e.target.value})}
+                                                    onChange={(e) => setRequest((prev) => ({...prev, url: e.target.value}))}
                                                     className="flex-1 bg-transparent px-3 text-base text-foreground font-mono placeholder:text-muted-foreground focus:outline-none cursor-text"
                                                     placeholder="Enter request URL"
                                                 />
-                                                {/* Send button */}
                                                 <button
                                                     type="button"
                                                     onClick={handleSendRequest}
@@ -727,7 +533,6 @@ export function ApiDetailDrawer({open, onClose, specId}: ApiDetailDrawerProps) {
                                                     bodyType={request.bodyType}
                                                     onBodyChange={(body) => {
                                                         if (body === '' && selectedEndpoint) {
-                                                            // Logic to regenerate example body
                                                             let exampleBody = '{\n  \n}';
                                                             if (selectedEndpoint.operation?.requestBody) {
                                                                 let requestBody = selectedEndpoint.operation.requestBody;
@@ -757,7 +562,6 @@ export function ApiDetailDrawer({open, onClose, specId}: ApiDetailDrawerProps) {
                                     </main>
 
                                     {/* ── RIGHT: Response Panel ─────────────── */}
-                                    {/* Mockup: w-full md:w-96, border-l, flex-shrink-0 */}
                                     <aside className="w-full md:w-96 border-t md:border-t-0 md:border-l border-border flex-shrink-0 flex flex-col">
                                         <ResponsePanel
                                             response={response}

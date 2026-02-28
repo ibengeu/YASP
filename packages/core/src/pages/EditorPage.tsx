@@ -9,6 +9,7 @@ import {toast} from 'sonner';
 import {animate} from 'animejs';
 import {CodeEditor, type CodeEditorRef} from '@/features/editor/components/CodeEditor';
 import {useEditorStore} from '@/features/editor/store/editor.store';
+import {useDirtyState} from '@/features/editor/hooks/useDirtyState';
 import {FloatingActionBar} from '@/components/editor/FloatingActionBar';
 import {ApiDocumentation} from '@/components/api-details/ApiDocumentation';
 import {EndpointSidebar} from '@/components/api-details/EndpointSidebar';
@@ -36,9 +37,12 @@ export default function SpecEditor() {
     const content = useEditorStore((state) => state.content);
     const setEditorContent = useEditorStore((state) => state.setContent);
     const editorRef = useRef<CodeEditorRef>(null);
-    const [title, setTitle] = useState('');
-    const [originalTitle, setOriginalTitle] = useState('');
-    const [originalContent, setOriginalContent] = useState('');
+
+    // Dirty-state tracking (replaces title/originalTitle/originalContent/hasChanges)
+    const dirtyState = useDirtyState({title: '', content: ''});
+    const {title, hasChanges} = dirtyState;
+    const syncDirtyState = dirtyState.sync;
+
     const [isSaving, setIsSaving] = useState(false);
     const [activeTab, setActiveTab] = useState<'editor' | 'docs'>('docs');
     const [parsedSpec, setParsedSpec] = useState<ParsedOpenAPISpec | null>(null);
@@ -49,9 +53,6 @@ export default function SpecEditor() {
     } | null>(null);
     const [isMaximized, setIsMaximized] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
-
-    // Track if there are unsaved changes
-    const hasChanges = content !== originalContent || title !== originalTitle;
 
     // Refs for anime.js
     const contentRef = useRef<HTMLDivElement>(null);
@@ -72,18 +73,14 @@ export default function SpecEditor() {
             setIsLoading(true);
             if (id === 'new') {
                 setEditorContent(NEW_SPEC_TEMPLATE, 'code');
-                setOriginalContent(NEW_SPEC_TEMPLATE);
-                setTitle(NEW_SPEC_DEFAULT_TITLE);
-                setOriginalTitle(NEW_SPEC_DEFAULT_TITLE);
+                syncDirtyState({title: NEW_SPEC_DEFAULT_TITLE, content: NEW_SPEC_TEMPLATE});
             } else {
                 const spec = await idbStorage.getSpec(id!);
                 if (spec) {
                     const specContent = spec.content || '';
                     const specTitle = spec.title || 'Untitled';
                     setEditorContent(specContent, 'code');
-                    setOriginalContent(specContent);
-                    setTitle(specTitle);
-                    setOriginalTitle(specTitle);
+                    syncDirtyState({title: specTitle, content: specContent});
                 }
             }
             setIsLoading(false);
@@ -193,9 +190,8 @@ export default function SpecEditor() {
                     },
                 });
 
-                // Update original values after successful save
-                setOriginalContent(content);
-                setOriginalTitle(title);
+                // Reset dirty baseline after successful save
+                syncDirtyState({title, content});
 
                 toast.success('Specification saved');
             }

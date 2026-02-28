@@ -92,7 +92,7 @@ function FeedbackFloater() {
     return (
         <div className="fixed bottom-6 right-6 z-[9999] flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-sm font-medium shadow-xl transition-all duration-200 group hover:border-primary/60 hover:bg-primary/5 hover:shadow-primary/10">
             <a
-                href="https://docs.google.com/forms/d/YOUR_FORM_ID/viewform"
+                href="https://docs.google.com/forms/d/1oQLMAtY3bzcdYDX1lq2vYHimvCAkvOycHxOzKhZGDOs/viewform"
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label="Give feedback"

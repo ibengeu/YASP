@@ -39,6 +39,7 @@ url = "2"
 
 # IP address parsing for SSRF protection
 ipnetwork = "0.20"
+tauri-plugin-opener = "2"
 
 [profile.release]
 panic = "abort"

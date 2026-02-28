@@ -1,5 +1,5 @@
 import { useNavigate, useLocation, Link } from 'react-router';
-import { Moon, Sun, Menu, Share2, Play, Upload, Loader2 } from 'lucide-react';
+import { Moon, Sun, Menu, Share2, Play, Upload, Loader2, ExternalLink } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { Button } from '@/components/ui/button';
 import {
@@ -101,13 +101,37 @@ export function WorkbenchHeader({
           >
             Workbench
           </Link>
+
+          <a
+            href="https://docs.google.com/forms/d/1oQLMAtY3bzcdYDX1lq2vYHimvCAkvOycHxOzKhZGDOs/viewform"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ width: `${NAV_ITEM_WIDTH}px` }}
+            className="text-sm transition-colors font-normal cursor-pointer relative z-10 h-full flex items-center justify-center text-muted-foreground hover:text-foreground gap-1.5"
+            onClick={(e) => {
+              // In Tauri, <a target="_blank"> doesn't open the system browser.
+              // Use the opener plugin via a dynamic specifier so Vite (web build)
+              // never tries to resolve the Tauri-only package at build time.
+              if (typeof window !== 'undefined' && '__TAURI__' in window) {
+                e.preventDefault();
+                const pkg = '@tauri-apps/plugin-opener';
+                import(/* @vite-ignore */ pkg).then(({ openUrl }) => {
+                  openUrl('https://docs.google.com/forms/d/1oQLMAtY3bzcdYDX1lq2vYHimvCAkvOycHxOzKhZGDOs/viewform');
+                });
+              }
+            }}
+          >
+            Feedback
+            <ExternalLink className="size-3 opacity-60" />
+          </a>
           
           {/* Sliding Indicator - precisely aligned with text (inset 12px) */}
           <div 
             className="absolute bottom-0 h-px bg-primary transition-all duration-300 ease-out shadow-[0_0_8px_rgba(var(--primary),0.4)]"
             style={{
               left: isActive('/catalog') ? '12px' : `${NAV_ITEM_WIDTH + NAV_GAP + 12}px`,
-              width: `${NAV_ITEM_WIDTH - 24}px`
+              width: `${NAV_ITEM_WIDTH - 24}px`,
+              opacity: (isActive('/catalog') || isActive('/workbench')) ? 1 : 0
             }}
           />
         </nav>
