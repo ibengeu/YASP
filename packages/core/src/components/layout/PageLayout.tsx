@@ -12,6 +12,9 @@ interface PageLayoutProps {
   onSearchChange?: (query: string) => void;
   onOpenRegister?: () => void;
   onJoinBeta?: () => void;
+}
+
+interface PageLayoutPropsWithView extends PageLayoutProps {
   activeView?: 'collections' | 'workbench';
 }
 
@@ -22,7 +25,7 @@ export function PageLayout({
   onOpenRegister = () => {},
   onJoinBeta = () => {},
   activeView = 'collections',
-}: PageLayoutProps) {
+}: PageLayoutPropsWithView) {
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
       {/* Header */}
@@ -31,7 +34,6 @@ export function PageLayout({
         onSearchChange={onSearchChange}
         onOpenRegister={onOpenRegister}
         onJoinBeta={onJoinBeta}
-        activeView={activeView}
       />
 
       {/* Content */}

@@ -1,5 +1,5 @@
 import { useNavigate, useLocation } from 'react-router';
-import { Upload, Sparkles, Moon, Sun, Plus } from 'lucide-react';
+import { Upload, Sparkles, Moon, Sun } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -16,13 +16,11 @@ interface WorkbenchHeaderProps {
   onSearchChange: (query: string) => void;
   onOpenRegister: () => void;
   onJoinBeta: () => void;
-  activeView?: 'collections' | 'workbench';
 }
 
 export function WorkbenchHeader({
   onOpenRegister,
   onJoinBeta,
-  activeView,
 }: WorkbenchHeaderProps) {
   const { theme, setTheme } = useTheme();
   const navigate = useNavigate();
@@ -89,33 +87,6 @@ export function WorkbenchHeader({
 
       {/* Right: Actions */}
       <div className="flex items-center gap-3">
-        {/* Breadcrumb Context (Visible when in Workbench) */}
-        {activeView === 'workbench' && (
-          <div className="hidden lg:flex items-center text-xs gap-1.5 text-muted-foreground mr-4">
-             <span className="hover:text-foreground cursor-pointer transition-colors">Workspace</span>
-             <span className="opacity-40">/</span>
-             <span className="hover:text-foreground cursor-pointer transition-colors font-medium text-foreground">v2-spec.yaml</span>
-          </div>
-        )}
-
-        <div className="flex items-center gap-2 mr-2">
-          <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
-          <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Synced</span>
-        </div>
-
-        {/* Collaboration Avatars */}
-        <div className="hidden md:flex items-center -space-x-1.5 mr-2">
-          <div className="w-6 h-6 rounded-full bg-blue-100 border border-background flex items-center justify-center text-[10px] text-blue-700 font-bold z-20">
-            AL
-          </div>
-          <div className="w-6 h-6 rounded-full bg-amber-100 border border-background flex items-center justify-center text-[10px] text-amber-700 font-bold z-10">
-            JS
-          </div>
-          <div className="w-6 h-6 rounded-full bg-muted border border-background flex items-center justify-center text-muted-foreground z-0">
-            <Plus className="w-3 h-3" />
-          </div>
-        </div>
-
         <Separator orientation="vertical" className="h-4 hidden sm:block" />
         {/* Join Beta — shadcn Button with reduced opacity */}
         <Button

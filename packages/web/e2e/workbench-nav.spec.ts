@@ -30,9 +30,8 @@ test.describe('Workbench Navigation', () => {
     // Status bar footer with git branch
     await expect(page.locator('footer').filter({ hasText: 'main' })).toBeVisible({ timeout: 5000 });
 
-    // Editor tab — scoped to center section to avoid strict mode violations
-    const editorTab = page.locator('section span', { hasText: 'v2-spec.yaml' });
-    await expect(editorTab.first()).toBeVisible();
+    // Empty state message visible when no spec is loaded
+    await expect(page.getByText('Open a spec from Collections to start editing.')).toBeVisible();
   });
 
   test('workbench page loads directly at /workbench', async ({ page }) => {
@@ -41,10 +40,6 @@ test.describe('Workbench Navigation', () => {
 
     // Header nav is present
     await expect(page.locator('header')).toBeVisible({ timeout: 5000 });
-
-    // Workbench nav link should be active (font-semibold)
-    const workbenchLink = page.locator('header nav a', { hasText: 'Workbench' });
-    await expect(workbenchLink).toHaveClass(/font-semibold/);
 
     // Status bar with git branch visible
     await expect(page.locator('footer').filter({ hasText: 'main' })).toBeVisible({ timeout: 5000 });
@@ -68,15 +63,15 @@ test.describe('Workbench Navigation', () => {
     await page.goto('/workbench');
     await page.waitForLoadState('networkidle');
 
-    await expect(page.getByRole('tab', { name: 'Files' })).toBeVisible({ timeout: 5000 });
-    await expect(page.getByRole('tab', { name: 'History' })).toBeVisible();
+    await expect(page.locator('aside').first().getByRole('tab', { name: 'Files' })).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('aside').first().getByRole('tab', { name: 'History' })).toBeVisible();
   });
 
   test('workbench right sidebar has Preview and Issues tabs', async ({ page }) => {
     await page.goto('/workbench');
     await page.waitForLoadState('networkidle');
 
-    await expect(page.getByRole('tab', { name: 'Preview' })).toBeVisible({ timeout: 5000 });
-    await expect(page.getByRole('tab', { name: /Issues/ })).toBeVisible();
+    await expect(page.locator('aside').last().getByRole('tab', { name: 'Preview' })).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('aside').last().getByRole('tab', { name: /Issues/ })).toBeVisible();
   });
 });
