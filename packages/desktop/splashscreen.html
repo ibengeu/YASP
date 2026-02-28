@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>YASP</title>
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'unsafe-inline';" />
+    <style>
+      *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+      body {
+        background: #09090b;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 100vh;
+        font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
+        user-select: none;
+        -webkit-app-region: drag;
+      }
+
+      .logo {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        animation: fadeIn 0.4s ease;
+      }
+
+      .badge {
+        background: #7c3aed;
+        color: #fff;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.15em;
+        padding: 6px 10px;
+        border-radius: 6px;
+      }
+
+      .wordmark {
+        color: #fafafa;
+        font-size: 22px;
+        font-weight: 600;
+        letter-spacing: -0.02em;
+      }
+
+      .dots {
+        margin-top: 32px;
+        display: flex;
+        gap: 6px;
+        justify-content: center;
+      }
+
+      .dot {
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        background: rgba(124, 58, 237, 0.5);
+        animation: pulse 1.2s ease-in-out infinite;
+      }
+
+      .dot:nth-child(2) { animation-delay: 0.15s; }
+      .dot:nth-child(3) { animation-delay: 0.3s; }
+
+      @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(6px); }
+        to   { opacity: 1; transform: translateY(0); }
+      }
+
+      @keyframes pulse {
+        0%, 100% { opacity: 0.3; transform: scale(0.85); }
+        50%       { opacity: 1;   transform: scale(1); }
+      }
+    </style>
+  </head>
+  <body>
+    <div>
+      <div class="logo">
+        <span class="badge">OAS</span>
+        <span class="wordmark">YASP</span>
+      </div>
+      <div class="dots">
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+      </div>
+    </div>
+  </body>
+</html>

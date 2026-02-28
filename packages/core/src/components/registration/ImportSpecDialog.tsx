@@ -32,7 +32,6 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
-  DialogClose,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -98,17 +97,11 @@ export function ImportSpecDialog({ isOpen, onClose, onSuccess, fetchUrl }: Impor
     },
   });
 
-  const { reset, setValue, watch, formState: { isDirty } } = form;
+  const { reset, setValue, watch } = form;
   const formData = watch();
 
-  // Protect against accidental close if dirty
   const handleOpenChange = (open: boolean) => {
-    if (!open) {
-      if (isDirty && !window.confirm('You have unsaved changes. Are you sure you want to close?')) {
-        return;
-      }
-      onClose();
-    }
+    if (!open) onClose();
   };
 
   useEffect(() => {
@@ -401,11 +394,9 @@ export function ImportSpecDialog({ isOpen, onClose, onSuccess, fetchUrl }: Impor
             {/* Footer */}
             <DialogFooter className="px-6 py-5 bg-card/50 flex items-center justify-end">
               <div className="flex items-center gap-4">
-                <DialogClose asChild>
-                  <Button type="button" variant="ghost" size="sm" className="text-sm font-bold text-muted-foreground hover:text-foreground cursor-pointer h-10 px-4">
-                    Cancel
-                  </Button>
-                </DialogClose>
+                <Button type="button" variant="ghost" size="sm" onClick={() => handleOpenChange(false)} className="text-sm font-bold text-muted-foreground hover:text-foreground cursor-pointer h-10 px-4">
+                  Cancel
+                </Button>
                 <Button
                   type="submit"
                   disabled={isSubmitting || !formData.openapiSpec.content || isParsingSpec}

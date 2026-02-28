@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { HashRouter } from "react-router";
 import { AppProvider } from "@yasp/core/providers/app-provider";
 import { AppRoutes } from "@yasp/core/AppRoutes";
@@ -13,6 +14,13 @@ async function tauriFetchUrl(url: string): Promise<string> {
 
 export default function App() {
     const updateState = useUpdateCheck();
+
+    useEffect(() => {
+        invoke("close_splashscreen").catch(() => {
+            // Splashscreen may not exist in dev — safe to ignore
+        });
+    }, []);
+
     return (
         // HashRouter: required for Tauri — the packaged app has no server to handle /workbench URLs.
         <HashRouter>

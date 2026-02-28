@@ -1,5 +1,16 @@
 mod commands;
 
+use tauri::Manager;
+
+#[tauri::command]
+async fn close_splashscreen(app: tauri::AppHandle) -> Result<(), ()> {
+    let splash = app.get_webview_window("splashscreen").unwrap();
+    let main = app.get_webview_window("main").unwrap();
+    splash.close().unwrap();
+    main.show().unwrap();
+    Ok(())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -14,6 +25,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             commands::execute_api_request,
             commands::fetch_spec,
+            close_splashscreen,
         ])
         .run(tauri::generate_context!())
         .expect("error while running YASP desktop application");
