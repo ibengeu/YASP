@@ -197,6 +197,7 @@ export function ApiCard({ spec, viewMode, onClick, onDelete }: ApiCardProps) {
             <Button
               variant="ghost"
               size="icon"
+              aria-label="Delete API"
               onClick={(e) => {
                 e.stopPropagation();
                 onDelete(spec.id);

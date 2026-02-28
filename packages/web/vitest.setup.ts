@@ -1,10 +1,20 @@
 import '@testing-library/jest-dom'
 import { cleanup } from '@testing-library/react'
-import { afterEach, beforeAll } from 'vitest'
+import { afterEach, beforeAll, vi } from 'vitest'
 import 'fake-indexeddb/auto'
 
 // Setup DOM environment before all tests
 beforeAll(() => {
+
+  // OWASP A04:2025 Insecure Design - Mock ResizeObserver for Radix UI components
+  // @radix-ui/react-use-size requires ResizeObserver API
+  if (!global.ResizeObserver) {
+    global.ResizeObserver = vi.fn().mockImplementation(() => ({
+      observe: vi.fn(),
+      unobserve: vi.fn(),
+      disconnect: vi.fn(),
+    })) as any;
+  }
 
   // Mock localStorage
   // Mitigation for testing environment - provide localStorage mock for Zustand persist middleware

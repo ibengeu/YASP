@@ -93,9 +93,10 @@ describe('ApiCard', () => {
   it('should call onDelete when delete button is clicked', async () => {
     const onDelete = vi.fn();
     const user = userEvent.setup();
-    render(<ApiCard spec={mockSpec} viewMode="grid" onClick={vi.fn()} onDelete={onDelete} />);
+    // Test in list mode where delete button is always visible (not hidden by opacity)
+    render(<ApiCard spec={mockSpec} viewMode="list" onClick={vi.fn()} onDelete={onDelete} />);
 
-    const deleteButton = screen.getByRole('button', { name: /delete/i });
+    const deleteButton = screen.getByRole('button', { name: /delete api/i });
     await user.click(deleteButton);
     expect(onDelete).toHaveBeenCalledWith(mockSpec.id);
   });
